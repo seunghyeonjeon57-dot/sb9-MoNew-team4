@@ -35,3 +35,15 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Custom ###
+# 환경 변수 및 설정 파일 (민감 정보 보호)
+application-*.yml
+application-*.properties
+*.local.yml
+
+# macOS 시스템 파일
+.DS_Store
+
+# QueryDSL 생성 파일
+/src/main/generated/
