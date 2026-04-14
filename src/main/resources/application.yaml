@@ -1,0 +1,16 @@
+spring:
+  profiles:
+    active: dev
+  batch:
+    jdbc:
+      initialize-schema: always
+
+news:
+  rss:
+    sources:
+      - name: "한국경제"
+        url: "https://www.hankyung.com/feed/all-news"
+      - name: "조선일보"
+        url: "https://www.chosun.com/arc/outboundfeeds/rss/category/all-posts/"
+      - name: "연합뉴스"
+        url: "https://www.yonhapnewstv.co.kr/browse/feed/"
