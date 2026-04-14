@@ -1,0 +1,16 @@
+package com.example.monew.domain.interest.exception;
+
+import com.example.monew.global.exception.ErrorCode;
+import com.example.monew.global.exception.MonewException;
+import java.util.Map;
+import java.util.UUID;
+
+public class SubscriptionNotFoundException extends MonewException {
+
+  public SubscriptionNotFoundException(UUID interestId, UUID userId) {
+    super(ErrorCode.SUBSCRIPTION_NOT_FOUND, Map.of(
+        "interestId", interestId,
+        "userId", userId
+    ));
+  }
+}
