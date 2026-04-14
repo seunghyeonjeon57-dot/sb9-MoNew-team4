@@ -10,6 +10,7 @@ import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.InterestSubscriptionRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,8 +31,13 @@ public class InterestSubscriptionService {
     if (subscriptionRepository.existsByInterestIdAndUserId(interestId, userId)) {
       throw new DuplicateSubscriptionException(interestId, userId);
     }
-    InterestSubscription saved = subscriptionRepository.save(
-        new InterestSubscription(interestId, userId));
+    InterestSubscription saved;
+    try {
+      saved = subscriptionRepository.saveAndFlush(
+          new InterestSubscription(interestId, userId));
+    } catch (DataIntegrityViolationException e) {
+      throw new DuplicateSubscriptionException(interestId, userId);
+    }
     interestRepository.incrementSubscriberCount(interestId);
     return interestMapper.toDto(saved);
   }

@@ -77,4 +77,31 @@ class InterestListControllerTest {
             .header("MoNew-Request-User-ID", userId.toString()))
         .andExpect(status().isOk());
   }
+
+  @Test
+  @DisplayName("sortBy 허용값 외 값은 IllegalArgumentException → 400 INVALID_REQUEST")
+  void getReturns400WhenSortByInvalid() throws Exception {
+    given(interestService.getInterests(
+        any(), eq("invalid"), any(), any(), any(Integer.class), any()))
+        .willThrow(new IllegalArgumentException("sortBy must be one of [name, subscriberCount] but was: invalid"));
+
+    mockMvc.perform(get("/api/interests").param("sortBy", "invalid"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+        .andExpect(jsonPath("$.details.reason").value(
+            org.hamcrest.Matchers.containsString("sortBy")));
+  }
+
+  @Test
+  @DisplayName("direction 허용값 외 값은 IllegalArgumentException → 400 INVALID_REQUEST")
+  void getReturns400WhenDirectionInvalid() throws Exception {
+    given(interestService.getInterests(
+        any(), any(), eq("sideways"), any(), any(Integer.class), any()))
+        .willThrow(new IllegalArgumentException("direction must be one of [asc, desc] but was: sideways"));
+
+    mockMvc.perform(get("/api/interests").param("direction", "sideways"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.details.reason").value(
+            org.hamcrest.Matchers.containsString("direction")));
+  }
 }

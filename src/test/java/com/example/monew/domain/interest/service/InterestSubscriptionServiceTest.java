@@ -22,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @ExtendWith(MockitoExtension.class)
 class InterestSubscriptionServiceTest {
@@ -47,7 +48,7 @@ class InterestSubscriptionServiceTest {
     given(subscriptionRepository.existsByInterestIdAndUserId(interestId, userId))
         .willReturn(false);
     InterestSubscription saved = new InterestSubscription(interestId, userId);
-    given(subscriptionRepository.save(any(InterestSubscription.class))).willReturn(saved);
+    given(subscriptionRepository.saveAndFlush(any(InterestSubscription.class))).willReturn(saved);
     given(interestMapper.toDto(saved))
         .willReturn(new SubscriptionDto(saved.getId(), interestId, userId,
             LocalDateTime.now()));
@@ -55,6 +56,22 @@ class InterestSubscriptionServiceTest {
     service.subscribe(interestId, userId);
 
     verify(interestRepository).incrementSubscriberCount(interestId);
+  }
+
+  @Test
+  @DisplayName("subscribe: exists 체크 통과 후 unique 제약 위반(DataIntegrityViolation)은 DuplicateSubscriptionException으로 변환")
+  void subscribeRaceCondition() {
+    UUID interestId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    given(interestRepository.existsById(interestId)).willReturn(true);
+    given(subscriptionRepository.existsByInterestIdAndUserId(interestId, userId))
+        .willReturn(false);
+    given(subscriptionRepository.saveAndFlush(any(InterestSubscription.class)))
+        .willThrow(new DataIntegrityViolationException("unique constraint"));
+
+    assertThatThrownBy(() -> service.subscribe(interestId, userId))
+        .isInstanceOf(DuplicateSubscriptionException.class);
+    verify(interestRepository, never()).incrementSubscriberCount(any());
   }
 
   @Test

@@ -55,14 +55,4 @@ public class Interest extends BaseEntity {
     this.keywords.clear();
     this.keywords.addAll(newKeywords);
   }
-
-  public void increaseSubscriberCount() {
-    this.subscriberCount++;
-  }
-
-  public void decreaseSubscriberCount() {
-    if (this.subscriberCount > 0) {
-      this.subscriberCount--;
-    }
-  }
 }

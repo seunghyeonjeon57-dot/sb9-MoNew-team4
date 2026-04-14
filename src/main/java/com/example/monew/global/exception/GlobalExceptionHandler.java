@@ -47,6 +47,13 @@ public class GlobalExceptionHandler {
         .body(ErrorResponse.of(ErrorCode.INVALID_REQUEST, details));
   }
 
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
+    Map<String, Object> details = Map.of("reason", String.valueOf(ex.getMessage()));
+    return ResponseEntity.status(ErrorCode.INVALID_REQUEST.getStatus())
+        .body(ErrorResponse.of(ErrorCode.INVALID_REQUEST, details));
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleFallback(Exception ex) {
     Map<String, Object> details = Map.of("exception", ex.getClass().getSimpleName());

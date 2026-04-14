@@ -30,6 +30,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class InterestService {
 
+  private static final Set<String> ALLOWED_SORTS =
+      Set.of(InterestCursor.NAME, InterestCursor.SUBSCRIBER_COUNT);
+  private static final Set<String> ALLOWED_DIRECTIONS = Set.of("asc", "desc");
+  private static final int MAX_PAGE_SIZE = 100;
+  private static final int DEFAULT_PAGE_SIZE = 20;
+
   private final InterestRepository interestRepository;
   private final InterestSubscriptionRepository subscriptionRepository;
   private final InterestMapper interestMapper;
@@ -67,6 +73,15 @@ public class InterestService {
       String keyword, String sortBy, String direction,
       String cursor, int size, UUID userId) {
 
+    if (sortBy != null && !ALLOWED_SORTS.contains(sortBy)) {
+      throw new IllegalArgumentException(
+          "sortBy must be one of " + ALLOWED_SORTS + " but was: " + sortBy);
+    }
+    if (direction != null && !ALLOWED_DIRECTIONS.contains(direction.toLowerCase())) {
+      throw new IllegalArgumentException(
+          "direction must be one of " + ALLOWED_DIRECTIONS + " but was: " + direction);
+    }
+
     String field = InterestCursor.SUBSCRIBER_COUNT.equals(sortBy)
         ? InterestCursor.SUBSCRIBER_COUNT : InterestCursor.NAME;
     Sort.Direction dir = "desc".equalsIgnoreCase(direction)
@@ -79,7 +94,7 @@ public class InterestService {
     Specification<Interest> querySpec = baseSpec
         .and(InterestSpecifications.cursorAfter(field, direction, cursor));
 
-    int pageSize = size <= 0 ? 20 : size;
+    int pageSize = size <= 0 ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
     PageRequest pageable = PageRequest.of(0, pageSize + 1, sort);
     List<Interest> rows = new ArrayList<>(
         interestRepository.findAll(querySpec, pageable).getContent());
