@@ -16,11 +16,11 @@ public interface InterestRepository
 
   boolean existsByNameAndIsDeletedFalse(String name);
 
-  @Modifying
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("update Interest i set i.subscriberCount = i.subscriberCount + 1 where i.id = :id")
   int incrementSubscriberCount(@Param("id") UUID id);
 
-  @Modifying
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("""
       update Interest i set i.subscriberCount = i.subscriberCount - 1
       where i.id = :id and i.subscriberCount > 0

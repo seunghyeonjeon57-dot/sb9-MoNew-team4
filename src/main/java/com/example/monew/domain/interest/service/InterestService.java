@@ -8,6 +8,7 @@ import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.mapper.InterestMapper;
+import com.example.monew.domain.interest.repository.InterestCursor;
 import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.InterestSpecifications;
 import com.example.monew.domain.interest.repository.InterestSubscriptionRepository;
@@ -66,13 +67,15 @@ public class InterestService {
       String keyword, String sortBy, String direction,
       String cursor, int size, UUID userId) {
 
-    String field = "subscriberCount".equals(sortBy) ? "subscriberCount" : "name";
+    String field = InterestCursor.SUBSCRIBER_COUNT.equals(sortBy)
+        ? InterestCursor.SUBSCRIBER_COUNT : InterestCursor.NAME;
     Sort.Direction dir = "desc".equalsIgnoreCase(direction)
         ? Sort.Direction.DESC : Sort.Direction.ASC;
     Sort sort = Sort.by(dir, field).and(Sort.by(Sort.Direction.ASC, "id"));
 
-    Specification<Interest> baseSpec = Specification.where(InterestSpecifications.notDeleted())
-        .and(InterestSpecifications.keywordContains(keyword));
+    Specification<Interest> baseSpec = Specification.allOf(
+        InterestSpecifications.notDeleted(),
+        InterestSpecifications.keywordContains(keyword));
     Specification<Interest> querySpec = baseSpec
         .and(InterestSpecifications.cursorAfter(field, direction, cursor));
 
@@ -97,14 +100,9 @@ public class InterestService {
         .map(i -> interestMapper.toResponse(i, subscribedIds.contains(i.getId())))
         .toList();
 
-    String nextCursor = null;
-    if (hasNext && !rows.isEmpty()) {
-      Interest last = rows.get(rows.size() - 1);
-      String value = "subscriberCount".equals(field)
-          ? String.valueOf(last.getSubscriberCount())
-          : last.getName();
-      nextCursor = value + "|" + last.getId();
-    }
+    String nextCursor = (hasNext && !rows.isEmpty())
+        ? InterestCursor.encode(rows.get(rows.size() - 1), field)
+        : null;
 
     return new CursorSlice<>(content, nextCursor, hasNext, total);
   }
