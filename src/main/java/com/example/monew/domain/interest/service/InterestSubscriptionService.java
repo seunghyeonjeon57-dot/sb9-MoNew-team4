@@ -1,7 +1,6 @@
 package com.example.monew.domain.interest.service;
 
 import com.example.monew.domain.interest.dto.SubscriptionDto;
-import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.entity.InterestSubscription;
 import com.example.monew.domain.interest.exception.DuplicateSubscriptionException;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
@@ -25,25 +24,27 @@ public class InterestSubscriptionService {
 
   @Transactional
   public SubscriptionDto subscribe(UUID interestId, UUID userId) {
-    Interest interest = interestRepository.findById(interestId)
-        .orElseThrow(() -> new InterestNotFoundException(interestId));
+    if (!interestRepository.existsById(interestId)) {
+      throw new InterestNotFoundException(interestId);
+    }
     if (subscriptionRepository.existsByInterestIdAndUserId(interestId, userId)) {
       throw new DuplicateSubscriptionException(interestId, userId);
     }
     InterestSubscription saved = subscriptionRepository.save(
         new InterestSubscription(interestId, userId));
-    interest.increaseSubscriberCount();
+    interestRepository.incrementSubscriberCount(interestId);
     return interestMapper.toDto(saved);
   }
 
   @Transactional
   public void unsubscribe(UUID interestId, UUID userId) {
-    Interest interest = interestRepository.findById(interestId)
-        .orElseThrow(() -> new InterestNotFoundException(interestId));
+    if (!interestRepository.existsById(interestId)) {
+      throw new InterestNotFoundException(interestId);
+    }
     long deleted = subscriptionRepository.deleteByInterestIdAndUserId(interestId, userId);
     if (deleted == 0L) {
       throw new SubscriptionNotFoundException(interestId, userId);
     }
-    interest.decreaseSubscriberCount();
+    interestRepository.decrementSubscriberCount(interestId);
   }
 }
