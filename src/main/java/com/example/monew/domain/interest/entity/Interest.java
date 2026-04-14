@@ -19,8 +19,8 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(
-    name = "interest",
-    uniqueConstraints = @UniqueConstraint(name = "uk_interest_name", columnNames = "name")
+    name = "interests",
+    uniqueConstraints = @UniqueConstraint(name = "uk_interests_name", columnNames = "name")
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -35,7 +35,7 @@ public class Interest extends BaseEntity {
 
   @ElementCollection(fetch = FetchType.LAZY)
   @CollectionTable(
-      name = "interest_keyword",
+      name = "interest_keywords",
       joinColumns = @JoinColumn(name = "interest_id")
   )
   @Column(name = "keyword", nullable = false, length = 100)

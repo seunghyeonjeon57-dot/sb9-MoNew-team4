@@ -13,9 +13,9 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(
-    name = "interest_subscription",
+    name = "subscriptions",
     uniqueConstraints = @UniqueConstraint(
-        name = "uk_interest_subscription_interest_user",
+        name = "uk_subscriptions_interest_user",
         columnNames = {"interest_id", "user_id"}
     )
 )
