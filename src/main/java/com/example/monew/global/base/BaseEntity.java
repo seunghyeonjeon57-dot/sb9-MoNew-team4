@@ -17,4 +17,12 @@ public abstract class BaseEntity {
   @LastModifiedDate
   private LocalDateTime updatedAt;
   private boolean isDeleted = false;
+
+  public void markDeleted() {
+    this.isDeleted = true;
+  }
+
+  public void restore() {
+    this.isDeleted = false;
+  }
 }

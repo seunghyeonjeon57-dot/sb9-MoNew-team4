@@ -2,12 +2,16 @@ package com.example.monew.domain.interest.service;
 
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
+import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.entity.Interest;
+import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.mapper.InterestMapper;
 import com.example.monew.domain.interest.repository.InterestRepository;
+import com.example.monew.domain.interest.repository.InterestSubscriptionRepository;
 import com.example.monew.global.util.SimilarityUtils;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class InterestService {
 
   private final InterestRepository interestRepository;
+  private final InterestSubscriptionRepository subscriptionRepository;
   private final InterestMapper interestMapper;
 
   @Transactional
@@ -31,5 +36,21 @@ public class InterestService {
     }
     Interest saved = interestRepository.save(new Interest(request.name(), request.keywords()));
     return interestMapper.toResponse(saved, false);
+  }
+
+  @Transactional
+  public InterestResponse updateKeywords(UUID interestId, InterestUpdateRequest request) {
+    Interest interest = interestRepository.findById(interestId)
+        .orElseThrow(() -> new InterestNotFoundException(interestId));
+    interest.replaceKeywords(request.keywords());
+    return interestMapper.toResponse(interest, false);
+  }
+
+  @Transactional
+  public void delete(UUID interestId) {
+    Interest interest = interestRepository.findById(interestId)
+        .orElseThrow(() -> new InterestNotFoundException(interestId));
+    interest.markDeleted();
+    subscriptionRepository.deleteAllByInterestId(interestId);
   }
 }
