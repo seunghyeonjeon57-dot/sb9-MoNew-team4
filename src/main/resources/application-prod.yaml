@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_ENDPOINT}:5432/monew
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  data:
+    mongodb:
+      uri: mongodb://${MONGO_ENDPOINT}:27017/monew_db
+
+# 실제 AWS S3 설정
+cloud:
+  aws:
+    s3:
+      bucket: monew-backup-prod
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
