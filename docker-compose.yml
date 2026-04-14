@@ -12,19 +12,19 @@ services:
     environment:
       # ${변수명:-기본값}
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
-      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/monew}
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/postgres}
       - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-postgres}
       - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD:-monew1234}
       - SPRING_DATA_MONGODB_URI=${SPRING_DATA_MONGODB_URI:-mongodb://mongodb:27017/monew}
 
-      # .env에만 있는 중요 정보들 추가
-      - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
-      - AWS_SECRET_KEY=${AWS_SECRET_KEY}
-      - NAVER_CLIENT_ID=${NAVER_CLIENT_ID}
-      - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET}
+      # AWS/NAVER 설정
+      - AWS_ACCESS_KEY=${AWS_ACCESS_KEY:-dummy}
+      - AWS_SECRET_KEY=${AWS_SECRET_KEY:-dummy}
+      - NAVER_CLIENT_ID=${NAVER_CLIENT_ID:-dummy}
+      - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET:-dummy}
     restart: always
 
-  mongo:
+  mongodb:
     image: mongo:6.0
     container_name: monew-mongo
     ports:
