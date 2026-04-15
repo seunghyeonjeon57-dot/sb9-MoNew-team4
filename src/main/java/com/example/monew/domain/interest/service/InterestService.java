@@ -6,6 +6,7 @@ import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
+import com.example.monew.domain.interest.exception.InvalidSortParameterException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.mapper.InterestMapper;
 import com.example.monew.domain.interest.repository.InterestCursor;
@@ -74,12 +75,10 @@ public class InterestService {
       String cursor, int size, UUID userId) {
 
     if (sortBy != null && !ALLOWED_SORTS.contains(sortBy)) {
-      throw new IllegalArgumentException(
-          "sortBy must be one of " + ALLOWED_SORTS + " but was: " + sortBy);
+      throw new InvalidSortParameterException("sortBy", sortBy, ALLOWED_SORTS);
     }
     if (direction != null && !ALLOWED_DIRECTIONS.contains(direction.toLowerCase())) {
-      throw new IllegalArgumentException(
-          "direction must be one of " + ALLOWED_DIRECTIONS + " but was: " + direction);
+      throw new InvalidSortParameterException("direction", direction, ALLOWED_DIRECTIONS);
     }
 
     String field = InterestCursor.SUBSCRIBER_COUNT.equals(sortBy)
