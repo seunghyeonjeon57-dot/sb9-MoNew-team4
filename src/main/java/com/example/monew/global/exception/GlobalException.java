@@ -37,28 +37,18 @@ public class GlobalException {
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
-    log.error("요청 유효성 검사 실패: {}", e.getMessage());
+    log.warn("요청 유효성 검사 실패: {}", e.getMessage());
 
-    Map<String, Object> validationErrors = new HashMap<>();
+    Map<String, Object> fieldErrors = new HashMap<>();
     e.getBindingResult().getAllErrors().forEach(error -> {
       String fieldName = ((FieldError) error).getField();
       String errorMessage = error.getDefaultMessage();
-      validationErrors.put(fieldName, errorMessage);
+      fieldErrors.put(fieldName, errorMessage);
     });
 
-    ErrorResponse response = new ErrorResponse(
-        Instant.now(),
-        "VALIDATION_ERROR",
-        "요청 데이터 유효성 검사에 실패했습니다",
-        validationErrors,
-        e.getClass().getSimpleName(),
-        HttpStatus.BAD_REQUEST.value(),
-        org.slf4j.MDC.get("request_id")
-    );
-
     return ResponseEntity
-        .status(HttpStatus.BAD_REQUEST)
-        .body(response);
+        .status(ErrorCode.INVALID_REQUEST.getStatus())
+        .body(ErrorResponse.of(ErrorCode.INVALID_REQUEST, fieldErrors));
   }
 
 
