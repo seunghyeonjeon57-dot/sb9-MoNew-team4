@@ -57,11 +57,15 @@ public class ArticleService {
     return articleRepository.findAllSources();
   }
 
+  //임시
+  public void incrementViewCount(UUID articleId) {
+  }
 
   public Page<ArticleEntity> getArticleList(String keyword, String interest, String source,
       LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
     // 모든 조건을 레포지토리에 던지면, 쿼리에서 null 체크를 통해 알아서 합쳐서 검색합니다.
     return articleRepository.searchArticles(keyword, interest, source, startDate, endDate, pageable);
   }
+
 
 }

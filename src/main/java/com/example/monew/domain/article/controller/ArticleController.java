@@ -61,6 +61,8 @@ public class ArticleController {
       @ApiResponse(responseCode = "200", description = "뷰 등록 성공"),
       @ApiResponse(responseCode = "404", description = "기사를 찾을 수 없음")
   })
+
+
   @PostMapping("/{articleId}/article-views")
   public ResponseEntity<Void> incrementArticleView(@PathVariable UUID articleId) {
     articleService.incrementViewCount(articleId);
