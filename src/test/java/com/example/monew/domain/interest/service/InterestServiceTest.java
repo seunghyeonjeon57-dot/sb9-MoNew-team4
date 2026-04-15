@@ -86,7 +86,7 @@ class InterestServiceTest {
     when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(a, b));
     when(subscriptionRepository.findAllByUserId(userId)).thenReturn(List.of(subA));
 
-    List<InterestResponse> list = interestService.getInterests(null, null, userId);
+    List<InterestResponse> list = interestService.getInterests(null, null, null, userId);
 
     assertThat(list).hasSize(2);
     assertThat(list.stream().filter(r -> r.name().equals("A")).findFirst().orElseThrow().subscribedByMe()).isTrue();
@@ -96,7 +96,7 @@ class InterestServiceTest {
   @Test
   @DisplayName("getInterests: 잘못된 sortBy → InvalidSortParameterException")
   void getInterestsInvalidSort() {
-    assertThatThrownBy(() -> interestService.getInterests("foo", "asc", null))
+    assertThatThrownBy(() -> interestService.getInterests(null, "foo", "asc", null))
         .isInstanceOf(InvalidSortParameterException.class);
   }
 
@@ -107,7 +107,7 @@ class InterestServiceTest {
     Interest b = new Interest("B", List.of("b"));
     when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(a, b));
 
-    List<InterestResponse> list = interestService.getInterests("name", "desc", null);
+    List<InterestResponse> list = interestService.getInterests(null, "name", "desc", null);
 
     assertThat(list).extracting(InterestResponse::name).containsExactly("B", "A");
   }

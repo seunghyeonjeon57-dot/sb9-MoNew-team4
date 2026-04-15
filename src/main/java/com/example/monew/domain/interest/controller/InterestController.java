@@ -30,10 +30,11 @@ public class InterestController {
 
   @GetMapping
   public ResponseEntity<List<InterestResponse>> list(
+      @RequestParam(required = false) String keyword,
       @RequestParam(required = false) String sortBy,
       @RequestParam(required = false) String direction,
       @RequestHeader(value = "MoNew-Request-User-ID", required = false) UUID userId) {
-    return ResponseEntity.ok(interestService.getInterests(sortBy, direction, userId));
+    return ResponseEntity.ok(interestService.getInterests(keyword, sortBy, direction, userId));
   }
 
   @PostMapping

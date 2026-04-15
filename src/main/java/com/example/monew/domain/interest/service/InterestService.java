@@ -46,7 +46,8 @@ public class InterestService {
   }
 
   @Transactional(readOnly = true)
-  public List<InterestResponse> getInterests(String sortBy, String direction, UUID userId) {
+  public List<InterestResponse> getInterests(
+      String keyword, String sortBy, String direction, UUID userId) {
     if (sortBy != null && !ALLOWED_SORT_BY.contains(sortBy)) {
       throw new InvalidSortParameterException(Map.of("sortBy", sortBy));
     }
@@ -70,9 +71,21 @@ public class InterestService {
             .collect(Collectors.toSet());
 
     return interests.stream()
+        .filter(i -> matchesKeyword(i, keyword))
         .sorted(comparator)
         .map(i -> InterestResponse.from(i, subscribedIds.contains(i.getId())))
         .toList();
+  }
+
+  private boolean matchesKeyword(Interest interest, String keyword) {
+    if (keyword == null || keyword.isBlank()) {
+      return true;
+    }
+    if (interest.getName().contains(keyword)) {
+      return true;
+    }
+    return interest.getKeywords().stream()
+        .anyMatch(k -> k.getValue().contains(keyword));
   }
 
   @Transactional
