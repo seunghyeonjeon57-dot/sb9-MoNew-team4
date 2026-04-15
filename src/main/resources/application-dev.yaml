@@ -1,8 +1,11 @@
 spring:
+  config:
+    activate:
+      on-profile: dev
   datasource:
-    url: jdbc:postgresql://localhost:5432/monew
-    username: monew_user
-    password: monew_pass
+    url: jdbc:postgresql://${SPRING_DATASOURCE_URL}:${SPRING_DATASOURCE_PORT}/postgres
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   data:
     mongodb:
@@ -12,8 +15,8 @@ spring:
 cloud:
   aws:
     s3:
-      bucket: monew-backup-dev
+      bucket: ${AWS_S3_BUCKET_NAME}
     region:
-      static: ap-northeast-2
+      static: ${AWS_REGION}
     stack:
       auto: false
