@@ -2,7 +2,10 @@ package com.example.monew.domain.interest.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -105,6 +108,29 @@ class InterestControllerTest {
     mockMvc.perform(patch("/api/interests/" + id)
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("INTEREST_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("DELETE /api/interests/{id}: 성공 → 204")
+  void delete204() throws Exception {
+    UUID id = UUID.randomUUID();
+
+    mockMvc.perform(delete("/api/interests/" + id))
+        .andExpect(status().isNoContent());
+
+    verify(interestService).delete(id);
+  }
+
+  @Test
+  @DisplayName("DELETE /api/interests/{id}: 미존재 → 404 INTEREST_NOT_FOUND")
+  void delete404() throws Exception {
+    UUID id = UUID.randomUUID();
+    doThrow(new InterestNotFoundException(Map.of("interestId", id.toString())))
+        .when(interestService).delete(id);
+
+    mockMvc.perform(delete("/api/interests/" + id))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("INTEREST_NOT_FOUND"));
   }
