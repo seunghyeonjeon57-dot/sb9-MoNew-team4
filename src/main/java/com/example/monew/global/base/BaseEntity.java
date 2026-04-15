@@ -16,5 +16,10 @@ public abstract class BaseEntity {
   private LocalDateTime createdAt;
   @LastModifiedDate
   private LocalDateTime updatedAt;
-  private boolean isDeleted = false;
+  private LocalDateTime deletedAt;
+
+  public boolean isDeleted(){
+    return deletedAt != null;
+  }
+
 }
