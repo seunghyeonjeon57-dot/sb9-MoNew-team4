@@ -2,8 +2,6 @@ package com.example.monew.domain.interest.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.Objects;
@@ -19,8 +17,8 @@ import lombok.NoArgsConstructor;
 public class Subscription {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @Column(columnDefinition = "uuid")
+  private UUID id = UUID.randomUUID();
 
   @Column(nullable = false)
   private UUID interestId;

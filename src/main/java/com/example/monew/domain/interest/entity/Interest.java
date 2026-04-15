@@ -3,13 +3,12 @@ package com.example.monew.domain.interest.entity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,8 +21,8 @@ import org.springframework.util.StringUtils;
 public class Interest {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @Column(columnDefinition = "uuid")
+  private UUID id = UUID.randomUUID();
 
   @Column(nullable = false, unique = true)
   private String name;
