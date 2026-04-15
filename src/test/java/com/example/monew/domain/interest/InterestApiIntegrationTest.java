@@ -167,11 +167,11 @@ class InterestApiIntegrationTest {
   }
 
   @Test
-  @DisplayName("잘못된 sortBy 값은 400 INVALID_REQUEST로 매핑된다")
+  @DisplayName("잘못된 sortBy 값은 400 INVALID_SORT_PARAMETER로 매핑된다")
   void invalidSortByReturns400() throws Exception {
     mockMvc.perform(get("/api/interests").param("sortBy", "bogus"))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        .andExpect(jsonPath("$.code").value("INVALID_SORT_PARAMETER"));
   }
 
   @Test
