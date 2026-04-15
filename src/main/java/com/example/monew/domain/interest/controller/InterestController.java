@@ -37,20 +37,25 @@ public class InterestController {
   }
 
   @PostMapping
-  public ResponseEntity<InterestResponse> create(@Valid @RequestBody InterestCreateRequest request) {
+  public ResponseEntity<InterestResponse> create(
+      @RequestHeader("MoNew-Request-User-ID") UUID userId,
+      @Valid @RequestBody InterestCreateRequest request) {
     InterestResponse response = interestService.create(request);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
 
   @PatchMapping("/{id}")
   public ResponseEntity<InterestResponse> updateKeywords(
+      @RequestHeader("MoNew-Request-User-ID") UUID userId,
       @PathVariable UUID id,
       @Valid @RequestBody InterestUpdateRequest request) {
     return ResponseEntity.ok(interestService.updateKeywords(id, request));
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> delete(@PathVariable UUID id) {
+  public ResponseEntity<Void> delete(
+      @RequestHeader("MoNew-Request-User-ID") UUID userId,
+      @PathVariable UUID id) {
     interestService.delete(id);
     return ResponseEntity.noContent().build();
   }

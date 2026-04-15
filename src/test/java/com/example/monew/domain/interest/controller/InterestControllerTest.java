@@ -57,6 +57,7 @@ class InterestControllerTest {
         Map.of("name", "인공지능", "keywords", List.of("AI", "ML")));
 
     mockMvc.perform(post("/api/interests")
+            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isCreated())
@@ -74,6 +75,7 @@ class InterestControllerTest {
         Map.of("name", "인공지능A", "keywords", List.of("AI")));
 
     mockMvc.perform(post("/api/interests")
+            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isConflict())
@@ -91,6 +93,7 @@ class InterestControllerTest {
     String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML", "DL")));
 
     mockMvc.perform(patch("/api/interests/" + id)
+            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isOk())
@@ -108,6 +111,7 @@ class InterestControllerTest {
     String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML")));
 
     mockMvc.perform(patch("/api/interests/" + id)
+            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isNotFound())
@@ -119,7 +123,8 @@ class InterestControllerTest {
   void delete204() throws Exception {
     UUID id = UUID.randomUUID();
 
-    mockMvc.perform(delete("/api/interests/" + id))
+    mockMvc.perform(delete("/api/interests/" + id)
+            .header("MoNew-Request-User-ID", UUID.randomUUID().toString()))
         .andExpect(status().isNoContent());
 
     verify(interestService).delete(id);
@@ -132,7 +137,8 @@ class InterestControllerTest {
     doThrow(new InterestNotFoundException(Map.of("interestId", id.toString())))
         .when(interestService).delete(id);
 
-    mockMvc.perform(delete("/api/interests/" + id))
+    mockMvc.perform(delete("/api/interests/" + id)
+            .header("MoNew-Request-User-ID", UUID.randomUUID().toString()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("INTEREST_NOT_FOUND"));
   }

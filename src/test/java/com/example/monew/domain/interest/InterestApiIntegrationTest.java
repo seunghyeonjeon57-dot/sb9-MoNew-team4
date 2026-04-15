@@ -41,6 +41,7 @@ class InterestApiIntegrationTest {
     UUID userId = UUID.randomUUID();
 
     MvcResult created = mockMvc.perform(post("/api/interests")
+            .header(USER_HEADER, userId.toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(
                 Map.of("name", "풀플로우관심사", "keywords", List.of("A", "B")))))
@@ -65,25 +66,30 @@ class InterestApiIntegrationTest {
         .andExpect(jsonPath("$[?(@.id=='" + interestId + "')].subscribedByMe").value(false));
 
     mockMvc.perform(patch("/api/interests/" + interestId)
+            .header(USER_HEADER, userId.toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(Map.of("keywords", List.of("C", "D")))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.keywords[0]").value("C"));
 
-    mockMvc.perform(delete("/api/interests/" + interestId))
+    mockMvc.perform(delete("/api/interests/" + interestId)
+            .header(USER_HEADER, userId.toString()))
         .andExpect(status().isNoContent());
   }
 
   @Test
   @DisplayName("80% 유사 이름 → 409 SIMILAR_INTEREST_NAME")
   void similarNameRejected() throws Exception {
+    UUID userId = UUID.randomUUID();
     mockMvc.perform(post("/api/interests")
+            .header(USER_HEADER, userId.toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(
                 Map.of("name", "유사한이름관심사", "keywords", List.of("X")))))
         .andExpect(status().isCreated());
 
     mockMvc.perform(post("/api/interests")
+            .header(USER_HEADER, userId.toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(
                 Map.of("name", "유사한이름관심사A", "keywords", List.of("Y")))))
