@@ -39,4 +39,32 @@ public class ErrorResponse {
         MDC.get("request_id")
     );
   }
+
+  public static ErrorResponse of(ErrorCode code) {
+    return of(code, new HashMap<>());
+  }
+
+  public static ErrorResponse of(ErrorCode code, Map<String, Object> details) {
+    return new ErrorResponse(
+        Instant.now(),
+        code.name(),
+        code.getMessage(),
+        details,
+        null,
+        code.getStatus().value(),
+        MDC.get("request_id")
+    );
+  }
+
+  public static ErrorResponse of(MonewException exception) {
+    return new ErrorResponse(
+        Instant.now(),
+        exception.getErrorCode().name(),
+        exception.getMessage(),
+        exception.getDetails(),
+        exception.getClass().getSimpleName(),
+        exception.getErrorCode().getStatus().value(),
+        MDC.get("request_id")
+    );
+  }
 }
