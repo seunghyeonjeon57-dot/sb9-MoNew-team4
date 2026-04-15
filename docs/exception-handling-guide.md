@@ -190,4 +190,4 @@ void 존재하지_않는_댓글_404_응답() throws Exception {
 
 - 핸들러 본체: `src/main/java/com/example/monew/global/exception/GlobalExceptionHandler.java`
 - 핸들러 단위 테스트: `src/test/java/com/example/monew/global/exception/GlobalExceptionHandlerTest.java`
-- 응답 추적 헤더: MDC `request_id` → `ErrorResponse.traceId` (요청 ID 인터셉터에서 주입)
+- 응답 추적 ID: `ErrorResponse.traceId`는 MDC `request_id`를 읽음. **현재 MDC를 채우는 필터/인터셉터가 미구현 상태이므로 항상 `null`로 응답됨.** 추적 ID 미들웨어가 별도 PR로 도입되면 자동 채워짐(로그 패턴 `%X{request_id}`도 동일 키 사용).
