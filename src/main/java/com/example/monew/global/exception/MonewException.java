@@ -6,21 +6,20 @@ import java.util.Map;
 import lombok.Getter;
 
 @Getter
-public class MonewException extends RuntimeException{
+public abstract class MonewException extends RuntimeException {
+
   private final Instant timestamp;
   private final ErrorCode errorCode;
   private final Map<String, Object> details;
 
-  public MonewException(ErrorCode errorCode, Map<String, Object> details) {
+  protected MonewException(ErrorCode errorCode, Map<String, Object> details) {
     super(errorCode.getMessage());
-
     this.timestamp = Instant.now();
-    this.details = details;
     this.errorCode = errorCode;
+    this.details = details;
   }
 
-  public MonewException(ErrorCode errorCode) {
+  protected MonewException(ErrorCode errorCode) {
     this(errorCode, new HashMap<>());
   }
-
 }
