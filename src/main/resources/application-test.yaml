@@ -11,5 +11,10 @@ spring:
 
 cloud:
   aws:
+    credentials:
+      access-key: test-access-key
+      secret-key: test-secret-key
+    region:
+      static: us-east-1
     s3:
       bucket: test-bucket
