@@ -28,12 +28,11 @@ public class GlobalException {
 
   @ExceptionHandler(MonewException.class)
   public ResponseEntity<ErrorResponse> handleMonewException(MonewException exception) {
-    log.error("커스텀 예외 발생: code={}, message={}", exception.getErrorCode(), exception.getMessage(), exception);
-    HttpStatus status = determineHttpStatus(exception);
-    ErrorResponse response = new ErrorResponse(exception, status.value());
+    log.error("커스텀 예외 발생: code={}, message={}",
+        exception.getErrorCode(), exception.getMessage(), exception);
     return ResponseEntity
-        .status(status)
-        .body(response);
+        .status(exception.getErrorCode().getStatus())
+        .body(ErrorResponse.of(exception));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -63,7 +62,4 @@ public class GlobalException {
   }
 
 
-  private HttpStatus determineHttpStatus(MonewException exception) {
-    return exception.getErrorCode().getStatus();
-  }
 }
