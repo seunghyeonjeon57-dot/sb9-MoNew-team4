@@ -42,8 +42,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=monew1234
     ports:
-      # 로컬 Mac의 5432 포트 충돌 방지를 위해 호스트 포트를 5433으로 설정
-      # 만약 로컬 DB를 완전히 껐다면 "5432:5432"로 되돌려도 됩니다.
       - "5433:5432"
     volumes:
       - pg-data:/var/lib/postgresql/data
