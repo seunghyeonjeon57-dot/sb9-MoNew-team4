@@ -1,13 +1,17 @@
 package com.example.monew.domain.interest.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
+import com.example.monew.domain.interest.dto.InterestUpdateRequest;
+import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.service.InterestService;
 import com.example.monew.global.exception.GlobalException;
@@ -70,6 +74,39 @@ class InterestControllerTest {
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("SIMILAR_INTEREST_NAME"))
         .andExpect(jsonPath("$.details.existing").value("인공지능"));
+  }
+
+  @Test
+  @DisplayName("PATCH /api/interests/{id}: 키워드 수정 → 200 + 응답")
+  void patch200() throws Exception {
+    UUID id = UUID.randomUUID();
+    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class)))
+        .thenReturn(new InterestResponse(id, "인공지능", List.of("ML", "DL"), 0L, false));
+
+    String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML", "DL")));
+
+    mockMvc.perform(patch("/api/interests/" + id)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.keywords[0]").value("ML"))
+        .andExpect(jsonPath("$.keywords[1]").value("DL"));
+  }
+
+  @Test
+  @DisplayName("PATCH /api/interests/{id}: 미존재 → 404 INTEREST_NOT_FOUND")
+  void patch404() throws Exception {
+    UUID id = UUID.randomUUID();
+    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class)))
+        .thenThrow(new InterestNotFoundException(Map.of("interestId", id.toString())));
+
+    String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML")));
+
+    mockMvc.perform(patch("/api/interests/" + id)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("INTEREST_NOT_FOUND"));
   }
 
   @Test
