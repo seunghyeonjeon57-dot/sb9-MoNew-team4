@@ -145,4 +145,28 @@ class InterestServiceTest {
         interestService.create(new InterestCreateRequest("인공지능A", List.of("AI"))))
         .isInstanceOf(SimilarInterestNameException.class);
   }
+
+  @Test
+  @DisplayName("getInterests: keyword 지정 시 name 부분일치만 반환")
+  void getInterestsKeywordNameMatch() {
+    Interest ai = new Interest("인공지능", List.of("ML"));
+    Interest bc = new Interest("블록체인", List.of("BTC"));
+    when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(ai, bc));
+
+    List<InterestResponse> list = interestService.getInterests("인공", null, null, null);
+
+    assertThat(list).extracting(InterestResponse::name).containsExactly("인공지능");
+  }
+
+  @Test
+  @DisplayName("getInterests: keyword가 keywords 중 하나와 부분일치 시 포함")
+  void getInterestsKeywordKeywordsMatch() {
+    Interest ai = new Interest("인공지능", List.of("ML"));
+    Interest bc = new Interest("블록체인", List.of("BTC"));
+    when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(ai, bc));
+
+    List<InterestResponse> list = interestService.getInterests("BTC", null, null, null);
+
+    assertThat(list).extracting(InterestResponse::name).containsExactly("블록체인");
+  }
 }
