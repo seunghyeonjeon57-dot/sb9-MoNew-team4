@@ -5,16 +5,20 @@ import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.service.InterestService;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -23,6 +27,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class InterestController {
 
   private final InterestService interestService;
+
+  @GetMapping
+  public ResponseEntity<List<InterestResponse>> list(
+      @RequestParam(required = false) String sortBy,
+      @RequestParam(required = false) String direction,
+      @RequestHeader(value = "MoNew-Request-User-ID", required = false) UUID userId) {
+    return ResponseEntity.ok(interestService.getInterests(sortBy, direction, userId));
+  }
 
   @PostMapping
   public ResponseEntity<InterestResponse> create(@Valid @RequestBody InterestCreateRequest request) {
