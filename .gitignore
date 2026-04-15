@@ -47,3 +47,6 @@ application-*.properties
 
 # QueryDSL 생성 파일
 /src/main/generated/
+
+# env 파일
+.env

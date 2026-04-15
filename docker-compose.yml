@@ -1,0 +1,54 @@
+services:
+  app:
+    build: .
+    container_name: monew-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+      - postgres
+    env_file:
+      - .env
+    environment:
+      # 기본 프로필을 dev로 설정
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES:-dev}
+      # DB 컨테이너 서비스명인 'postgres'를 호스트로 사용하며, DB명을 'monew'로 통일
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL_dev:-jdbc:postgresql://postgres:5432/monew}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME_dev:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD_dev:-monew1234}
+      - SPRING_DATA_MONGODB_URI=${SPRING_DATA_MONGODB_URI:-mongodb://mongodb:27017/monew}
+
+      # AWS 및 외부 API 설정 (보안을 위해 .env 사용 권장)
+      - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+      - AWS_SECRET_KEY=${AWS_SECRET_KEY}
+      - NAVER_CLIENT_ID=${NAVER_CLIENT_ID}
+      - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET}
+    restart: always
+
+  mongodb:
+    image: mongo:6.0
+    container_name: monew-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    restart: always
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: monew-postgres
+    environment:
+      - POSTGRES_DB=monew  # URL 설정과 일치하도록 'monew'로 수정
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=monew1234
+    ports:
+      # 로컬 Mac의 5432 포트 충돌 방지를 위해 호스트 포트를 5433으로 설정
+      # 만약 로컬 DB를 완전히 껐다면 "5432:5432"로 되돌려도 됩니다.
+      - "5433:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  mongo-data:
+  pg-data:

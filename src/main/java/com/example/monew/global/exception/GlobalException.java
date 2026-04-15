@@ -1,5 +1,80 @@
 package com.example.monew.global.exception;
 
+import java.util.HashMap;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+@Slf4j
+@RestControllerAdvice
 public class GlobalException {
 
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ErrorResponse> handleException(Exception e) {
+    log.error("예상치 못한 오류 발생: {}", e.getMessage(), e);
+    return ResponseEntity
+        .status(ErrorCode.INTERNAL_ERROR.getStatus())
+        .body(ErrorResponse.of(ErrorCode.INTERNAL_ERROR,
+            Map.of("exceptionType", e.getClass().getSimpleName())));
+  }
+
+  @ExceptionHandler(MonewException.class)
+  public ResponseEntity<ErrorResponse> handleMonewException(MonewException exception) {
+    log.error("커스텀 예외 발생: code={}, message={}",
+        exception.getErrorCode(), exception.getMessage(), exception);
+    return ResponseEntity
+        .status(exception.getErrorCode().getStatus())
+        .body(ErrorResponse.of(exception));
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
+    log.warn("요청 유효성 검사 실패: {}", e.getMessage());
+
+    Map<String, Object> fieldErrors = new HashMap<>();
+    e.getBindingResult().getAllErrors().forEach(error -> {
+      String fieldName = ((FieldError) error).getField();
+      String errorMessage = error.getDefaultMessage();
+      fieldErrors.put(fieldName, errorMessage);
+    });
+
+    return ResponseEntity
+        .status(ErrorCode.INVALID_REQUEST.getStatus())
+        .body(ErrorResponse.of(ErrorCode.INVALID_REQUEST, fieldErrors));
+  }
+
+  @ExceptionHandler(MissingRequestHeaderException.class)
+  public ResponseEntity<ErrorResponse> handleMissingRequestHeader(MissingRequestHeaderException e) {
+    log.warn("필수 요청 헤더 누락: {}", e.getHeaderName());
+    return ResponseEntity
+        .status(ErrorCode.MISSING_REQUEST_HEADER.getStatus())
+        .body(ErrorResponse.of(ErrorCode.MISSING_REQUEST_HEADER,
+            Map.of("header", e.getHeaderName())));
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+    log.warn("요청 파라미터 타입 불일치: parameter={}, value={}", e.getName(), e.getValue());
+    Map<String, Object> details = new HashMap<>();
+    details.put("parameter", e.getName());
+    details.put("value", e.getValue() == null ? null : e.getValue().toString());
+    return ResponseEntity
+        .status(ErrorCode.INVALID_REQUEST.getStatus())
+        .body(ErrorResponse.of(ErrorCode.INVALID_REQUEST, details));
+  }
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
+    log.warn("잘못된 인자: {}", e.getMessage());
+    return ResponseEntity
+        .status(ErrorCode.INVALID_REQUEST.getStatus())
+        .body(ErrorResponse.of(ErrorCode.INVALID_REQUEST,
+            Map.of("reason", e.getMessage() == null ? "" : e.getMessage())));
+  }
 }
