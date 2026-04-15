@@ -5,15 +5,20 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @WebMvcTest(controllers = GlobalExceptionWebMvcTest.DummyController.class)
@@ -22,6 +27,9 @@ class GlobalExceptionWebMvcTest {
 
   @Autowired
   private MockMvc mockMvc;
+
+  @Autowired
+  private ObjectMapper objectMapper;
 
   @Test
   @DisplayName("MonewException → ErrorCode.status + 응답 본문 매핑")
@@ -41,6 +49,19 @@ class GlobalExceptionWebMvcTest {
         .andExpect(jsonPath("$.status").value(500));
   }
 
+  @Test
+  @DisplayName("@Valid 실패 → 400 INVALID_REQUEST + details.<field> 필드 에러")
+  void validationFailure() throws Exception {
+    String body = objectMapper.writeValueAsString(Map.of("name", ""));
+
+    mockMvc.perform(post("/_test/validate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+        .andExpect(jsonPath("$.details.name").exists());
+  }
+
   @RestController
   static class DummyController {
 
@@ -55,9 +76,16 @@ class GlobalExceptionWebMvcTest {
     }
 
     @PostMapping("/_test/echo")
-    public Map<String, String> echo(@org.springframework.web.bind.annotation.RequestBody Map<String, String> body) {
+    public Map<String, String> echo(@RequestBody Map<String, String> body) {
       return body;
     }
+
+    @PostMapping("/_test/validate")
+    public ValidatedRequest validate(@Valid @RequestBody ValidatedRequest body) {
+      return body;
+    }
+
+    record ValidatedRequest(@NotBlank String name) {}
 
     static class TestMonewException extends MonewException {
       TestMonewException() {
