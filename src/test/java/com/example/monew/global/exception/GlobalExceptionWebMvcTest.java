@@ -50,6 +50,15 @@ class GlobalExceptionWebMvcTest {
   }
 
   @Test
+  @DisplayName("필수 헤더 누락 → 400 MISSING_REQUEST_HEADER + details.header")
+  void missingRequiredHeader() throws Exception {
+    mockMvc.perform(get("/_test/require-header"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("MISSING_REQUEST_HEADER"))
+        .andExpect(jsonPath("$.details.header").value("X-Required"));
+  }
+
+  @Test
   @DisplayName("@Valid 실패 → 400 INVALID_REQUEST + details.<field> 필드 에러")
   void validationFailure() throws Exception {
     String body = objectMapper.writeValueAsString(Map.of("name", ""));
@@ -83,6 +92,12 @@ class GlobalExceptionWebMvcTest {
     @PostMapping("/_test/validate")
     public ValidatedRequest validate(@Valid @RequestBody ValidatedRequest body) {
       return body;
+    }
+
+    @GetMapping("/_test/require-header")
+    public String requireHeader(
+        @org.springframework.web.bind.annotation.RequestHeader("X-Required") String value) {
+      return value;
     }
 
     record ValidatedRequest(@NotBlank String name) {}
