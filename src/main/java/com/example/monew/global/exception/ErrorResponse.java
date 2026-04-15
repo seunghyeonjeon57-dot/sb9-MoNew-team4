@@ -29,14 +29,33 @@ public class ErrorResponse {
         MDC.get("request_id")
     );
   }
+
   // 커스텀 예외로 해결하지 못한 예외
   public ErrorResponse(Exception exception, int status) {
     this(Instant.now(),
         exception.getClass().getSimpleName(),
-        exception.getMessage(), new HashMap<>(),
+        exception.getMessage(),
+        new HashMap<>(),
         exception.getClass().getSimpleName(),
         status,
         MDC.get("request_id")
     );
+  }
+
+  // Spring 표준 예외용 ErrorCode 팩토리
+  public static ErrorResponse of(ErrorCode code, Exception exception, Map<String, Object> details) {
+    return new ErrorResponse(
+        Instant.now(),
+        code.name(),
+        code.getMessage(),
+        details == null ? new HashMap<>() : details,
+        exception.getClass().getSimpleName(),
+        code.getStatus().value(),
+        MDC.get("request_id")
+    );
+  }
+
+  public static ErrorResponse of(ErrorCode code, Exception exception) {
+    return of(code, exception, new HashMap<>());
   }
 }

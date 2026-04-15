@@ -50,3 +50,7 @@ application-*.properties
 
 # env 파일
 .env
+
+# 개인 작업 환경
+CLAUDE.md
+.claude/
