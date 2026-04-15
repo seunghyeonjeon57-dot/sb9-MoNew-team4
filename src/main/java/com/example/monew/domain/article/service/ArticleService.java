@@ -57,6 +57,10 @@ public class ArticleService {
     return articleRepository.findAllSources();
   }
 
+  //임시
+  public void incrementViewCount(UUID articleId) {
+  }
+
 
   public Page<ArticleEntity> getArticleList(String keyword, String interest, String source,
       LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
