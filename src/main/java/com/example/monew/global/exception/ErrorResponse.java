@@ -1,19 +1,61 @@
 package com.example.monew.global.exception;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 
-public record ErrorResponse(
-    String code,
-    String message,
-    Map<String, Object> details,
-    Instant timestamp
-) {
-  public static ErrorResponse of(ErrorCode errorCode, Map<String, Object> details) {
-    return new ErrorResponse(errorCode.name(), errorCode.getMessage(), details, Instant.now());
+@Getter
+@RequiredArgsConstructor
+public class ErrorResponse {
+  private final Instant timestamp;
+  private final String code;
+  private final String message;
+  private final Map<String, Object> details;
+  private final String exceptionType;
+  private final int status;
+  private final String traceId;
+
+  // 커스텀 예외
+  public ErrorResponse(MonewException exception, int status) {
+    this(Instant.now(),
+        exception.getErrorCode().name(),
+        exception.getMessage(),
+        exception.getDetails(),
+        exception.getClass().getSimpleName(),
+        status,
+        MDC.get("request_id")
+    );
   }
 
-  public static ErrorResponse of(ErrorCode errorCode) {
-    return of(errorCode, Map.of());
+  // 커스텀 예외로 해결하지 못한 예외
+  public ErrorResponse(Exception exception, int status) {
+    this(Instant.now(),
+        exception.getClass().getSimpleName(),
+        exception.getMessage(),
+        new HashMap<>(),
+        exception.getClass().getSimpleName(),
+        status,
+        MDC.get("request_id")
+    );
+  }
+
+  // Spring 표준 예외용 ErrorCode 팩토리
+  public static ErrorResponse of(ErrorCode code, Exception exception, Map<String, Object> details) {
+    return new ErrorResponse(
+        Instant.now(),
+        code.name(),
+        code.getMessage(),
+        details == null ? new HashMap<>() : details,
+        exception.getClass().getSimpleName(),
+        code.getStatus().value(),
+        MDC.get("request_id")
+    );
+  }
+
+  public static ErrorResponse of(ErrorCode code, Exception exception) {
+    return of(code, exception, new HashMap<>());
   }
 }
