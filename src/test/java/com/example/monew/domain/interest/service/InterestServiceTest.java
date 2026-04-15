@@ -10,7 +10,9 @@ import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.entity.Interest;
+import com.example.monew.domain.interest.entity.Subscription;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
+import com.example.monew.domain.interest.exception.InvalidSortParameterException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
@@ -72,6 +74,42 @@ class InterestServiceTest {
     assertThatThrownBy(() ->
         interestService.updateKeywords(id, new InterestUpdateRequest(List.of("ML"))))
         .isInstanceOf(InterestNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("getInterests: 활성 인터레스트 목록 + subscribedByMe 매핑")
+  void getInterestsList() {
+    Interest a = new Interest("A", List.of("a"));
+    Interest b = new Interest("B", List.of("b"));
+    UUID userId = UUID.randomUUID();
+    Subscription subA = new Subscription(a.getId(), userId);
+    when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(a, b));
+    when(subscriptionRepository.findAllByUserId(userId)).thenReturn(List.of(subA));
+
+    List<InterestResponse> list = interestService.getInterests(null, null, userId);
+
+    assertThat(list).hasSize(2);
+    assertThat(list.stream().filter(r -> r.name().equals("A")).findFirst().orElseThrow().subscribedByMe()).isTrue();
+    assertThat(list.stream().filter(r -> r.name().equals("B")).findFirst().orElseThrow().subscribedByMe()).isFalse();
+  }
+
+  @Test
+  @DisplayName("getInterests: 잘못된 sortBy → InvalidSortParameterException")
+  void getInterestsInvalidSort() {
+    assertThatThrownBy(() -> interestService.getInterests("foo", "asc", null))
+        .isInstanceOf(InvalidSortParameterException.class);
+  }
+
+  @Test
+  @DisplayName("getInterests: sortBy=name, direction=desc → 이름 내림차순")
+  void getInterestsSortName() {
+    Interest a = new Interest("A", List.of("a"));
+    Interest b = new Interest("B", List.of("b"));
+    when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(a, b));
+
+    List<InterestResponse> list = interestService.getInterests("name", "desc", null);
+
+    assertThat(list).extracting(InterestResponse::name).containsExactly("B", "A");
   }
 
   @Test
