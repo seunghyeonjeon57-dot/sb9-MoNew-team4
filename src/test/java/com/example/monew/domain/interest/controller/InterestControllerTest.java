@@ -6,6 +6,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -15,6 +16,7 @@ import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
+import com.example.monew.domain.interest.exception.InvalidSortParameterException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.service.InterestService;
 import com.example.monew.global.exception.GlobalException;
@@ -133,6 +135,29 @@ class InterestControllerTest {
     mockMvc.perform(delete("/api/interests/" + id))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("INTEREST_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("GET /api/interests: 기본 → 200 + 리스트")
+  void list200() throws Exception {
+    UUID id = UUID.randomUUID();
+    when(interestService.getInterests(any(), any(), any()))
+        .thenReturn(List.of(new InterestResponse(id, "AI", List.of("ai"), 0L, false)));
+
+    mockMvc.perform(get("/api/interests"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].name").value("AI"));
+  }
+
+  @Test
+  @DisplayName("GET /api/interests?sortBy=foo → 400 INVALID_SORT_PARAMETER")
+  void listInvalidSort400() throws Exception {
+    when(interestService.getInterests(eq("foo"), any(), any()))
+        .thenThrow(new InvalidSortParameterException(Map.of("sortBy", "foo")));
+
+    mockMvc.perform(get("/api/interests").param("sortBy", "foo"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_SORT_PARAMETER"));
   }
 
   @Test
