@@ -156,6 +156,18 @@ class InterestControllerTest {
   }
 
   @Test
+  @DisplayName("GET /api/interests?keyword=AI → keyword 파라미터를 서비스에 전달")
+  void listKeywordParam() throws Exception {
+    UUID id = UUID.randomUUID();
+    when(interestService.getInterests(eq("AI"), any(), any(), any()))
+        .thenReturn(List.of(new InterestResponse(id, "인공지능", List.of("AI"), 0L, false)));
+
+    mockMvc.perform(get("/api/interests").param("keyword", "AI"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].name").value("인공지능"));
+  }
+
+  @Test
   @DisplayName("GET /api/interests?sortBy=foo → 400 INVALID_SORT_PARAMETER")
   void listInvalidSort400() throws Exception {
     when(interestService.getInterests(any(), eq("foo"), any(), any()))
