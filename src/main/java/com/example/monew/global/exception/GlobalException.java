@@ -1,18 +1,15 @@
 package com.example.monew.global.exception;
 
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
 @RestControllerAdvice
@@ -21,10 +18,10 @@ public class GlobalException {
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleException(Exception e) {
     log.error("예상치 못한 오류 발생: {}", e.getMessage(), e);
-    ErrorResponse errorResponse = new ErrorResponse(e, INTERNAL_SERVER_ERROR.value());
     return ResponseEntity
-        .status(INTERNAL_SERVER_ERROR)
-        .body(errorResponse);
+        .status(ErrorCode.INTERNAL_ERROR.getStatus())
+        .body(ErrorResponse.of(ErrorCode.INTERNAL_ERROR,
+            Map.of("exceptionType", e.getClass().getSimpleName())));
   }
 
   @ExceptionHandler(MonewException.class)
@@ -59,5 +56,25 @@ public class GlobalException {
         .status(ErrorCode.MISSING_REQUEST_HEADER.getStatus())
         .body(ErrorResponse.of(ErrorCode.MISSING_REQUEST_HEADER,
             Map.of("header", e.getHeaderName())));
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+    log.warn("요청 파라미터 타입 불일치: parameter={}, value={}", e.getName(), e.getValue());
+    Map<String, Object> details = new HashMap<>();
+    details.put("parameter", e.getName());
+    details.put("value", e.getValue() == null ? null : e.getValue().toString());
+    return ResponseEntity
+        .status(ErrorCode.INVALID_REQUEST.getStatus())
+        .body(ErrorResponse.of(ErrorCode.INVALID_REQUEST, details));
+  }
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
+    log.warn("잘못된 인자: {}", e.getMessage());
+    return ResponseEntity
+        .status(ErrorCode.INVALID_REQUEST.getStatus())
+        .body(ErrorResponse.of(ErrorCode.INVALID_REQUEST,
+            Map.of("reason", e.getMessage() == null ? "" : e.getMessage())));
   }
 }
