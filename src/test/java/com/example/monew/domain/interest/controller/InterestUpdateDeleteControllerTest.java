@@ -63,7 +63,7 @@ class InterestUpdateDeleteControllerTest {
             .content(objectMapper.writeValueAsString(
                 new InterestUpdateRequest(List.of()))))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.details.fieldErrors.keywords").exists());
+        .andExpect(jsonPath("$.details.keywords").exists());
   }
 
   @Test

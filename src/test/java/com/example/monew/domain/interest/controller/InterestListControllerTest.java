@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.monew.domain.interest.dto.CursorSlice;
 import com.example.monew.domain.interest.dto.InterestResponse;
+import com.example.monew.domain.interest.exception.InvalidSortParameterException;
 import com.example.monew.domain.interest.service.InterestService;
 import com.example.monew.global.exception.GlobalExceptionHandler;
 import java.util.List;
@@ -79,29 +80,30 @@ class InterestListControllerTest {
   }
 
   @Test
-  @DisplayName("sortBy 허용값 외 값은 IllegalArgumentException → 400 INVALID_REQUEST")
+  @DisplayName("sortBy 허용값 외 값은 InvalidSortParameterException → 400 INVALID_SORT_PARAMETER")
   void getReturns400WhenSortByInvalid() throws Exception {
     given(interestService.getInterests(
         any(), eq("invalid"), any(), any(), any(Integer.class), any()))
-        .willThrow(new IllegalArgumentException("sortBy must be one of [name, subscriberCount] but was: invalid"));
+        .willThrow(new InvalidSortParameterException("sortBy", "invalid", List.of("name", "subscriberCount")));
 
     mockMvc.perform(get("/api/interests").param("sortBy", "invalid"))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
-        .andExpect(jsonPath("$.details.reason").value(
-            org.hamcrest.Matchers.containsString("sortBy")));
+        .andExpect(jsonPath("$.code").value("INVALID_SORT_PARAMETER"))
+        .andExpect(jsonPath("$.details.parameter").value("sortBy"))
+        .andExpect(jsonPath("$.details.value").value("invalid"));
   }
 
   @Test
-  @DisplayName("direction 허용값 외 값은 IllegalArgumentException → 400 INVALID_REQUEST")
+  @DisplayName("direction 허용값 외 값은 InvalidSortParameterException → 400 INVALID_SORT_PARAMETER")
   void getReturns400WhenDirectionInvalid() throws Exception {
     given(interestService.getInterests(
         any(), any(), eq("sideways"), any(), any(Integer.class), any()))
-        .willThrow(new IllegalArgumentException("direction must be one of [asc, desc] but was: sideways"));
+        .willThrow(new InvalidSortParameterException("direction", "sideways", List.of("asc", "desc")));
 
     mockMvc.perform(get("/api/interests").param("direction", "sideways"))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.details.reason").value(
-            org.hamcrest.Matchers.containsString("direction")));
+        .andExpect(jsonPath("$.code").value("INVALID_SORT_PARAMETER"))
+        .andExpect(jsonPath("$.details.parameter").value("direction"))
+        .andExpect(jsonPath("$.details.value").value("sideways"));
   }
 }

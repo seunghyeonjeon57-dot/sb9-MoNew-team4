@@ -53,11 +53,11 @@ class InterestSubscriptionControllerTest {
   }
 
   @Test
-  @DisplayName("헤더 누락은 400")
+  @DisplayName("헤더 누락은 400 MISSING_REQUEST_HEADER")
   void subscribeMissingHeader() throws Exception {
     mockMvc.perform(post("/api/interests/" + UUID.randomUUID() + "/subscriptions"))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        .andExpect(jsonPath("$.code").value("MISSING_REQUEST_HEADER"));
   }
 
   @Test
@@ -88,7 +88,7 @@ class InterestSubscriptionControllerTest {
   }
 
   @Test
-  @DisplayName("미구독 취소는 400")
+  @DisplayName("미구독 취소는 404")
   void unsubscribeNotSubscribed() throws Exception {
     UUID interestId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
@@ -97,7 +97,7 @@ class InterestSubscriptionControllerTest {
 
     mockMvc.perform(delete("/api/interests/" + interestId + "/subscriptions")
             .header(HEADER, userId.toString()))
-        .andExpect(status().isBadRequest())
+        .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("SUBSCRIPTION_NOT_FOUND"));
   }
 }

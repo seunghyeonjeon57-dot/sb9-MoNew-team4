@@ -62,7 +62,7 @@ class InterestControllerTest {
                 new InterestCreateRequest("", List.of("AI")))))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
-        .andExpect(jsonPath("$.details.fieldErrors.name").exists());
+        .andExpect(jsonPath("$.details.name").exists());
   }
 
   @Test
@@ -73,7 +73,7 @@ class InterestControllerTest {
             .content(objectMapper.writeValueAsString(
                 new InterestCreateRequest("인공지능", List.of()))))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.details.fieldErrors.keywords").exists());
+        .andExpect(jsonPath("$.details.keywords").exists());
   }
 
   @Test
