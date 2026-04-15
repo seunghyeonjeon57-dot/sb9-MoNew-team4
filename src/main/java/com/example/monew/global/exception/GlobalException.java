@@ -64,11 +64,6 @@ public class GlobalException {
 
 
   private HttpStatus determineHttpStatus(MonewException exception) {
-    ErrorCode errorCode = exception.getErrorCode();
-    return switch (errorCode) {
-      case USER_NOT_FOUND -> HttpStatus.NOT_FOUND;
-      //case -> HttpStatus.CONFLICT;
-      //case -> HttpStatus.BAD_REQUEST;
-    };
+    return exception.getErrorCode().getStatus();
   }
 }
