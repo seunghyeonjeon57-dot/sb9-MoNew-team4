@@ -3,6 +3,7 @@ package com.example.monew.domain.interest.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
@@ -12,6 +13,7 @@ import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.repository.InterestRepository;
+import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +29,9 @@ class InterestServiceTest {
 
   @Mock
   private InterestRepository interestRepository;
+
+  @Mock
+  private SubscriptionRepository subscriptionRepository;
 
   @InjectMocks
   private InterestService interestService;
@@ -66,6 +71,29 @@ class InterestServiceTest {
 
     assertThatThrownBy(() ->
         interestService.updateKeywords(id, new InterestUpdateRequest(List.of("ML"))))
+        .isInstanceOf(InterestNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("delete: 존재하는 ID → markDeleted + 구독 일괄 정리")
+  void deleteSuccess() {
+    Interest interest = new Interest("인공지능", List.of("AI"));
+    when(interestRepository.findByIdAndIsDeletedFalse(interest.getId()))
+        .thenReturn(Optional.of(interest));
+
+    interestService.delete(interest.getId());
+
+    assertThat(interest.isDeleted()).isTrue();
+    verify(subscriptionRepository).deleteAllByInterestId(interest.getId());
+  }
+
+  @Test
+  @DisplayName("delete: 미존재 ID → InterestNotFoundException")
+  void deleteNotFound() {
+    UUID id = UUID.randomUUID();
+    when(interestRepository.findByIdAndIsDeletedFalse(id)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> interestService.delete(id))
         .isInstanceOf(InterestNotFoundException.class);
   }
 
