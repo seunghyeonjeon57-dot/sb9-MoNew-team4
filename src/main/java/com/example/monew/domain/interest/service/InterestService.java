@@ -7,6 +7,7 @@ import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.repository.InterestRepository;
+import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.global.util.SimilarityUtils;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ public class InterestService {
   private static final double SIMILARITY_THRESHOLD = 0.8;
 
   private final InterestRepository interestRepository;
+  private final SubscriptionRepository subscriptionRepository;
 
   @Transactional
   public InterestResponse create(InterestCreateRequest request) {
@@ -35,6 +37,14 @@ public class InterestService {
     }
     Interest saved = interestRepository.save(new Interest(request.name(), request.keywords()));
     return InterestResponse.from(saved, false);
+  }
+
+  @Transactional
+  public void delete(UUID interestId) {
+    Interest interest = interestRepository.findByIdAndIsDeletedFalse(interestId)
+        .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
+    interest.markDeleted();
+    subscriptionRepository.deleteAllByInterestId(interestId);
   }
 
   @Transactional
