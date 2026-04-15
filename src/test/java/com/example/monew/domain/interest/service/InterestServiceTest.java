@@ -48,7 +48,7 @@ class InterestServiceTest {
     when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(existing));
 
     assertThatThrownBy(() ->
-        interestService.create(new InterestCreateRequest("인공지", List.of("AI"))))
+        interestService.create(new InterestCreateRequest("인공지능A", List.of("AI"))))
         .isInstanceOf(SimilarInterestNameException.class);
   }
 }
