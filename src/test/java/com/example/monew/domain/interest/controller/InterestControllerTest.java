@@ -167,9 +167,46 @@ class InterestControllerTest {
         Map.of("name", "", "keywords", List.of("AI")));
 
     mockMvc.perform(post("/api/interests")
+            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+  }
+
+  @Test
+  @DisplayName("POST /api/interests: 헤더 누락 → 400 MISSING_REQUEST_HEADER")
+  void createMissingHeader400() throws Exception {
+    String body = objectMapper.writeValueAsString(
+        Map.of("name", "인공지능", "keywords", List.of("AI")));
+
+    mockMvc.perform(post("/api/interests")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("MISSING_REQUEST_HEADER"))
+        .andExpect(jsonPath("$.details.header").value("MoNew-Request-User-ID"));
+  }
+
+  @Test
+  @DisplayName("PATCH /api/interests/{id}: 헤더 누락 → 400 MISSING_REQUEST_HEADER")
+  void patchMissingHeader400() throws Exception {
+    String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML")));
+
+    mockMvc.perform(patch("/api/interests/" + UUID.randomUUID())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("MISSING_REQUEST_HEADER"))
+        .andExpect(jsonPath("$.details.header").value("MoNew-Request-User-ID"));
+  }
+
+  @Test
+  @DisplayName("DELETE /api/interests/{id}: 헤더 누락 → 400 MISSING_REQUEST_HEADER")
+  void deleteMissingHeader400() throws Exception {
+    mockMvc.perform(delete("/api/interests/" + UUID.randomUUID()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("MISSING_REQUEST_HEADER"))
+        .andExpect(jsonPath("$.details.header").value("MoNew-Request-User-ID"));
   }
 }
