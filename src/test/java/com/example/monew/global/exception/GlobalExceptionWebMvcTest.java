@@ -50,6 +50,33 @@ class GlobalExceptionWebMvcTest {
   }
 
   @Test
+  @DisplayName("IllegalArgumentException → 400 INVALID_REQUEST + details.reason")
+  void illegalArgumentMapped() throws Exception {
+    mockMvc.perform(get("/_test/throw-iae"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+        .andExpect(jsonPath("$.details.reason").value("bad argument"));
+  }
+
+  @Test
+  @DisplayName("PathVariable 타입 불일치 → 400 INVALID_REQUEST + details.parameter/value")
+  void typeMismatchMapped() throws Exception {
+    mockMvc.perform(get("/_test/echo-int/not-a-number"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+        .andExpect(jsonPath("$.details.parameter").value("value"))
+        .andExpect(jsonPath("$.details.value").value("not-a-number"));
+  }
+
+  @Test
+  @DisplayName("Fallback Exception → 500 INTERNAL_ERROR")
+  void fallbackErrorCode() throws Exception {
+    mockMvc.perform(get("/_test/throw-runtime"))
+        .andExpect(status().isInternalServerError())
+        .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"));
+  }
+
+  @Test
   @DisplayName("필수 헤더 누락 → 400 MISSING_REQUEST_HEADER + details.header")
   void missingRequiredHeader() throws Exception {
     mockMvc.perform(get("/_test/require-header"))
@@ -97,6 +124,16 @@ class GlobalExceptionWebMvcTest {
     @GetMapping("/_test/require-header")
     public String requireHeader(
         @org.springframework.web.bind.annotation.RequestHeader("X-Required") String value) {
+      return value;
+    }
+
+    @GetMapping("/_test/throw-iae")
+    public void throwIae() {
+      throw new IllegalArgumentException("bad argument");
+    }
+
+    @GetMapping("/_test/echo-int/{value}")
+    public int echoInt(@org.springframework.web.bind.annotation.PathVariable int value) {
       return value;
     }
 
