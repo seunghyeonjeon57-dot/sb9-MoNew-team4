@@ -1,0 +1,54 @@
+package com.example.monew.domain.interest.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import com.example.monew.domain.interest.dto.InterestCreateRequest;
+import com.example.monew.domain.interest.dto.InterestResponse;
+import com.example.monew.domain.interest.entity.Interest;
+import com.example.monew.domain.interest.exception.SimilarInterestNameException;
+import com.example.monew.domain.interest.repository.InterestRepository;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class InterestServiceTest {
+
+  @Mock
+  private InterestRepository interestRepository;
+
+  @InjectMocks
+  private InterestService interestService;
+
+  @Test
+  @DisplayName("create: 신규 이름 + 키워드 → 저장 후 응답 반환")
+  void createSuccess() {
+    when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of());
+    when(interestRepository.save(any(Interest.class)))
+        .thenAnswer(inv -> inv.getArgument(0));
+
+    InterestResponse response = interestService.create(
+        new InterestCreateRequest("인공지능", List.of("AI", "ML")));
+
+    assertThat(response.name()).isEqualTo("인공지능");
+    assertThat(response.keywords()).containsExactly("AI", "ML");
+  }
+
+  @Test
+  @DisplayName("create: 80%+ 유사 이름 존재 → SimilarInterestNameException")
+  void createSimilarRejected() {
+    Interest existing = new Interest("인공지능", List.of("AI"));
+    when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(existing));
+
+    assertThatThrownBy(() ->
+        interestService.create(new InterestCreateRequest("인공지", List.of("AI"))))
+        .isInstanceOf(SimilarInterestNameException.class);
+  }
+}
