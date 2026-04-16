@@ -2,7 +2,7 @@ package com.example.monew.domain.comment.service;
 
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
 import com.example.monew.domain.comment.entity.CommentEntity;
-import com.example.monew.domain.comment.repository.CommentRepositoryTest;
+import com.example.monew.domain.comment.repository.CommentRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;

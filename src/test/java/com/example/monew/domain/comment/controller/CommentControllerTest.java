@@ -7,8 +7,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
@@ -20,14 +20,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CommentController.class)
 class CommentControllerTest {
 
-  @Autowired
-  private MockMvc mockMvc;
-
-  @Autowired
-  private ObjectMapper objectMapper;
-
-  @MockBean
-  private CommentService commentService;
+  @Autowired private MockMvc mockMvc;
+  @Autowired private ObjectMapper objectMapper;
+  @MockitoBean private CommentService commentService;
 
   @Test
   @DisplayName("올바른 데이터로 댓글 등록 요청 시 200 OK를 반환한다.")
@@ -38,9 +33,9 @@ class CommentControllerTest {
     String jsonRequest = objectMapper.writeValueAsString(request);
 
     // 매핑이 없다면 404 Not Found 로 실패합니다.
-    mockMvc.perform(post("/api/v1/comments")
+    mockMvc.perform(post("/api/comments")
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
-        .andExpect(status().isOk());
+        .andExpect(status().isCreated());
   }
 }
