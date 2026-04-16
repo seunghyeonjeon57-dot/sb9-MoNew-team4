@@ -18,15 +18,17 @@ public class CommentRepositoryTest {
   @Test
   @DisplayName("댓글 엔티티를 DB에 저장하고 조회할 수 있다.")
   void saveAndFindComment() {
-    CommentEntity comment = CommentEntity.builder()
-        .articleId(UUID.randomUUID())
-        .userId(UUID.randomUUID())
-        .content("리포지토리 테스트 댓글")
-        .build();
+    CommentEntity comment = new CommentEntity(
+        UUID.randomUUID(),
+        UUID.randomUUID(),
+        "레포지토리 테스트 댓글"
+    );
 
     CommentEntity savedComment = commentRepository.save(comment);
 
     assertThat(savedComment.getId()).isNotNull();
-    assertThat(savedComment.getContent()).isEqualTo("리포지토리 테스트 댓글");
+    assertThat(savedComment.getContent()).isEqualTo("레포지토리 테스트 댓글");
+    assertThat(savedComment.getLikeCount()).isEqualTo(0L);
+    assertThat(savedComment.getCreatedAt()).isNotNull();
   }
 }

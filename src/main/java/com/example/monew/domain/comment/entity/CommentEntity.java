@@ -23,7 +23,7 @@ public class CommentEntity {
   @Column(name = "user_id", nullable = false)
   private UUID userId;
 
-  @Column(nullable = false, length = 500)
+   @Column(nullable = false, length = 500)
   private String content;
 
   @Column(name = "like_count")
@@ -32,7 +32,6 @@ public class CommentEntity {
   @Column(name = "created_at", updatable = false)
   private LocalDateTime createdAt = LocalDateTime.now();
 
-  @Builder
   public CommentEntity(UUID articleId, UUID userId, String content) {
     this.articleId = articleId;
     this.userId = userId;
@@ -45,4 +44,5 @@ public class CommentEntity {
   public void updateContent(String content) {
     this.content = content;
   }
+
 }
