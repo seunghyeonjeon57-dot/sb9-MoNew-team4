@@ -2,8 +2,11 @@ package com.example.monew.domain.article.service;
 
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.entity.ArticleEntity;
+import com.example.monew.domain.article.exception.ArticleNotFoundException;
+import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.article.repository.ArticleRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,7 +37,10 @@ class ArticleServiceTest {
   @InjectMocks
   private ArticleService articleService;
 
-  @Nested // 테스트 안에 테스트 작성 가능
+  @Mock
+  private ArticleMapper articleMapper;
+
+  @Nested
   @DisplayName("기사 상세 조회")
   class GetArticleDetail {
 
@@ -45,9 +51,13 @@ class ArticleServiceTest {
       ArticleEntity article = ArticleEntity.builder()
           .id(id)
           .title("테스트")
+
           .build();
 
       given(articleRepository.findById(id)).willReturn(Optional.of(article));
+
+      ArticleDto expectedDto = new ArticleDto(id, null, null, "테스트", null, null, null, 1L, false);
+      given(articleMapper.toDto(any(ArticleEntity.class), anyBoolean())).willReturn(expectedDto);
 
       ArticleDto result = articleService.getArticleDetail(id);
 
@@ -62,8 +72,8 @@ class ArticleServiceTest {
       given(articleRepository.findById(id)).willReturn(Optional.empty());
 
       assertThatThrownBy(() -> articleService.getArticleDetail(id))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("해당 기사 없음");
+          .isInstanceOf(ArticleNotFoundException.class)
+          .hasMessageContaining("해당 기사를 찾을 수 없습니다.");
     }
   }
 
@@ -117,7 +127,7 @@ class ArticleServiceTest {
       given(articleRepository.findById(id)).willReturn(Optional.empty());
 
       assertThatThrownBy(() -> articleService.isDeleted(id))
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(ArticleNotFoundException.class);
     }
   }
 
@@ -155,7 +165,7 @@ class ArticleServiceTest {
   }
 
   @Nested
-  @DisplayName("기사 목록 검색 테스트")
+  @DisplayName("기사 목록 검색 테스트 DTO 반영 수정")
   class GetArticleList {
 
     @Test
@@ -165,12 +175,17 @@ class ArticleServiceTest {
       Pageable pageable = PageRequest.of(0, 10);
       Page<ArticleEntity> expectedPage = new PageImpl<>(List.of());
 
-      given(articleRepository.searchArticles(eq(keyword), any(), any(), any(), any(), eq(pageable)))
-          .willReturn(expectedPage);
-
+      given(articleRepository.searchArticles(
+          eq(keyword),
+          any(),
+          any(),
+          any(),
+          any(),
+          eq(pageable)
+      )).willReturn(expectedPage);
       articleService.getArticleList(keyword, null, null, null, null, pageable);
-
-      verify(articleRepository).searchArticles(eq(keyword), any(), any(), any(), any(), eq(pageable));
+      verify(articleRepository).searchArticles(eq(keyword), any(), any(), any(), any(),
+          eq(pageable));
     }
   }
 }

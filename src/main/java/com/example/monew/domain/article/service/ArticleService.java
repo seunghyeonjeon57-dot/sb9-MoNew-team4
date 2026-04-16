@@ -3,6 +3,10 @@ package com.example.monew.domain.article.service;
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.dto.ArticleRestoreResultDto;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
+import com.example.monew.domain.article.exception.ArticleNotFoundException;
+import com.example.monew.domain.article.mapper.ArticleMapper;
+import com.example.monew.global.exception.ErrorCode;
+import com.example.monew.global.exception.MonewException;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -20,14 +24,15 @@ import org.springframework.stereotype.Service;
 public class ArticleService {
 
   private final ArticleRepository articleRepository;
+  private final ArticleMapper articleMapper;
 
   @Transactional
   public ArticleDto getArticleDetail(UUID id) {
     ArticleEntity article = articleRepository.findById(id)
-        .orElseThrow(() -> new IllegalArgumentException("해당 기사를 찾을 수 없습니다."));
+        .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
 
     article.incrementViewCount();
-    return ArticleDto.from(article, false);
+    return articleMapper.toDto(article, false);
   }
 
   @Transactional
@@ -40,7 +45,7 @@ public class ArticleService {
   @Transactional
   public void isDeleted(UUID id) {
     ArticleEntity article = articleRepository.findById(id)
-        .orElseThrow(() -> new IllegalArgumentException("해당 기사를 찾을 수 없습니다."));
+        .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
 
     articleRepository.delete(article);
   }
@@ -68,24 +73,10 @@ public class ArticleService {
   public void incrementViewCount(UUID articleId) {
   }
 
-  public CursorPageResponseArticleDto getArticleList(String keyword, String interest, String source,
-      LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-
-    Page<ArticleEntity> articlePage = articleRepository.searchArticles(keyword, interest, source,
-        startDate, endDate, pageable);
-
-    List<ArticleDto> dtoList = articlePage.getContent().stream()
-        .map(entity -> ArticleDto.from(entity, false))
-        .toList();
-
-    return new CursorPageResponseArticleDto(
-        dtoList,
-        null, // 커서는 나중에 구현
-        null,
-        articlePage.getSize(),
-        articlePage.getTotalElements(),
-        articlePage.hasNext()
-    );
+  public CursorPageResponseArticleDto getArticleList(String keyword, String interest, String source, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+    Page<ArticleEntity> articlePage = articleRepository.searchArticles(keyword, interest, source, startDate, endDate, pageable);
+    return articleMapper.toCursorPageDto(articlePage);
   }
+
 
 }
