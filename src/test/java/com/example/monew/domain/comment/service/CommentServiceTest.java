@@ -102,5 +102,4 @@ public class CommentServiceTest {
         .hasMessage("댓글 수정 권한이 없습니다.");
   }
 
-
 }

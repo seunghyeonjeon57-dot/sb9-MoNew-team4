@@ -38,7 +38,7 @@ public class CommentController {
       @RequestHeader("Monew-Request-User-Id") UUID userId,
       @RequestBody CommentUpdateRequest request
   ){
-    CommentDto reponse = commentService.updateComment(commentId, userId, request);
-    return ResponseEntity.ok(reponse);
+    CommentDto comment = commentService.updateComment(commentId, userId, request);
+    return ResponseEntity.ok(comment);
   }
 }
