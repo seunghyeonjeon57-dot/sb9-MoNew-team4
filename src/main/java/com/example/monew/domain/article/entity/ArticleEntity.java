@@ -63,8 +63,9 @@ public class ArticleEntity extends BaseEntity {
   private String interest;
 
   @Builder
-  public ArticleEntity(String source, String sourceUrl, String title,
+  public ArticleEntity(UUID id, String source, String sourceUrl, String title,
       LocalDateTime publishDate, String summary, String interest) {
+    this.id = id; // 생성자 매개변수에 id 추가 및 할당
     this.source = source;
     this.sourceUrl = sourceUrl;
     this.title = title;
@@ -72,7 +73,6 @@ public class ArticleEntity extends BaseEntity {
     this.summary = summary;
     this.interest = interest;
     this.commentCount = 0;
-
     this.viewCount = 0;
   }
 
