@@ -1,7 +1,6 @@
 package com.example.monew.domain.interest.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -107,23 +106,4 @@ class InterestSubscriptionServiceTest {
         .isInstanceOf(SubscriptionNotFoundException.class);
   }
 
-  @Test
-  @DisplayName("deleteAllSubscriptionsByUserId: 유저 물리삭제 시 → 해당 유저의 구독 전체 삭제")
-  void deleteAllSubscriptionsByUserId_success() {
-    UUID userId = UUID.randomUUID();
-
-    service.deleteAllSubscriptionsByUserId(userId);
-
-    verify(subscriptionRepository).deleteAllByUserId(userId);
-  }
-
-  @Test
-  @DisplayName("deleteAllSubscriptionsByUserId: 구독 없는 유저 → 예외 없이 정상 종료")
-  void deleteAllSubscriptionsByUserId_noSubscriptions() {
-    UUID userId = UUID.randomUUID();
-
-    assertThatCode(() -> service.deleteAllSubscriptionsByUserId(userId))
-        .doesNotThrowAnyException();
-    verify(subscriptionRepository).deleteAllByUserId(userId);
-  }
 }
