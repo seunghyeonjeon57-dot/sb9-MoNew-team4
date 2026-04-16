@@ -47,6 +47,8 @@ public class InterestSubscriptionService {
         .ifPresent(Interest::decrementSubscriberCount);
   }
 
+  // 유저 물리삭제 시 호출. subscriberCount는 갱신하지 않음 —
+  // 삭제된 유저의 구독 수는 통계 정합성보다 삭제 속도를 우선.
   @Transactional
   public void deleteAllSubscriptionsByUserId(UUID userId) {
     subscriptionRepository.deleteAllByUserId(userId);
