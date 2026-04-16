@@ -4,6 +4,7 @@ import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
+import com.example.monew.domain.comment.dto.CommentUpdateRequest;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentRepository;
@@ -67,4 +68,39 @@ public class CommentServiceTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("존재하지 않는 기사입니다.");
   }
+
+  @Test
+  @DisplayName("존재하지 않는 댓글을 수정하려고 하면 예외가 발생한다.")
+  void updateComment_NotFound() {
+
+    UUID fakeCommentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    CommentUpdateRequest request = new CommentUpdateRequest("수정 내용");
+
+    given(commentRepository.findById(fakeCommentId)).willReturn(Optional.empty());
+
+
+    assertThatThrownBy(() -> commentService.updateComment(fakeCommentId, userId, request))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("존재하지 않는 댓글입니다.");
+  }
+
+  @Test
+  @DisplayName("작성자가 아닌 사용자가 수정을 요청하면 예외가 발생한다.")
+  void updateComment_Unauthorized() {
+    UUID commentId = UUID.randomUUID();
+    UUID ownerId = UUID.randomUUID();
+    UUID requesterId = UUID.randomUUID(); // 다른 사용자
+    CommentUpdateRequest request = new CommentUpdateRequest("수정 내용");
+
+    CommentEntity existingComment = new CommentEntity(UUID.randomUUID(), ownerId, "원본 내용");
+
+    given(commentRepository.findById(commentId)).willReturn(Optional.of(existingComment));
+
+    assertThatThrownBy(() -> commentService.updateComment(commentId, requesterId, request))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("댓글 수정 권한이 없습니다.");
+  }
+
+
 }

@@ -32,5 +32,16 @@ public class CommentRepositoryTest {
     assertThat(savedComment.getCreatedAt()).isNotNull();
   }
 
+  @Test
+  @DisplayName("엔티티 내용을 수정하고 플러시하면 DB에 반영된다.")
+  void updateComment_Persistence() {
+    CommentEntity comment = new CommentEntity(UUID.randomUUID(), UUID.randomUUID(), "원본");
+    CommentEntity saved = commentRepository.save(comment);
 
+    saved.updateContent("수정됨");
+    commentRepository.flush(); // 강제 반영
+
+    CommentEntity found = commentRepository.findById(saved.getId()).orElseThrow();
+    assertThat(found.getContent()).isEqualTo("수정됨");
+  }
 }
