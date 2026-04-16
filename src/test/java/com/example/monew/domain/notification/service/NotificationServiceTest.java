@@ -1,8 +1,5 @@
 package com.example.monew.domain.notification.service;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-
 import com.example.monew.domain.notification.entity.Notification;
 import com.example.monew.domain.notification.entity.ResourceType;
 import com.example.monew.domain.notification.repository.NotificationRepository;
@@ -12,6 +9,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
@@ -23,18 +26,25 @@ class NotificationServiceTest {
   private NotificationService notificationService;
 
   @Test
-  @DisplayName("알림 생성 시 Repository의 save 메서드가 호출되어야 한다. (RED)")
-  void createNotification() {
-    // given (준비)
-    Long userId = 1L;
-    String content = "새로운 알림입니다.";
+  @DisplayName("알림 생성 서비스 로직이 정상적으로 레포지토리를 호출하고 ID를 반환한다.")
+  void createNotification_success() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID resourceId = UUID.randomUUID();
+    String content = "테스트 알림 내용입니다.";
     ResourceType type = ResourceType.COMMENT;
-    Long resourceId = 20L;
 
-    // when (실행)
-    notificationService.createNotification(userId, content, type, resourceId);
+    Notification savedNotification = mock(Notification.class);
+    UUID expectedId = UUID.randomUUID();
 
-    // then (검증)
-    verify(notificationRepository).save(any(Notification.class));
+    when(notificationRepository.save(any(Notification.class))).thenReturn(savedNotification);
+    when(savedNotification.getId()).thenReturn(expectedId);
+
+    // when
+    UUID resultId = notificationService.createNotification(userId, content, type, resourceId);
+
+    // then
+    assertThat(resultId).isEqualTo(expectedId);
+    verify(notificationRepository, times(1)).save(any(Notification.class));
   }
 }
