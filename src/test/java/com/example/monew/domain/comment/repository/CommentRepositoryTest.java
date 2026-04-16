@@ -31,4 +31,6 @@ public class CommentRepositoryTest {
     assertThat(savedComment.getLikeCount()).isEqualTo(0L);
     assertThat(savedComment.getCreatedAt()).isNotNull();
   }
+
+
 }
