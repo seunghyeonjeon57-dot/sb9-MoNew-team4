@@ -1,5 +1,6 @@
 package com.example.monew.domain.article.service;
 
+import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.article.repository.ArticleRepository;
@@ -41,12 +42,16 @@ class ArticleServiceTest {
     @DisplayName("성공: 기사가 존재하면 조회수가 증가된 기사를 반환")
     void success() {
       UUID id = UUID.randomUUID();
-      ArticleEntity article = ArticleEntity.builder().title("테스트").build();
+      ArticleEntity article = ArticleEntity.builder()
+          .id(id)
+          .title("테스트")
+          .build();
+
       given(articleRepository.findById(id)).willReturn(Optional.of(article));
 
-      ArticleEntity result = articleService.getArticleDetail(id);
+      ArticleDto result = articleService.getArticleDetail(id);
 
-      assertThat(result.getViewCount()).isEqualTo(1);
+      assertThat(result.viewCount()).isEqualTo(1);
       verify(articleRepository, times(1)).findById(id);
     }
 
