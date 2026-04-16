@@ -36,6 +36,7 @@ public class ArticleController {
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "목록 조회 성공")
   })
+  @GetMapping
   public ResponseEntity<CursorPageResponseArticleDto> getArticleList(
       @RequestParam(required = false) String keyword,
       @RequestParam(required = false) String interest,
@@ -44,7 +45,7 @@ public class ArticleController {
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
       @PageableDefault(size = 10, sort = "publishDate", direction = Sort.Direction.DESC) Pageable pageable
   ) {
-    return ResponseEntity.ok(articleService.getArticleList(keyword, interest, source, startDate, endDate, pageable));
+    return ResponseEntity.ok(articleService.getArticleList(keyword, interest, source, startDate, endDate,pageable));
   }
 
   @Operation(summary = "뉴스 기사 상세 조회", description = "ID를 사용하여 뉴스 기사의 상세 내용을 조회합니다.")
@@ -53,7 +54,7 @@ public class ArticleController {
       @ApiResponse(responseCode = "404", description = "기사를 찾을 수 없음")
   })
   @GetMapping("/{articleId}")
-  public ResponseEntity<ArticleDto> getArticleDetail(@PathVariable UUID articleId) { // 2. 여기서 에러 났던 부분 수정!
+  public ResponseEntity<ArticleDto> getArticleDetail(@PathVariable UUID articleId) {
     return ResponseEntity.ok(articleService.getArticleDetail(articleId));
   }
 
