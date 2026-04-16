@@ -1,6 +1,7 @@
 package com.example.monew.domain.comment.controller;
 
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
+import com.example.monew.domain.comment.dto.CommentUpdateRequest;
 import com.example.monew.domain.comment.service.CommentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -15,6 +16,7 @@ import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 
 // RED 원인: CommentController 클래스가 없어서 컴파일 에러 발생
 @WebMvcTest(CommentController.class)
@@ -37,5 +39,20 @@ class CommentControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
         .andExpect(status().isCreated());
+  }
+
+  @Test
+  @DisplayName("댓글 수정 시 작성자 ID와 함께 요청하면 200 OK를 반환한다.")
+  void updateComment_HttpOk() throws Exception {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    CommentUpdateRequest request = new CommentUpdateRequest("수정된 댓글입니다.");
+    String jsonRequest = objectMapper.writeValueAsString(request);
+
+    mockMvc.perform(patch("/api/comments/{commentId}", commentId)
+            .header("MoNew-Request-User-ID", userId.toString()) // 요구사항 헤더 추가
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+        .andExpect(status().isOk());
   }
 }
