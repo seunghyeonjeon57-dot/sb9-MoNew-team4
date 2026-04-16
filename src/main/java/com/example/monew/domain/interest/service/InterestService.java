@@ -33,7 +33,7 @@ public class InterestService {
 
   @Transactional
   public InterestResponse create(InterestCreateRequest request) {
-    List<Interest> actives = interestRepository.findAllByIsDeletedFalse();
+    List<Interest> actives = interestRepository.findAllByDeletedAtIsNull();
     for (Interest existing : actives) {
       double similarity = SimilarityUtils.similarity(existing.getName(), request.name());
       if (similarity >= SIMILARITY_THRESHOLD) {
@@ -55,7 +55,7 @@ public class InterestService {
       throw new InvalidSortParameterException(Map.of("direction", direction));
     }
 
-    List<Interest> interests = interestRepository.findAllByIsDeletedFalse();
+    List<Interest> interests = interestRepository.findAllByDeletedAtIsNull();
 
     Comparator<Interest> comparator = switch (sortBy == null ? "name" : sortBy) {
       case "subscriberCount" -> Comparator.comparingLong(Interest::getSubscriberCount);
@@ -90,7 +90,7 @@ public class InterestService {
 
   @Transactional
   public void delete(UUID interestId) {
-    Interest interest = interestRepository.findByIdAndIsDeletedFalse(interestId)
+    Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
     interest.markDeleted();
     subscriptionRepository.deleteAllByInterestId(interestId);
@@ -98,7 +98,7 @@ public class InterestService {
 
   @Transactional
   public InterestResponse updateKeywords(UUID interestId, InterestUpdateRequest request) {
-    Interest interest = interestRepository.findByIdAndIsDeletedFalse(interestId)
+    Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
     interest.replaceKeywords(request.keywords());
     return InterestResponse.from(interest, false);

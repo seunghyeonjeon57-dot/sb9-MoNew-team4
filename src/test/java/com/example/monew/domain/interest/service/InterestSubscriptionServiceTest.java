@@ -41,7 +41,7 @@ class InterestSubscriptionServiceTest {
   void subscribeSuccess() {
     Interest interest = new Interest("인공지능", List.of("AI"));
     UUID userId = UUID.randomUUID();
-    when(interestRepository.findByIdAndIsDeletedFalse(interest.getId()))
+    when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
     when(subscriptionRepository.existsByInterestIdAndUserId(interest.getId(), userId)).thenReturn(false);
     when(subscriptionRepository.save(any(Subscription.class)))
@@ -57,7 +57,7 @@ class InterestSubscriptionServiceTest {
   @DisplayName("subscribe: 미존재 인터레스트 → InterestNotFoundException")
   void subscribeInterestNotFound() {
     UUID id = UUID.randomUUID();
-    when(interestRepository.findByIdAndIsDeletedFalse(id)).thenReturn(Optional.empty());
+    when(interestRepository.findByIdAndDeletedAtIsNull(id)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.subscribe(id, UUID.randomUUID()))
         .isInstanceOf(InterestNotFoundException.class);
@@ -68,7 +68,7 @@ class InterestSubscriptionServiceTest {
   void subscribeDuplicate() {
     Interest interest = new Interest("인공지능", List.of("AI"));
     UUID userId = UUID.randomUUID();
-    when(interestRepository.findByIdAndIsDeletedFalse(interest.getId()))
+    when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
     when(subscriptionRepository.existsByInterestIdAndUserId(interest.getId(), userId)).thenReturn(true);
 
@@ -85,7 +85,7 @@ class InterestSubscriptionServiceTest {
     Subscription sub = new Subscription(interest.getId(), userId);
     when(subscriptionRepository.findByInterestIdAndUserId(interest.getId(), userId))
         .thenReturn(Optional.of(sub));
-    when(interestRepository.findByIdAndIsDeletedFalse(interest.getId()))
+    when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
 
     service.unsubscribe(interest.getId(), userId);

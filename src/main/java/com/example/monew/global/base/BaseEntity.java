@@ -22,4 +22,8 @@ public abstract class BaseEntity {
     return deletedAt != null;
   }
 
+  public void markDeleted() {
+    this.deletedAt = LocalDateTime.now();
+  }
+
 }
