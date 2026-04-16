@@ -104,4 +104,5 @@ class InterestSubscriptionServiceTest {
     assertThatThrownBy(() -> service.unsubscribe(interestId, userId))
         .isInstanceOf(SubscriptionNotFoundException.class);
   }
+
 }

@@ -51,4 +51,20 @@ class SubscriptionRepositoryTest {
 
     assertThat(deleted).isEqualTo(2);
   }
+
+  @Test
+  @DisplayName("deleteAllByUserId: 사용자 탈퇴 시 해당 유저의 구독 전체 삭제")
+  void deleteAllByUserId() {
+    UUID userId = UUID.randomUUID();
+    UUID otherUserId = UUID.randomUUID();
+    subscriptionRepository.save(new Subscription(UUID.randomUUID(), userId));
+    subscriptionRepository.save(new Subscription(UUID.randomUUID(), userId));
+    subscriptionRepository.save(new Subscription(UUID.randomUUID(), otherUserId)); // 다른 유저
+
+    long deleted = subscriptionRepository.deleteAllByUserId(userId);
+
+    assertThat(deleted).isEqualTo(2);
+    assertThat(subscriptionRepository.findAllByUserId(userId)).isEmpty();
+    assertThat(subscriptionRepository.findAllByUserId(otherUserId)).hasSize(1); // 다른 유저 구독 보존
+  }
 }

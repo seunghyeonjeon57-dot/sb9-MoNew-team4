@@ -48,4 +48,5 @@ public class InterestSubscriptionService {
     subscriptionRepository.delete(sub);
     interestRepository.decrementSubscriberCount(interestId);
   }
+
 }
