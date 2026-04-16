@@ -1,5 +1,6 @@
 package com.example.monew.domain.interest.service;
 
+import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
@@ -46,8 +47,8 @@ public class InterestService {
   }
 
   @Transactional(readOnly = true)
-  public List<InterestResponse> getInterests(
-      String keyword, String sortBy, String direction, UUID userId) {
+  public CursorPageResponse<InterestResponse> getInterests(
+      String keyword, String sortBy, String direction, String cursor, int size, UUID userId) {
     if (sortBy != null && !ALLOWED_SORT_BY.contains(sortBy)) {
       throw new InvalidSortParameterException(Map.of("sortBy", sortBy));
     }
@@ -70,11 +71,34 @@ public class InterestService {
         .sorted(comparator)
         .toList();
 
-    Set<UUID> subscribedIds = subscribedIdsFor(userId, filtered);
+    long totalElements = filtered.size();
 
-    return filtered.stream()
+    // 커서가 있으면 해당 ID 이후부터 시작 (빈 문자열은 null로 처리)
+    int startIndex = 0;
+    if (cursor != null && !cursor.isBlank()) {
+      UUID cursorId = UUID.fromString(cursor);
+      for (int i = 0; i < filtered.size(); i++) {
+        if (filtered.get(i).getId().equals(cursorId)) {
+          startIndex = i + 1;
+          break;
+        }
+      }
+    }
+
+    List<Interest> sliced = filtered.stream().skip(startIndex).limit((long) size + 1).toList();
+
+    boolean hasNext = sliced.size() > size;
+    List<Interest> page = hasNext ? sliced.subList(0, size) : sliced;
+
+    Set<UUID> subscribedIds = subscribedIdsFor(userId, page);
+
+    List<InterestResponse> content = page.stream()
         .map(i -> InterestResponse.from(i, subscribedIds.contains(i.getId())))
         .toList();
+
+    String nextCursor = hasNext ? page.get(page.size() - 1).getId().toString() : null;
+
+    return new CursorPageResponse<>(content, nextCursor, size, totalElements, hasNext);
   }
 
   private Set<UUID> subscribedIdsFor(UUID userId, List<Interest> filtered) {
