@@ -52,13 +52,4 @@ public class Interest extends BaseEntity {
     }
   }
 
-  public void incrementSubscriberCount() {
-    this.subscriberCount++;
-  }
-
-  public void decrementSubscriberCount() {
-    if (this.subscriberCount > 0) {
-      this.subscriberCount--;
-    }
-  }
 }
