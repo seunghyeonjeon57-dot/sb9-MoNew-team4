@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
@@ -144,38 +145,63 @@ class InterestControllerTest {
   }
 
   @Test
-  @DisplayName("GET /api/interests: 기본 → 200 + 리스트")
+  @DisplayName("GET /api/interests: 기본 → 200 + CursorPageResponse")
   void list200() throws Exception {
     UUID id = UUID.randomUUID();
-    when(interestService.getInterests(any(), any(), any(), any()))
-        .thenReturn(List.of(new InterestResponse(id, "AI", List.of("ai"), 0L, false)));
+    CursorPageResponse<InterestResponse> pageResponse = new CursorPageResponse<>(
+        List.of(new InterestResponse(id, "AI", List.of("ai"), 0L, false)),
+        null, 20, 1L, false);
+    when(interestService.getInterests(any(), any(), any(), any(), any(Integer.class), any()))
+        .thenReturn(pageResponse);
 
     mockMvc.perform(get("/api/interests"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].name").value("AI"));
+        .andExpect(jsonPath("$.content[0].name").value("AI"))
+        .andExpect(jsonPath("$.hasNext").value(false));
   }
 
   @Test
   @DisplayName("GET /api/interests?keyword=AI → keyword 파라미터를 서비스에 전달")
   void listKeywordParam() throws Exception {
     UUID id = UUID.randomUUID();
-    when(interestService.getInterests(eq("AI"), any(), any(), any()))
-        .thenReturn(List.of(new InterestResponse(id, "인공지능", List.of("AI"), 0L, false)));
+    CursorPageResponse<InterestResponse> pageResponse = new CursorPageResponse<>(
+        List.of(new InterestResponse(id, "인공지능", List.of("AI"), 0L, false)),
+        null, 20, 1L, false);
+    when(interestService.getInterests(eq("AI"), any(), any(), any(), any(Integer.class), any()))
+        .thenReturn(pageResponse);
 
     mockMvc.perform(get("/api/interests").param("keyword", "AI"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].name").value("인공지능"));
+        .andExpect(jsonPath("$.content[0].name").value("인공지능"));
   }
 
   @Test
   @DisplayName("GET /api/interests?sortBy=foo → 400 INVALID_SORT_PARAMETER")
   void listInvalidSort400() throws Exception {
-    when(interestService.getInterests(any(), eq("foo"), any(), any()))
+    when(interestService.getInterests(any(), eq("foo"), any(), any(), any(Integer.class), any()))
         .thenThrow(new InvalidSortParameterException(Map.of("sortBy", "foo")));
 
     mockMvc.perform(get("/api/interests").param("sortBy", "foo"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("INVALID_SORT_PARAMETER"));
+  }
+
+  @Test
+  @DisplayName("GET /api/interests?cursor=&size=20 → 커서 페이지네이션 응답 반환")
+  void listCursorPagination() throws Exception {
+    UUID id = UUID.randomUUID();
+    String nextCursor = UUID.randomUUID().toString();
+    CursorPageResponse<InterestResponse> pageResponse = new CursorPageResponse<>(
+        List.of(new InterestResponse(id, "AI", List.of("ai"), 0L, false)),
+        nextCursor, 20, 2L, true);
+    when(interestService.getInterests(any(), any(), any(), any(), any(Integer.class), any()))
+        .thenReturn(pageResponse);
+
+    mockMvc.perform(get("/api/interests").param("cursor", "").param("size", "20"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].name").value("AI"))
+        .andExpect(jsonPath("$.nextCursor").value(nextCursor))
+        .andExpect(jsonPath("$.hasNext").value(true));
   }
 
   @Test
