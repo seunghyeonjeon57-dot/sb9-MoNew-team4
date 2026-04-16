@@ -10,12 +10,12 @@ import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.global.util.SimilarityUtils;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,16 +65,24 @@ public class InterestService {
       comparator = comparator.reversed();
     }
 
-    Set<UUID> subscribedIds = userId == null ? Set.of()
-        : subscriptionRepository.findAllByUserId(userId).stream()
-            .map(s -> s.getInterestId())
-            .collect(Collectors.toSet());
-
-    return interests.stream()
+    List<Interest> filtered = interests.stream()
         .filter(i -> matchesKeyword(i, keyword))
         .sorted(comparator)
+        .toList();
+
+    Set<UUID> subscribedIds = subscribedIdsFor(userId, filtered);
+
+    return filtered.stream()
         .map(i -> InterestResponse.from(i, subscribedIds.contains(i.getId())))
         .toList();
+  }
+
+  private Set<UUID> subscribedIdsFor(UUID userId, List<Interest> filtered) {
+    if (userId == null || filtered.isEmpty()) {
+      return Set.of();
+    }
+    Collection<UUID> ids = filtered.stream().map(Interest::getId).toList();
+    return subscriptionRepository.findInterestIdsByUserIdAndInterestIdIn(userId, ids);
   }
 
   private boolean matchesKeyword(Interest interest, String keyword) {
