@@ -46,4 +46,9 @@ public class InterestSubscriptionService {
     interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .ifPresent(Interest::decrementSubscriberCount);
   }
+
+  @Transactional
+  public void deleteAllSubscriptionsByUserId(UUID userId) {
+    subscriptionRepository.deleteAllByUserId(userId);
+  }
 }

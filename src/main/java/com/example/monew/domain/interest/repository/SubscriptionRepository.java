@@ -17,4 +17,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
 
   @Transactional
   long deleteAllByInterestId(UUID interestId);
+
+  @Transactional
+  long deleteAllByUserId(UUID userId);
 }
