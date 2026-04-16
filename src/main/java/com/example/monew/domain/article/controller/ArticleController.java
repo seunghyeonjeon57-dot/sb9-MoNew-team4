@@ -1,5 +1,7 @@
 package com.example.monew.domain.article.controller;
 
+import com.example.monew.domain.article.dto.ArticleDto;
+import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.service.ArticleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,13 +36,12 @@ public class ArticleController {
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "목록 조회 성공")
   })
-  @GetMapping
-  public ResponseEntity<Page<ArticleEntity>> getArticleList(
-      @Parameter(description = "검색 키워드") @RequestParam(required = false) String keyword,
-      @Parameter(description = "관심사 카테고리") @RequestParam(required = false) String interest,
-      @Parameter(description = "언론사 출처") @RequestParam(required = false) String source,
-      @Parameter(description = "시작 날짜") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-      @Parameter(description = "종료 날짜") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+  public ResponseEntity<CursorPageResponseArticleDto> getArticleList(
+      @RequestParam(required = false) String keyword,
+      @RequestParam(required = false) String interest,
+      @RequestParam(required = false) String source,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
       @PageableDefault(size = 10, sort = "publishDate", direction = Sort.Direction.DESC) Pageable pageable
   ) {
     return ResponseEntity.ok(articleService.getArticleList(keyword, interest, source, startDate, endDate, pageable));
@@ -52,7 +53,7 @@ public class ArticleController {
       @ApiResponse(responseCode = "404", description = "기사를 찾을 수 없음")
   })
   @GetMapping("/{articleId}")
-  public ResponseEntity<ArticleEntity> getArticleDetail(@PathVariable UUID articleId) {
+  public ResponseEntity<ArticleDto> getArticleDetail(@PathVariable UUID articleId) { // 2. 여기서 에러 났던 부분 수정!
     return ResponseEntity.ok(articleService.getArticleDetail(articleId));
   }
 

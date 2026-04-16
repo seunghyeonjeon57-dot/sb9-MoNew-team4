@@ -1,6 +1,8 @@
 package com.example.monew.domain.article.controller;
 
 import com.example.monew.domain.article.controller.ArticleController;
+import com.example.monew.domain.article.dto.ArticleDto;
+import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.global.exception.MonewException;
@@ -42,8 +44,11 @@ class ArticleControllerTest {
     @DisplayName("성공")
     void success() throws Exception {
       UUID id = UUID.randomUUID();
-      given(articleService.getArticleDetail(id)).willReturn(mock(ArticleEntity.class));
-      mockMvc.perform(get("/api/articles/{id}", id)).andExpect(status().isOk());
+
+      given(articleService.getArticleDetail(id)).willReturn(mock(ArticleDto.class));
+
+      mockMvc.perform(get("/api/articles/{id}", id))
+          .andExpect(status().isOk());
     }
 
     @Test
@@ -119,7 +124,19 @@ class ArticleControllerTest {
   @Test
   @DisplayName("성공")
   void getList_Success() throws Exception {
-    given(articleService.getArticleList(any(), any(), any(), any(), any(), any())).willReturn(new PageImpl<>(List.of()));
-    mockMvc.perform(get("/api/articles")).andExpect(status().isOk());
+    CursorPageResponseArticleDto mockResponse = new CursorPageResponseArticleDto(
+        List.of(), // content
+        null,      // nextCursor
+        null,      // nextAfter
+        10,        // size
+        0L,        // totalElements
+        false      // hasNext
+    );
+
+    given(articleService.getArticleList(any(), any(), any(), any(), any(), any()))
+        .willReturn(mockResponse);
+
+    mockMvc.perform(get("/api/articles"))
+        .andExpect(status().isOk());
   }
 }
