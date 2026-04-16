@@ -3,6 +3,7 @@ package com.example.monew.domain.interest.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @ExtendWith(MockitoExtension.class)
 class InterestSubscriptionServiceTest {
@@ -37,20 +39,19 @@ class InterestSubscriptionServiceTest {
   private InterestSubscriptionService service;
 
   @Test
-  @DisplayName("subscribe: 정상 → 저장 + subscriberCount 증가")
+  @DisplayName("subscribe: 정상 → saveAndFlush + incrementSubscriberCount 호출")
   void subscribeSuccess() {
     Interest interest = new Interest("인공지능", List.of("AI"));
     UUID userId = UUID.randomUUID();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
-    when(subscriptionRepository.existsByInterestIdAndUserId(interest.getId(), userId)).thenReturn(false);
-    when(subscriptionRepository.save(any(Subscription.class)))
+    when(subscriptionRepository.saveAndFlush(any(Subscription.class)))
         .thenAnswer(inv -> inv.getArgument(0));
 
     SubscriptionResponse response = service.subscribe(interest.getId(), userId);
 
     assertThat(response.userId()).isEqualTo(userId);
-    assertThat(interest.getSubscriberCount()).isEqualTo(1L);
+    verify(interestRepository).incrementSubscriberCount(eq(interest.getId()));
   }
 
   @Test
@@ -64,34 +65,32 @@ class InterestSubscriptionServiceTest {
   }
 
   @Test
-  @DisplayName("subscribe: 이미 구독 → DuplicateSubscriptionException")
+  @DisplayName("subscribe: DB unique 위반 → DuplicateSubscriptionException 변환")
   void subscribeDuplicate() {
     Interest interest = new Interest("인공지능", List.of("AI"));
     UUID userId = UUID.randomUUID();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
-    when(subscriptionRepository.existsByInterestIdAndUserId(interest.getId(), userId)).thenReturn(true);
+    when(subscriptionRepository.saveAndFlush(any(Subscription.class)))
+        .thenThrow(new DataIntegrityViolationException("uk_user_interest"));
 
     assertThatThrownBy(() -> service.subscribe(interest.getId(), userId))
         .isInstanceOf(DuplicateSubscriptionException.class);
   }
 
   @Test
-  @DisplayName("unsubscribe: 정상 → 삭제 + subscriberCount 감소")
+  @DisplayName("unsubscribe: 정상 → 삭제 + decrementSubscriberCount 호출")
   void unsubscribeSuccess() {
-    Interest interest = new Interest("인공지능", List.of("AI"));
-    interest.incrementSubscriberCount();
+    UUID interestId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    Subscription sub = new Subscription(interest.getId(), userId);
-    when(subscriptionRepository.findByInterestIdAndUserId(interest.getId(), userId))
+    Subscription sub = new Subscription(interestId, userId);
+    when(subscriptionRepository.findByInterestIdAndUserId(interestId, userId))
         .thenReturn(Optional.of(sub));
-    when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
-        .thenReturn(Optional.of(interest));
 
-    service.unsubscribe(interest.getId(), userId);
+    service.unsubscribe(interestId, userId);
 
     verify(subscriptionRepository).delete(sub);
-    assertThat(interest.getSubscriberCount()).isZero();
+    verify(interestRepository).decrementSubscriberCount(eq(interestId));
   }
 
   @Test
@@ -105,4 +104,5 @@ class InterestSubscriptionServiceTest {
     assertThatThrownBy(() -> service.unsubscribe(interestId, userId))
         .isInstanceOf(SubscriptionNotFoundException.class);
   }
+
 }
