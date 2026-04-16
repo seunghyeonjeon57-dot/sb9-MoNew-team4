@@ -81,11 +81,12 @@ public class InterestService {
     if (keyword == null || keyword.isBlank()) {
       return true;
     }
-    if (interest.getName().contains(keyword)) {
+    String needle = keyword.toLowerCase();
+    if (interest.getName().toLowerCase().contains(needle)) {
       return true;
     }
     return interest.getKeywords().stream()
-        .anyMatch(k -> k.getValue().contains(keyword));
+        .anyMatch(k -> k.getValue().toLowerCase().contains(needle));
   }
 
   @Transactional
