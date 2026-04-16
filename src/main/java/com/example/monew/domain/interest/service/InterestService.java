@@ -1,5 +1,6 @@
 package com.example.monew.domain.interest.service;
 
+import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
@@ -46,35 +47,58 @@ public class InterestService {
   }
 
   @Transactional(readOnly = true)
-  public List<InterestResponse> getInterests(
-      String keyword, String sortBy, String direction, UUID userId) {
+  public CursorPageResponse<InterestResponse> getInterests(
+      String keyword, String sortBy, String direction, String cursor, int size, UUID userId) {
+    validateSortParams(sortBy, direction);
+
+    List<Interest> filtered = interestRepository.findAllByDeletedAtIsNull().stream()
+        .filter(i -> matchesKeyword(i, keyword))
+        .sorted(buildComparator(sortBy, direction))
+        .toList();
+
+    long totalElements = filtered.size();
+    int startIndex = resolveCursorOffset(filtered, cursor);
+
+    List<Interest> sliced = filtered.stream().skip(startIndex).limit((long) size + 1).toList();
+    boolean hasNext = sliced.size() > size;
+    List<Interest> page = hasNext ? sliced.subList(0, size) : sliced;
+
+    Set<UUID> subscribedIds = subscribedIdsFor(userId, page);
+    List<InterestResponse> content = page.stream()
+        .map(i -> InterestResponse.from(i, subscribedIds.contains(i.getId())))
+        .toList();
+
+    String nextCursor = hasNext ? page.get(page.size() - 1).getId().toString() : null;
+    return new CursorPageResponse<>(content, nextCursor, size, totalElements, hasNext);
+  }
+
+  private void validateSortParams(String sortBy, String direction) {
     if (sortBy != null && !ALLOWED_SORT_BY.contains(sortBy)) {
       throw new InvalidSortParameterException(Map.of("sortBy", sortBy));
     }
     if (direction != null && !ALLOWED_DIRECTION.contains(direction)) {
       throw new InvalidSortParameterException(Map.of("direction", direction));
     }
+  }
 
-    List<Interest> interests = interestRepository.findAllByDeletedAtIsNull();
+  private Comparator<Interest> buildComparator(String sortBy, String direction) {
+    Comparator<Interest> comparator = "subscriberCount".equals(sortBy)
+        ? Comparator.comparingLong(Interest::getSubscriberCount)
+        : Comparator.comparing(Interest::getName);
+    return "desc".equals(direction) ? comparator.reversed() : comparator;
+  }
 
-    Comparator<Interest> comparator = switch (sortBy == null ? "name" : sortBy) {
-      case "subscriberCount" -> Comparator.comparingLong(Interest::getSubscriberCount);
-      default -> Comparator.comparing(Interest::getName);
-    };
-    if ("desc".equals(direction)) {
-      comparator = comparator.reversed();
+  private int resolveCursorOffset(List<Interest> sorted, String cursor) {
+    if (cursor == null || cursor.isBlank()) {
+      return 0;
     }
-
-    List<Interest> filtered = interests.stream()
-        .filter(i -> matchesKeyword(i, keyword))
-        .sorted(comparator)
-        .toList();
-
-    Set<UUID> subscribedIds = subscribedIdsFor(userId, filtered);
-
-    return filtered.stream()
-        .map(i -> InterestResponse.from(i, subscribedIds.contains(i.getId())))
-        .toList();
+    UUID cursorId = UUID.fromString(cursor);
+    for (int i = 0; i < sorted.size(); i++) {
+      if (sorted.get(i).getId().equals(cursorId)) {
+        return i + 1;
+      }
+    }
+    return 0;
   }
 
   private Set<UUID> subscribedIdsFor(UUID userId, List<Interest> filtered) {

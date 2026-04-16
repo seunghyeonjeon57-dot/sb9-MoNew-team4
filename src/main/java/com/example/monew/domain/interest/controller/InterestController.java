@@ -1,11 +1,11 @@
 package com.example.monew.domain.interest.controller;
 
+import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.service.InterestService;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,12 +29,14 @@ public class InterestController {
   private final InterestService interestService;
 
   @GetMapping
-  public ResponseEntity<List<InterestResponse>> list(
+  public ResponseEntity<CursorPageResponse<InterestResponse>> list(
       @RequestParam(required = false) String keyword,
       @RequestParam(required = false) String sortBy,
       @RequestParam(required = false) String direction,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(defaultValue = "20") int size,
       @RequestHeader(value = "MoNew-Request-User-ID", required = false) UUID userId) {
-    return ResponseEntity.ok(interestService.getInterests(keyword, sortBy, direction, userId));
+    return ResponseEntity.ok(interestService.getInterests(keyword, sortBy, direction, cursor, size, userId));
   }
 
   @PostMapping

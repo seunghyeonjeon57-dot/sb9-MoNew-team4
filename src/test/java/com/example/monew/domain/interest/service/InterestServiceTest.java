@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
@@ -88,17 +89,18 @@ class InterestServiceTest {
         org.mockito.ArgumentMatchers.anyCollection()))
         .thenReturn(Set.of(a.getId()));
 
-    List<InterestResponse> list = interestService.getInterests(null, null, null, userId);
+    CursorPageResponse<InterestResponse> page =
+        interestService.getInterests(null, null, null, null, 20, userId);
 
-    assertThat(list).hasSize(2);
-    assertThat(list.stream().filter(r -> r.name().equals("A")).findFirst().orElseThrow().subscribedByMe()).isTrue();
-    assertThat(list.stream().filter(r -> r.name().equals("B")).findFirst().orElseThrow().subscribedByMe()).isFalse();
+    assertThat(page.content()).hasSize(2);
+    assertThat(page.content().stream().filter(r -> r.name().equals("A")).findFirst().orElseThrow().subscribedByMe()).isTrue();
+    assertThat(page.content().stream().filter(r -> r.name().equals("B")).findFirst().orElseThrow().subscribedByMe()).isFalse();
   }
 
   @Test
   @DisplayName("getInterests: 잘못된 sortBy → InvalidSortParameterException")
   void getInterestsInvalidSort() {
-    assertThatThrownBy(() -> interestService.getInterests(null, "foo", "asc", null))
+    assertThatThrownBy(() -> interestService.getInterests(null, "foo", "asc", null, 20, null))
         .isInstanceOf(InvalidSortParameterException.class);
   }
 
@@ -109,9 +111,10 @@ class InterestServiceTest {
     Interest b = new Interest("B", List.of("b"));
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
 
-    List<InterestResponse> list = interestService.getInterests(null, "name", "desc", null);
+    CursorPageResponse<InterestResponse> page =
+        interestService.getInterests(null, "name", "desc", null, 20, null);
 
-    assertThat(list).extracting(InterestResponse::name).containsExactly("B", "A");
+    assertThat(page.content()).extracting(InterestResponse::name).containsExactly("B", "A");
   }
 
   @Test
@@ -155,9 +158,10 @@ class InterestServiceTest {
     Interest bc = new Interest("블록체인", List.of("BTC"));
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(ai, bc));
 
-    List<InterestResponse> list = interestService.getInterests("인공", null, null, null);
+    CursorPageResponse<InterestResponse> page =
+        interestService.getInterests("인공", null, null, null, 20, null);
 
-    assertThat(list).extracting(InterestResponse::name).containsExactly("인공지능");
+    assertThat(page.content()).extracting(InterestResponse::name).containsExactly("인공지능");
   }
 
   @Test
@@ -167,9 +171,10 @@ class InterestServiceTest {
     Interest bc = new Interest("블록체인", List.of("BTC"));
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(ai, bc));
 
-    List<InterestResponse> list = interestService.getInterests("BTC", null, null, null);
+    CursorPageResponse<InterestResponse> page =
+        interestService.getInterests("BTC", null, null, null, 20, null);
 
-    assertThat(list).extracting(InterestResponse::name).containsExactly("블록체인");
+    assertThat(page.content()).extracting(InterestResponse::name).containsExactly("블록체인");
   }
 
   @Test
@@ -178,9 +183,10 @@ class InterestServiceTest {
     Interest spring = new Interest("Spring Boot", List.of("Java"));
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(spring));
 
-    List<InterestResponse> list = interestService.getInterests("spring", null, null, null);
+    CursorPageResponse<InterestResponse> page =
+        interestService.getInterests("spring", null, null, null, 20, null);
 
-    assertThat(list).extracting(InterestResponse::name).containsExactly("Spring Boot");
+    assertThat(page.content()).extracting(InterestResponse::name).containsExactly("Spring Boot");
   }
 
   @Test
@@ -189,8 +195,57 @@ class InterestServiceTest {
     Interest spring = new Interest("Spring Boot", List.of("Java"));
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(spring));
 
-    List<InterestResponse> list = interestService.getInterests("JAVA", null, null, null);
+    CursorPageResponse<InterestResponse> page = interestService.getInterests("JAVA", null, null, null, 20, null);
 
-    assertThat(list).extracting(InterestResponse::name).containsExactly("Spring Boot");
+    assertThat(page.content()).extracting(InterestResponse::name).containsExactly("Spring Boot");
+  }
+
+  @Test
+  @DisplayName("getInterests: size=1 → 1건만 반환 + hasNext=true")
+  void getInterests_size1_hasNext() {
+    Interest a = new Interest("A", List.of("a"));
+    Interest b = new Interest("B", List.of("b"));
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
+
+    CursorPageResponse<InterestResponse> page =
+        interestService.getInterests(null, "name", "asc", null, 1, null);
+
+    assertThat(page.content()).hasSize(1);
+    assertThat(page.hasNext()).isTrue();
+    assertThat(page.nextCursor()).isNotNull();
+  }
+
+  @Test
+  @DisplayName("getInterests: cursor로 다음 페이지 조회 → 나머지 항목 반환")
+  void getInterests_withCursor_returnsRemainingItems() {
+    Interest a = new Interest("A", List.of("a"));
+    Interest b = new Interest("B", List.of("b"));
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
+
+    CursorPageResponse<InterestResponse> firstPage =
+        interestService.getInterests(null, "name", "asc", null, 1, null);
+    String cursor = firstPage.nextCursor();
+
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
+    CursorPageResponse<InterestResponse> secondPage =
+        interestService.getInterests(null, "name", "asc", cursor, 1, null);
+
+    assertThat(secondPage.content()).hasSize(1);
+    assertThat(secondPage.content().get(0).name()).isEqualTo("B");
+    assertThat(secondPage.hasNext()).isFalse();
+  }
+
+  @Test
+  @DisplayName("getInterests: 전체 항목이 size 이하 → hasNext=false + nextCursor=null")
+  void getInterests_lastPage_noNext() {
+    Interest a = new Interest("A", List.of("a"));
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a));
+
+    CursorPageResponse<InterestResponse> page =
+        interestService.getInterests(null, null, null, null, 20, null);
+
+    assertThat(page.hasNext()).isFalse();
+    assertThat(page.nextCursor()).isNull();
+    assertThat(page.content()).hasSize(1);
   }
 }
