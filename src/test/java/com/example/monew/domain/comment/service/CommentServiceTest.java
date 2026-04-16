@@ -8,6 +8,7 @@ import com.example.monew.domain.comment.dto.CommentUpdateRequest;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentRepository;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 public class CommentServiceTest {
@@ -112,25 +114,32 @@ public class CommentServiceTest {
     CommentEntity comment = new CommentEntity(UUID.randomUUID(), userId, "삭제될 댓글");
     given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
-    commentService.deleteComment(commentId, userId);
+    commentService.softDeleteComment(commentId);
 
     // 논리 삭제이므로 DB에서 지워지는게 아니라 삭제 시간이 기록되어야 함
     assertThat(comment.getDeletedAt()).isNotNull();
   }
 
+
   @Test
-  @DisplayName("댓글 삭제 시 작성자가 아니면 예외가 발생한다.")
-  void deleteComment_Unauthorized() {
-    UUID commentId = UUID.randomUUID();
-    UUID ownerId = UUID.randomUUID();
-    UUID requesterId = UUID.randomUUID();
+  @DisplayName("특정 사용자의 모든 댓글을 논리 삭제하도록 레포지토리에 위임한다.")
+  void softDeleteByUserId() {
+    UUID userId = UUID.randomUUID();
 
-    CommentEntity comment = new CommentEntity(UUID.randomUUID(), ownerId, "원본 댓글");
-    given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+    commentService.softDeleteAllByUserId(userId);
 
-    assertThatThrownBy(() -> commentService.deleteComment(commentId, requesterId))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("댓글 삭제 권한이 없습니다.");
+    verify(commentRepository, times(1))
+        .softDeleteAllByUserId(eq(userId), any(LocalDateTime.class));
   }
 
+  @Test
+  @DisplayName("특정 사용자의 모든 댓글을 물리 삭제하도록 레포지토리에 위임한다.")
+  void hardDeleteAllByUserId() {
+    UUID userId = UUID.randomUUID();
+
+    commentService.hardDeleteAllByUserId(userId);
+
+    verify(commentRepository, times(1))
+        .deleteAllByUserId(userId);
+  }
 }
