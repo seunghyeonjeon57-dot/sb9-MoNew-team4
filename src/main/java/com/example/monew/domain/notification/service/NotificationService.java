@@ -14,6 +14,13 @@ public class NotificationService {
 
 
   public void createNotification(Long userId, String content, ResourceType type, Long resourceId) {
+    Notification notification = Notification.builder()
+        .userId(userId)
+        .content(content)
+        .resourceType(type)
+        .resourceId(resourceId)
+        .build();
 
+    notificationRepository.save(notification);
   }
 }
