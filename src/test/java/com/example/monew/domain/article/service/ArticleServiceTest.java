@@ -164,28 +164,4 @@ class ArticleServiceTest {
     }
   }
 
-  @Nested
-  @DisplayName("기사 목록 검색 테스트 DTO 반영 수정")
-  class GetArticleList {
-
-    @Test
-    @DisplayName("성공: 검색 조건과 페이징 정보가 레포지토리에 그대로 전달")
-    void success() {
-      String keyword = "네이버";
-      Pageable pageable = PageRequest.of(0, 10);
-      Page<ArticleEntity> expectedPage = new PageImpl<>(List.of());
-
-      given(articleRepository.searchArticles(
-          eq(keyword),
-          any(),
-          any(),
-          any(),
-          any(),
-          eq(pageable)
-      )).willReturn(expectedPage);
-      articleService.getArticleList(keyword, null, null, null, null, pageable);
-      verify(articleRepository).searchArticles(eq(keyword), any(), any(), any(), any(),
-          eq(pageable));
-    }
-  }
 }

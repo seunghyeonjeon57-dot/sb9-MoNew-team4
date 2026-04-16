@@ -1,8 +1,10 @@
 package com.example.monew.domain.article.repository;
 
 import com.example.monew.domain.article.entity.ArticleEntity;
+import com.example.monew.domain.article.entity.QArticleEntity;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
@@ -16,7 +18,7 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
   QArticleEntity article = QArticleEntity.articleEntity;
 
   @Override
-  public List<ArticleEntity> findByCursor(Long cursor, LocalDateTime after, int size) {
+  public List<ArticleEntity> findByCursor(UUID cursor, LocalDateTime after, int size) {
 
     return queryFactory
         .selectFrom(article)
@@ -25,11 +27,11 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
             ltAfter(after)
         )
         .orderBy(article.createdAt.desc(), article.id.desc())
-        .limit(size + 1) // 다음 페이지 확인용
+        .limit(size + 1)
         .fetch();
   }
 
-  private BooleanExpression ltCursor(Long cursor) {
+  private BooleanExpression ltCursor(UUID cursor) {
     return cursor != null ? article.id.lt(cursor) : null;
   }
 

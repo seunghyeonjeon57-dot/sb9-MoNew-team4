@@ -122,22 +122,4 @@ class ArticleControllerTest {
     }
   }
 
-  @Test
-  @DisplayName("성공")
-  void getList_Success() throws Exception {
-    CursorPageResponseArticleDto mockResponse = new CursorPageResponseArticleDto(
-        List.of(), // content
-        null,      // nextCursor
-        null,      // nextAfter
-        10,        // size
-        0L,        // totalElements
-        false      // hasNext
-    );
-
-    given(articleService.getArticleList(any(), any(), any(), any(), any(), any()))
-        .willReturn(mockResponse);
-
-    mockMvc.perform(get("/api/articles"))
-        .andExpect(status().isOk());
-  }
 }

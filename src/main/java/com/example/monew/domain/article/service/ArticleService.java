@@ -6,7 +6,6 @@ import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.global.exception.ErrorCode;
-import com.example.monew.global.exception.MonewException;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -73,10 +72,37 @@ public class ArticleService {
   public void incrementViewCount(UUID articleId) {
   }
 
-  public CursorPageResponseArticleDto getArticleList(String keyword, String interest, String source, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-    Page<ArticleEntity> articlePage = articleRepository.searchArticles(keyword, interest, source, startDate, endDate, pageable);
-    return articleMapper.toCursorPageDto(articlePage);
+  public CursorPageResponseArticleDto getArticles(UUID cursor, LocalDateTime after, int size) {
+
+    List<ArticleEntity> articles =
+        articleRepository.findByCursor(cursor, after, size);
+
+    boolean hasNext = articles.size() > size;
+
+    if (hasNext) {
+      articles.remove(size);
+    }
+
+    List<ArticleDto> content = articles.stream()
+        .map(a -> articleMapper.toDto(a, false))
+        .toList();
+
+    UUID nextCursor = null;
+    LocalDateTime nextAfter = null;
+
+    if (!articles.isEmpty()) {
+      ArticleEntity last = articles.get(articles.size() - 1);
+      nextCursor = last.getId();
+      nextAfter = last.getCreatedAt();
+    }
+
+    return new CursorPageResponseArticleDto(
+        content,
+        nextCursor != null ? nextCursor.toString() : null,
+        nextAfter,
+        size,
+        null,
+        hasNext
+    );
   }
-
-
 }
