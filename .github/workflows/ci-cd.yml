@@ -47,13 +47,15 @@ jobs:
           docker push geoni98/monew-app:latest
 
       - name: Notify Build/Push Success
-        if: success() # 위 작업들이 모두 성공했을 때만 실행
+          # 실패하지 않았고(Success 또는 Skipped 포함), 앞선 작업이 취소되지 않았을 때
+        if: always() && !failure() && !cancelled()
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: success
           title: "🚀 CI 빌드 성공: ${{ github.ref_name }}"
-          description: "소스 빌드 및 Docker 이미지 푸시가 완료되었습니다. (PR/Develop 포함)"
+          description: |
+            ${{ github.event_name == 'pull_request' && 'PR 테스트 빌드가 완료되었습니다.' || '소스 빌드 및 Docker 이미지 푸시가 완료되었습니다.' }}
           color: 0x00ff00
 
       # [실패 알림] 빌드 또는 이미지 생성/푸시 실패 시
