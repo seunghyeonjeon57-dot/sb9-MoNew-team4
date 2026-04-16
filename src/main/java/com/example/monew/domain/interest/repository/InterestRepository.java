@@ -8,9 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface InterestRepository extends JpaRepository<Interest, UUID> {
 
-  Optional<Interest> findByNameAndIsDeletedFalse(String name);
+  Optional<Interest> findByNameAndDeletedAtIsNull(String name);
 
-  Optional<Interest> findByIdAndIsDeletedFalse(UUID id);
+  Optional<Interest> findByIdAndDeletedAtIsNull(UUID id);
 
-  List<Interest> findAllByIsDeletedFalse();
+  List<Interest> findAllByDeletedAtIsNull();
 }
