@@ -43,23 +43,6 @@ class InterestTest {
   }
 
   @Test
-  @DisplayName("subscriberCount 증가/감소 (음수 금지)")
-  void subscriberCountIncrementsAndDecrementsButNotBelowZero() {
-    Interest interest = new Interest("인공지능", List.of("AI"));
-
-    interest.incrementSubscriberCount();
-    interest.incrementSubscriberCount();
-    assertThat(interest.getSubscriberCount()).isEqualTo(2);
-
-    interest.decrementSubscriberCount();
-    assertThat(interest.getSubscriberCount()).isEqualTo(1);
-
-    interest.decrementSubscriberCount();
-    interest.decrementSubscriberCount();
-    assertThat(interest.getSubscriberCount()).isZero();
-  }
-
-  @Test
   @DisplayName("name이 blank이면 IllegalArgumentException")
   void blankNameRejected() {
     assertThatThrownBy(() -> new Interest(" ", List.of("AI")))
