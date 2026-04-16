@@ -169,4 +169,26 @@ class InterestServiceTest {
 
     assertThat(list).extracting(InterestResponse::name).containsExactly("블록체인");
   }
+
+  @Test
+  @DisplayName("getInterests: keyword 대소문자 무시 - 이름 매칭")
+  void getInterestsKeywordCaseInsensitiveName() {
+    Interest spring = new Interest("Spring Boot", List.of("Java"));
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(spring));
+
+    List<InterestResponse> list = interestService.getInterests("spring", null, null, null);
+
+    assertThat(list).extracting(InterestResponse::name).containsExactly("Spring Boot");
+  }
+
+  @Test
+  @DisplayName("getInterests: keyword 대소문자 무시 - keywords 매칭")
+  void getInterestsKeywordCaseInsensitiveKeywords() {
+    Interest spring = new Interest("Spring Boot", List.of("Java"));
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(spring));
+
+    List<InterestResponse> list = interestService.getInterests("JAVA", null, null, null);
+
+    assertThat(list).extracting(InterestResponse::name).containsExactly("Spring Boot");
+  }
 }
