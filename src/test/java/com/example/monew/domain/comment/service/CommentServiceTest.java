@@ -19,6 +19,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -100,6 +101,36 @@ public class CommentServiceTest {
     assertThatThrownBy(() -> commentService.updateComment(commentId, requesterId, request))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("댓글 수정 권한이 없습니다.");
+  }
+
+  @Test
+  @DisplayName("댓글 삭제 시 논리 삭제(Soft Delete) 처리가 되어야 한다.")
+  void deleteComment_SoftDelete() {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    CommentEntity comment = new CommentEntity(UUID.randomUUID(), userId, "삭제될 댓글");
+    given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+    commentService.deleteComment(commentId, userId);
+
+    // 논리 삭제이므로 DB에서 지워지는게 아니라 삭제 시간이 기록되어야 함
+    assertThat(comment.getDeletedAt()).isNotNull();
+  }
+
+  @Test
+  @DisplayName("댓글 삭제 시 작성자가 아니면 예외가 발생한다.")
+  void deleteComment_Unauthorized() {
+    UUID commentId = UUID.randomUUID();
+    UUID ownerId = UUID.randomUUID();
+    UUID requesterId = UUID.randomUUID();
+
+    CommentEntity comment = new CommentEntity(UUID.randomUUID(), ownerId, "원본 댓글");
+    given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+    assertThatThrownBy(() -> commentService.deleteComment(commentId, requesterId))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("댓글 삭제 권한이 없습니다.");
   }
 
 }
