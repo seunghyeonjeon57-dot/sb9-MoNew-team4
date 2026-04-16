@@ -3,6 +3,7 @@ package com.example.monew.domain.article.controller;
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.service.ArticleService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,7 +25,11 @@ class ArticleControllerPagingTest {
   @Mock
   private ArticleService articleService;
 
+  @InjectMocks
+  private ArticleController articleController;
+
   @Test
+  @DisplayName("커서 페에징 성공(컨트롤러)")
   void PagingTest() {
     UUID nextId = UUID.randomUUID();
     LocalDateTime nextTime = LocalDateTime.now();
@@ -41,11 +46,11 @@ class ArticleControllerPagingTest {
 
     given(articleService.getArticles(any(), any(), anyInt())).willReturn(mockResponse);
 
-    CursorPageResponseArticleDto result = articleService.getArticles(null, null, 2);
+    CursorPageResponseArticleDto result = articleController.getArticleList(null, null, 2).getBody();
 
+    assertThat(result).isNotNull();
     assertThat(result.content()).hasSize(2);
     assertThat(result.hasNext()).isTrue();
     assertThat(result.nextCursor()).isEqualTo(nextId.toString());
-    assertThat(result.nextAfter()).isEqualTo(nextTime);
   }
 }

@@ -5,6 +5,7 @@ import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import java.util.ArrayList;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,6 +31,7 @@ class ArticleServicePagingTest {
   ArticleService articleService;
 
   @Test
+  @DisplayName("커서 페에징 성공(서비스)")
   void PagingTest() {
 
     UUID id1 = UUID.randomUUID();

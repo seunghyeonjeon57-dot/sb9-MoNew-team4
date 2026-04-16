@@ -31,13 +31,13 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
   }
 
   private BooleanExpression cursorCondition(UUID cursor, LocalDateTime after) {
+    if (cursor == null && after == null) return null;
 
-    if (cursor == null || after == null) {
-      return null;
-    }
+    if (cursor == null) return article.createdAt.lt(after);
+
+    if (after == null) return article.id.lt(cursor);
 
     return article.createdAt.lt(after)
-        .or(article.createdAt.eq(after)
-            .and(article.id.lt(cursor)));
+        .or(article.createdAt.eq(after).and(article.id.lt(cursor)));
   }
 }
