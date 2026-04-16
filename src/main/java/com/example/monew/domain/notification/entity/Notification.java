@@ -16,12 +16,12 @@ import lombok.NoArgsConstructor;
 public class Notification extends BaseEntity {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.UUID) // UUID 생성 전략
+  @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
   @NotNull(message = "사용자 ID는 필수입니다.")
   @Column(name = "user_id", nullable = false)
-  private UUID userId; // Long -> UUID
+  private UUID userId;
 
   @NotNull(message = "알림 내용은 필수입니다.")
   @Column(nullable = false)
@@ -34,7 +34,7 @@ public class Notification extends BaseEntity {
 
   @NotNull(message = "관련 리소스 ID는 필수입니다.")
   @Column(name = "resource_id", nullable = false)
-  private UUID resourceId; // Long -> UUID
+  private UUID resourceId;
 
   @Column(name = "is_read", nullable = false)
   private boolean isRead = false;
