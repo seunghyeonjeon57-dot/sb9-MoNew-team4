@@ -41,7 +41,7 @@ class InterestServiceTest {
   @Test
   @DisplayName("create: 신규 이름 + 키워드 → 저장 후 응답 반환")
   void createSuccess() {
-    when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of());
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of());
     when(interestRepository.save(any(Interest.class)))
         .thenAnswer(inv -> inv.getArgument(0));
 
@@ -56,7 +56,7 @@ class InterestServiceTest {
   @DisplayName("updateKeywords: 존재하는 ID → 키워드 교체 후 응답")
   void updateKeywordsSuccess() {
     Interest interest = new Interest("인공지능", List.of("AI"));
-    when(interestRepository.findByIdAndIsDeletedFalse(interest.getId()))
+    when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
 
     InterestResponse response = interestService.updateKeywords(
@@ -69,7 +69,7 @@ class InterestServiceTest {
   @DisplayName("updateKeywords: 미존재 ID → InterestNotFoundException")
   void updateKeywordsNotFound() {
     UUID id = UUID.randomUUID();
-    when(interestRepository.findByIdAndIsDeletedFalse(id)).thenReturn(Optional.empty());
+    when(interestRepository.findByIdAndDeletedAtIsNull(id)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() ->
         interestService.updateKeywords(id, new InterestUpdateRequest(List.of("ML"))))
@@ -83,7 +83,7 @@ class InterestServiceTest {
     Interest b = new Interest("B", List.of("b"));
     UUID userId = UUID.randomUUID();
     Subscription subA = new Subscription(a.getId(), userId);
-    when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(a, b));
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
     when(subscriptionRepository.findAllByUserId(userId)).thenReturn(List.of(subA));
 
     List<InterestResponse> list = interestService.getInterests(null, null, null, userId);
@@ -105,7 +105,7 @@ class InterestServiceTest {
   void getInterestsSortName() {
     Interest a = new Interest("A", List.of("a"));
     Interest b = new Interest("B", List.of("b"));
-    when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(a, b));
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
 
     List<InterestResponse> list = interestService.getInterests(null, "name", "desc", null);
 
@@ -116,7 +116,7 @@ class InterestServiceTest {
   @DisplayName("delete: 존재하는 ID → markDeleted + 구독 일괄 정리")
   void deleteSuccess() {
     Interest interest = new Interest("인공지능", List.of("AI"));
-    when(interestRepository.findByIdAndIsDeletedFalse(interest.getId()))
+    when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
 
     interestService.delete(interest.getId());
@@ -129,7 +129,7 @@ class InterestServiceTest {
   @DisplayName("delete: 미존재 ID → InterestNotFoundException")
   void deleteNotFound() {
     UUID id = UUID.randomUUID();
-    when(interestRepository.findByIdAndIsDeletedFalse(id)).thenReturn(Optional.empty());
+    when(interestRepository.findByIdAndDeletedAtIsNull(id)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> interestService.delete(id))
         .isInstanceOf(InterestNotFoundException.class);
@@ -139,7 +139,7 @@ class InterestServiceTest {
   @DisplayName("create: 80%+ 유사 이름 존재 → SimilarInterestNameException")
   void createSimilarRejected() {
     Interest existing = new Interest("인공지능", List.of("AI"));
-    when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(existing));
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(existing));
 
     assertThatThrownBy(() ->
         interestService.create(new InterestCreateRequest("인공지능A", List.of("AI"))))
@@ -151,7 +151,7 @@ class InterestServiceTest {
   void getInterestsKeywordNameMatch() {
     Interest ai = new Interest("인공지능", List.of("ML"));
     Interest bc = new Interest("블록체인", List.of("BTC"));
-    when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(ai, bc));
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(ai, bc));
 
     List<InterestResponse> list = interestService.getInterests("인공", null, null, null);
 
@@ -163,7 +163,7 @@ class InterestServiceTest {
   void getInterestsKeywordKeywordsMatch() {
     Interest ai = new Interest("인공지능", List.of("ML"));
     Interest bc = new Interest("블록체인", List.of("BTC"));
-    when(interestRepository.findAllByIsDeletedFalse()).thenReturn(List.of(ai, bc));
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(ai, bc));
 
     List<InterestResponse> list = interestService.getInterests("BTC", null, null, null);
 

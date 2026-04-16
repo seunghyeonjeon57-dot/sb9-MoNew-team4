@@ -23,7 +23,7 @@ public class InterestSubscriptionService {
 
   @Transactional
   public SubscriptionResponse subscribe(UUID interestId, UUID userId) {
-    Interest interest = interestRepository.findByIdAndIsDeletedFalse(interestId)
+    Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
 
     if (subscriptionRepository.existsByInterestIdAndUserId(interestId, userId)) {
@@ -43,7 +43,7 @@ public class InterestSubscriptionService {
             Map.of("interestId", interestId.toString(), "userId", userId.toString())));
 
     subscriptionRepository.delete(sub);
-    interestRepository.findByIdAndIsDeletedFalse(interestId)
+    interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .ifPresent(Interest::decrementSubscriberCount);
   }
 }
