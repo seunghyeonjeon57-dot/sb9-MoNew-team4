@@ -1,5 +1,8 @@
 package com.example.monew.domain.article.service;
 
+import com.example.monew.domain.article.dto.ArticleDto;
+import com.example.monew.domain.article.dto.ArticleRestoreResultDto;
+import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -19,14 +22,12 @@ public class ArticleService {
   private final ArticleRepository articleRepository;
 
   @Transactional
-  public ArticleEntity getArticleDetail(UUID id) {
+  public ArticleDto getArticleDetail(UUID id) {
     ArticleEntity article = articleRepository.findById(id)
-          // 예외처리 임시 -> 글로벌에 추가
         .orElseThrow(() -> new IllegalArgumentException("해당 기사를 찾을 수 없습니다."));
 
     article.incrementViewCount();
-
-    return article;
+    return ArticleDto.from(article, false);
   }
 
   @Transactional
@@ -43,14 +44,20 @@ public class ArticleService {
 
     articleRepository.delete(article);
   }
+
   @Transactional
   public void hardDelete(UUID id) {
     articleRepository.hardDeleteById(id);
   }
 
-  @Transactional
-  public void restore(UUID id) {
+  public ArticleRestoreResultDto restore(UUID id) {
     articleRepository.restoreById(id);
+
+    return new ArticleRestoreResultDto(
+        LocalDateTime.now(),
+        List.of(id),
+        1L
+    );
   }
 
   public List<String> getAllSources() {
@@ -61,11 +68,24 @@ public class ArticleService {
   public void incrementViewCount(UUID articleId) {
   }
 
-
-  public Page<ArticleEntity> getArticleList(String keyword, String interest, String source,
+  public CursorPageResponseArticleDto getArticleList(String keyword, String interest, String source,
       LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-    // 모든 조건을 레포지토리에 던지면, 쿼리에서 null 체크를 통해 알아서 합쳐서 검색합니다.
-    return articleRepository.searchArticles(keyword, interest, source, startDate, endDate, pageable);
+
+    Page<ArticleEntity> articlePage = articleRepository.searchArticles(keyword, interest, source,
+        startDate, endDate, pageable);
+
+    List<ArticleDto> dtoList = articlePage.getContent().stream()
+        .map(entity -> ArticleDto.from(entity, false))
+        .toList();
+
+    return new CursorPageResponseArticleDto(
+        dtoList,
+        null, // 커서는 나중에 구현
+        null,
+        articlePage.getSize(),
+        articlePage.getTotalElements(),
+        articlePage.hasNext()
+    );
   }
 
 }
