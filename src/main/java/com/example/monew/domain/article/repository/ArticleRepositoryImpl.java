@@ -23,19 +23,21 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
     return queryFactory
         .selectFrom(article)
         .where(
-            ltCursor(cursor),
-            ltAfter(after)
+            cursorCondition(cursor, after)
         )
         .orderBy(article.createdAt.desc(), article.id.desc())
         .limit(size + 1)
         .fetch();
   }
 
-  private BooleanExpression ltCursor(UUID cursor) {
-    return cursor != null ? article.id.lt(cursor) : null;
-  }
+  private BooleanExpression cursorCondition(UUID cursor, LocalDateTime after) {
 
-  private BooleanExpression ltAfter(LocalDateTime after) {
-    return after != null ? article.createdAt.lt(after) : null;
+    if (cursor == null || after == null) {
+      return null;
+    }
+
+    return article.createdAt.lt(after)
+        .or(article.createdAt.eq(after)
+            .and(article.id.lt(cursor)));
   }
 }
