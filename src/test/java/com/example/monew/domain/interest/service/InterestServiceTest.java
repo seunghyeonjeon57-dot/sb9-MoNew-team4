@@ -10,7 +10,6 @@ import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.entity.Interest;
-import com.example.monew.domain.interest.entity.Subscription;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.InvalidSortParameterException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
@@ -18,6 +17,7 @@ import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -77,14 +77,16 @@ class InterestServiceTest {
   }
 
   @Test
-  @DisplayName("getInterests: 활성 인터레스트 목록 + subscribedByMe 매핑")
+  @DisplayName("getInterests: 활성 인터레스트 목록 + subscribedByMe 매핑 (bulk 쿼리)")
   void getInterestsList() {
     Interest a = new Interest("A", List.of("a"));
     Interest b = new Interest("B", List.of("b"));
     UUID userId = UUID.randomUUID();
-    Subscription subA = new Subscription(a.getId(), userId);
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
-    when(subscriptionRepository.findAllByUserId(userId)).thenReturn(List.of(subA));
+    when(subscriptionRepository.findInterestIdsByUserIdAndInterestIdIn(
+        org.mockito.ArgumentMatchers.eq(userId),
+        org.mockito.ArgumentMatchers.anyCollection()))
+        .thenReturn(Set.of(a.getId()));
 
     List<InterestResponse> list = interestService.getInterests(null, null, null, userId);
 
