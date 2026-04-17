@@ -14,6 +14,9 @@ import com.example.monew.domain.user.dto.request.UserLoginRequest;
 import com.example.monew.domain.user.dto.request.UserRegisterRequest;
 import com.example.monew.domain.user.dto.request.UserUpdateRequest;
 import com.example.monew.domain.user.entity.User;
+import com.example.monew.domain.user.exception.DuplicateEmailException;
+import com.example.monew.domain.user.exception.LoginFailedException;
+import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.mapper.UserMapper;
 import com.example.monew.domain.user.repository.UserRepository;
 import java.util.NoSuchElementException;
@@ -68,7 +71,7 @@ class UserServiceTest {
       User user = User.builder().email(request.email()).nickname(request.nickname()).password("encoded_password").build();
       when(userRepository.existsByEmail(user.getEmail())).thenReturn(true);
       assertThatThrownBy(() -> userService.create(request))
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(DuplicateEmailException.class);
     }
   }
 
@@ -104,7 +107,7 @@ class UserServiceTest {
       when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
       assertThatThrownBy(() -> userService.login(request))
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(LoginFailedException.class);
     }
     @Test
     @DisplayName("이메일 불일치 시 로그인 실패")
@@ -117,7 +120,7 @@ class UserServiceTest {
 
       
       assertThatThrownBy(() -> userService.login(request))
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(LoginFailedException.class);
     }
   }
 
@@ -165,7 +168,7 @@ class UserServiceTest {
 
 
       assertThatThrownBy(() -> userService.updateUser(userId, request))
-          .isInstanceOf(NoSuchElementException.class)
+          .isInstanceOf(UserNotFoundException.class)
           .hasMessage("유저가 존재하지않습니다.");
     }
 
@@ -223,7 +226,7 @@ class UserServiceTest {
 
       
       assertThatThrownBy(() -> userService.softDeleteUser(userId))
-          .isInstanceOf(NoSuchElementException.class)
+          .isInstanceOf(UserNotFoundException.class)
           .hasMessage("존재하지 않는 사용자입니다.");
 
       
