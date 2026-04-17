@@ -23,8 +23,14 @@ public enum ErrorCode {
   DUPLICATE_SUBSCRIPTION(HttpStatus.CONFLICT, "이미 해당 관심사를 구독 중입니다."),
   SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "구독 정보를 찾을 수 없습니다."),
 
+
+  //Article 도메인
+  ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 기사를 찾을 수 없습니다."),
+
   // User 도메인 (기존 보존)
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 유저를 찾을 수 없습니다.");
+
+
 
   private final HttpStatus status;
   private final String message;
