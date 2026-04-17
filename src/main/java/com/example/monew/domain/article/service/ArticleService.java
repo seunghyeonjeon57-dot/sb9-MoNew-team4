@@ -70,6 +70,7 @@ public class ArticleService {
 
   //임시
   public void incrementViewCount(UUID articleId) {
+
   }
 
   public CursorPageResponseArticleDto getArticles(UUID cursor, LocalDateTime after, int size) {
