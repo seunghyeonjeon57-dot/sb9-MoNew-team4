@@ -1,5 +1,6 @@
 package com.example.monew.domain.interest.entity;
 
+import com.example.monew.global.base.BaseEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,7 +19,7 @@ import org.springframework.util.StringUtils;
 @Table(name = "interests")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Interest {
+public class Interest extends BaseEntity {
 
   @Id
   @Column(columnDefinition = "uuid")
@@ -32,9 +33,6 @@ public class Interest {
 
   @Column(nullable = false)
   private long subscriberCount = 0L;
-
-  @Column(nullable = false)
-  private boolean isDeleted = false;
 
   public Interest(String name, List<String> keywords) {
     if (!StringUtils.hasText(name)) {
@@ -54,17 +52,4 @@ public class Interest {
     }
   }
 
-  public void markDeleted() {
-    this.isDeleted = true;
-  }
-
-  public void incrementSubscriberCount() {
-    this.subscriberCount++;
-  }
-
-  public void decrementSubscriberCount() {
-    if (this.subscriberCount > 0) {
-      this.subscriberCount--;
-    }
-  }
 }

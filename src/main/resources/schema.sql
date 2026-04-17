@@ -17,10 +17,20 @@ CREATE TABLE interests
 (
     id               UUID PRIMARY KEY,
     name             VARCHAR(50) UNIQUE NOT NULL,
-    keywords         VARCHAR(50)[]      NOT NULL,
     subscriber_count BIGINT                      DEFAULT 0,
     created_at       TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     deleted_at       TIMESTAMP WITHOUT TIME ZONE -- 요구사항: 논리 삭제
+);
+
+-- 2-1. 관심사 키워드 테이블 (Interest_Keywords)
+CREATE TABLE interest_keywords
+(
+    id          UUID PRIMARY KEY,
+    interest_id UUID        NOT NULL,
+    value       VARCHAR(50) NOT NULL,
+
+    CONSTRAINT fk_keyword_interest FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE
 );
 
 -- 3. 구독 테이블 (Subscriptions) - 추가됨 (사용자-관심사 N:M 매핑)

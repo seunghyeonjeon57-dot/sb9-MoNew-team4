@@ -1,17 +1,17 @@
 package com.example.monew.domain.article.controller;
 
-import com.example.monew.domain.article.controller.ArticleController;
-import com.example.monew.domain.article.entity.ArticleEntity;
+import com.example.monew.domain.article.dto.ArticleDto;
+import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.service.ArticleService;
-import com.example.monew.global.exception.MonewException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.http.MediaType;
+
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
+
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -33,6 +33,9 @@ class ArticleControllerTest {
   @MockitoBean
   private ArticleService articleService;
 
+  @MockitoBean
+  private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
   @Nested
   @DisplayName("상세 조회 테스트")
   class GetDetail {
@@ -42,8 +45,11 @@ class ArticleControllerTest {
     @DisplayName("성공")
     void success() throws Exception {
       UUID id = UUID.randomUUID();
-      given(articleService.getArticleDetail(id)).willReturn(mock(ArticleEntity.class));
-      mockMvc.perform(get("/api/articles/{id}", id)).andExpect(status().isOk());
+
+      given(articleService.getArticleDetail(id)).willReturn(mock(ArticleDto.class));
+
+      mockMvc.perform(get("/api/articles/{id}", id))
+          .andExpect(status().isOk());
     }
 
     @Test
@@ -116,10 +122,4 @@ class ArticleControllerTest {
     }
   }
 
-  @Test
-  @DisplayName("성공")
-  void getList_Success() throws Exception {
-    given(articleService.getArticleList(any(), any(), any(), any(), any(), any())).willReturn(new PageImpl<>(List.of()));
-    mockMvc.perform(get("/api/articles")).andExpect(status().isOk());
-  }
 }

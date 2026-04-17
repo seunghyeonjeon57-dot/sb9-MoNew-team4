@@ -9,6 +9,12 @@ spring:
     init:
       mode: never
 
+  # [핵심 추가] 테스트 환경에서 시큐리티 자동 설정을 제외하여 401 에러를 원천 차단합니다.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
 cloud:
   aws:
     credentials:

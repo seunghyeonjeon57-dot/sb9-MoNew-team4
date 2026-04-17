@@ -5,12 +5,23 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface InterestRepository extends JpaRepository<Interest, UUID> {
 
-  Optional<Interest> findByNameAndIsDeletedFalse(String name);
+  Optional<Interest> findByNameAndDeletedAtIsNull(String name);
 
-  Optional<Interest> findByIdAndIsDeletedFalse(UUID id);
+  Optional<Interest> findByIdAndDeletedAtIsNull(UUID id);
 
-  List<Interest> findAllByIsDeletedFalse();
+  List<Interest> findAllByDeletedAtIsNull();
+
+  @Modifying
+  @Query("UPDATE Interest i SET i.subscriberCount = i.subscriberCount + 1 WHERE i.id = :id")
+  int incrementSubscriberCount(@Param("id") UUID id);
+
+  @Modifying
+  @Query("UPDATE Interest i SET i.subscriberCount = i.subscriberCount - 1 WHERE i.id = :id AND i.subscriberCount > 0")
+  int decrementSubscriberCount(@Param("id") UUID id);
 }

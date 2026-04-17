@@ -36,8 +36,8 @@ public class Notification extends BaseEntity {
   @Column(name = "resource_id", nullable = false)
   private UUID resourceId;
 
-  @Column(name = "is_read", nullable = false)
-  private boolean isRead = false;
+  @Column(name = "is_confirmed", nullable = false)
+  private boolean confirmed = false;
 
   @Builder
   public Notification(UUID userId, String content, ResourceType resourceType, UUID resourceId) {
@@ -45,10 +45,11 @@ public class Notification extends BaseEntity {
     this.content = content;
     this.resourceType = resourceType;
     this.resourceId = resourceId;
-    this.isRead = false;
+    this.confirmed = false;
   }
 
-  public void read() {
-    this.isRead = true;
+  public void confirm() {
+    this.confirmed = true;
   }
+
 }

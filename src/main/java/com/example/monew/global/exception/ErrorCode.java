@@ -23,8 +23,18 @@ public enum ErrorCode {
   DUPLICATE_SUBSCRIPTION(HttpStatus.CONFLICT, "이미 해당 관심사를 구독 중입니다."),
   SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "구독 정보를 찾을 수 없습니다."),
 
+
+  //Article 도메인
+  ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 기사를 찾을 수 없습니다."),
+
   // User 도메인 (기존 보존)
-  USER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 유저를 찾을 수 없습니다.");
+  USER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 유저를 찾을 수 없습니다."),
+  DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 존재하는 이메일입니다."),
+  LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
+  NICKNAME_BLANK(HttpStatus.BAD_REQUEST, "닉네임은 공백일 수 없습니다."),
+
+  // NOTIFICATION (도메인 추가)
+  NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 알림을 찾을 수 없습니다.");
 
   private final HttpStatus status;
   private final String message;

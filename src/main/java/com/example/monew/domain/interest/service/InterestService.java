@@ -1,5 +1,6 @@
 package com.example.monew.domain.interest.service;
 
+import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
@@ -10,12 +11,12 @@ import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.global.util.SimilarityUtils;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +34,7 @@ public class InterestService {
 
   @Transactional
   public InterestResponse create(InterestCreateRequest request) {
-    List<Interest> actives = interestRepository.findAllByIsDeletedFalse();
+    List<Interest> actives = interestRepository.findAllByDeletedAtIsNull();
     for (Interest existing : actives) {
       double similarity = SimilarityUtils.similarity(existing.getName(), request.name());
       if (similarity >= SIMILARITY_THRESHOLD) {
@@ -46,51 +47,83 @@ public class InterestService {
   }
 
   @Transactional(readOnly = true)
-  public List<InterestResponse> getInterests(
-      String keyword, String sortBy, String direction, UUID userId) {
+  public CursorPageResponse<InterestResponse> getInterests(
+      String keyword, String sortBy, String direction, String cursor, int size, UUID userId) {
+    validateSortParams(sortBy, direction);
+
+    List<Interest> filtered = interestRepository.findAllByDeletedAtIsNull().stream()
+        .filter(i -> matchesKeyword(i, keyword))
+        .sorted(buildComparator(sortBy, direction))
+        .toList();
+
+    long totalElements = filtered.size();
+    int startIndex = resolveCursorOffset(filtered, cursor);
+
+    List<Interest> sliced = filtered.stream().skip(startIndex).limit((long) size + 1).toList();
+    boolean hasNext = sliced.size() > size;
+    List<Interest> page = hasNext ? sliced.subList(0, size) : sliced;
+
+    Set<UUID> subscribedIds = subscribedIdsFor(userId, page);
+    List<InterestResponse> content = page.stream()
+        .map(i -> InterestResponse.from(i, subscribedIds.contains(i.getId())))
+        .toList();
+
+    String nextCursor = hasNext ? page.get(page.size() - 1).getId().toString() : null;
+    return new CursorPageResponse<>(content, nextCursor, size, totalElements, hasNext);
+  }
+
+  private void validateSortParams(String sortBy, String direction) {
     if (sortBy != null && !ALLOWED_SORT_BY.contains(sortBy)) {
       throw new InvalidSortParameterException(Map.of("sortBy", sortBy));
     }
     if (direction != null && !ALLOWED_DIRECTION.contains(direction)) {
       throw new InvalidSortParameterException(Map.of("direction", direction));
     }
+  }
 
-    List<Interest> interests = interestRepository.findAllByIsDeletedFalse();
+  private Comparator<Interest> buildComparator(String sortBy, String direction) {
+    Comparator<Interest> comparator = "subscriberCount".equals(sortBy)
+        ? Comparator.comparingLong(Interest::getSubscriberCount)
+        : Comparator.comparing(Interest::getName);
+    return "desc".equals(direction) ? comparator.reversed() : comparator;
+  }
 
-    Comparator<Interest> comparator = switch (sortBy == null ? "name" : sortBy) {
-      case "subscriberCount" -> Comparator.comparingLong(Interest::getSubscriberCount);
-      default -> Comparator.comparing(Interest::getName);
-    };
-    if ("desc".equals(direction)) {
-      comparator = comparator.reversed();
+  private int resolveCursorOffset(List<Interest> sorted, String cursor) {
+    if (cursor == null || cursor.isBlank()) {
+      return 0;
     }
+    UUID cursorId = UUID.fromString(cursor);
+    for (int i = 0; i < sorted.size(); i++) {
+      if (sorted.get(i).getId().equals(cursorId)) {
+        return i + 1;
+      }
+    }
+    return 0;
+  }
 
-    Set<UUID> subscribedIds = userId == null ? Set.of()
-        : subscriptionRepository.findAllByUserId(userId).stream()
-            .map(s -> s.getInterestId())
-            .collect(Collectors.toSet());
-
-    return interests.stream()
-        .filter(i -> matchesKeyword(i, keyword))
-        .sorted(comparator)
-        .map(i -> InterestResponse.from(i, subscribedIds.contains(i.getId())))
-        .toList();
+  private Set<UUID> subscribedIdsFor(UUID userId, List<Interest> filtered) {
+    if (userId == null || filtered.isEmpty()) {
+      return Set.of();
+    }
+    Collection<UUID> ids = filtered.stream().map(Interest::getId).toList();
+    return subscriptionRepository.findInterestIdsByUserIdAndInterestIdIn(userId, ids);
   }
 
   private boolean matchesKeyword(Interest interest, String keyword) {
     if (keyword == null || keyword.isBlank()) {
       return true;
     }
-    if (interest.getName().contains(keyword)) {
+    String needle = keyword.toLowerCase();
+    if (interest.getName().toLowerCase().contains(needle)) {
       return true;
     }
     return interest.getKeywords().stream()
-        .anyMatch(k -> k.getValue().contains(keyword));
+        .anyMatch(k -> k.getValue().toLowerCase().contains(needle));
   }
 
   @Transactional
   public void delete(UUID interestId) {
-    Interest interest = interestRepository.findByIdAndIsDeletedFalse(interestId)
+    Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
     interest.markDeleted();
     subscriptionRepository.deleteAllByInterestId(interestId);
@@ -98,7 +131,7 @@ public class InterestService {
 
   @Transactional
   public InterestResponse updateKeywords(UUID interestId, InterestUpdateRequest request) {
-    Interest interest = interestRepository.findByIdAndIsDeletedFalse(interestId)
+    Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
     interest.replaceKeywords(request.keywords());
     return InterestResponse.from(interest, false);

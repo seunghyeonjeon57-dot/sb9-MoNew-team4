@@ -1,17 +1,13 @@
 package com.example.monew.domain.article.controller;
 
-import com.example.monew.domain.article.entity.ArticleEntity;
+import com.example.monew.domain.article.dto.ArticleDto;
+import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.service.ArticleService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,21 +25,22 @@ public class ArticleController {
 
   private final ArticleService articleService;
 
-
   @Operation(summary = "뉴스 기사 목록 조회", description = "뉴스 기사 목록 조회")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "목록 조회 성공")
   })
   @GetMapping
-  public ResponseEntity<Page<ArticleEntity>> getArticleList(
-      @Parameter(description = "검색 키워드") @RequestParam(required = false) String keyword,
-      @Parameter(description = "관심사 카테고리") @RequestParam(required = false) String interest,
-      @Parameter(description = "언론사 출처") @RequestParam(required = false) String source,
-      @Parameter(description = "시작 날짜") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-      @Parameter(description = "종료 날짜") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-      @PageableDefault(size = 10, sort = "publishDate", direction = Sort.Direction.DESC) Pageable pageable
+  public ResponseEntity<CursorPageResponseArticleDto> getArticleList(
+
+      @RequestParam(required = false) UUID cursor,
+
+      @RequestParam(required = false)
+      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+      LocalDateTime after,
+
+      @RequestParam(defaultValue = "10") int size
   ) {
-    return ResponseEntity.ok(articleService.getArticleList(keyword, interest, source, startDate, endDate, pageable));
+    return ResponseEntity.ok(articleService.getArticles(cursor, after, size));
   }
 
   @Operation(summary = "뉴스 기사 상세 조회", description = "ID를 사용하여 뉴스 기사의 상세 내용을 조회합니다.")
@@ -52,7 +49,7 @@ public class ArticleController {
       @ApiResponse(responseCode = "404", description = "기사를 찾을 수 없음")
   })
   @GetMapping("/{articleId}")
-  public ResponseEntity<ArticleEntity> getArticleDetail(@PathVariable UUID articleId) {
+  public ResponseEntity<ArticleDto> getArticleDetail(@PathVariable UUID articleId) {
     return ResponseEntity.ok(articleService.getArticleDetail(articleId));
   }
 

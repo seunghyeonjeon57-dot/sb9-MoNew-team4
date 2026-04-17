@@ -56,14 +56,14 @@ class InterestApiIntegrationTest {
 
     mockMvc.perform(get("/api/interests").header(USER_HEADER, userId.toString()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[?(@.id=='" + interestId + "')].subscribedByMe").value(true));
+        .andExpect(jsonPath("$.content[?(@.id=='" + interestId + "')].subscribedByMe").value(true));
 
     mockMvc.perform(delete("/api/interests/" + interestId + "/subscriptions")
             .header(USER_HEADER, userId.toString()))
         .andExpect(status().isNoContent());
 
     mockMvc.perform(get("/api/interests").header(USER_HEADER, userId.toString()))
-        .andExpect(jsonPath("$[?(@.id=='" + interestId + "')].subscribedByMe").value(false));
+        .andExpect(jsonPath("$.content[?(@.id=='" + interestId + "')].subscribedByMe").value(false));
 
     mockMvc.perform(patch("/api/interests/" + interestId)
             .header(USER_HEADER, userId.toString())

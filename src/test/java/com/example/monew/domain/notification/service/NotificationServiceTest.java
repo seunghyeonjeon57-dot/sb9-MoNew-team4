@@ -1,5 +1,6 @@
 package com.example.monew.domain.notification.service;
 
+import com.example.monew.domain.notification.dto.CursorPageResponseNotificationDto;
 import com.example.monew.domain.notification.dto.NotificationRequest;
 import com.example.monew.domain.notification.dto.NotificationResponse;
 import com.example.monew.domain.notification.entity.Notification;
@@ -13,11 +14,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,38 +62,44 @@ class NotificationServiceTest {
   }
 
   @Test
-  @DisplayName("특정 사용자의 알림 목록을 최신순으로 조회한다.")
+  @DisplayName("특정 사용자의 알림 목록을 최신순으로 조회한다. (커서 페이징 첫 페이지)")
   void getNotifications_success() {
     // given
     UUID userId = UUID.randomUUID();
+    int limit = 10;
     Notification mockNotification = mock(Notification.class);
 
-    // Repository가 리스트를 반환하도록 설정
-    when(notificationRepository.findAllByUserIdOrderByCreatedAtDesc(userId))
+    when(notificationRepository.findFirstPageByUserId(eq(userId), any(Pageable.class)))
         .thenReturn(List.of(mockNotification));
 
+    // 전체 개수 카운트 메서드도 모킹
+    when(notificationRepository.countByUserIdAndDeletedAtIsNull(userId))
+        .thenReturn(1L);
+
     // when
-    List<NotificationResponse> responses = notificationService.getNotifications(userId);
+    CursorPageResponseNotificationDto responseDto =
+        notificationService.getNotifications(userId, null, null, limit);
 
     // then
-    assertThat(responses).hasSize(1);
-    verify(notificationRepository, times(1)).findAllByUserIdOrderByCreatedAtDesc(userId);
+    assertThat(responseDto.content()).hasSize(1);
+    assertThat(responseDto.hasNext()).isFalse(); // 1개뿐이므로 다음 페이지는 없음
+    verify(notificationRepository, times(1)).findFirstPageByUserId(eq(userId), any(Pageable.class));
   }
 
   @Test
-  @DisplayName("알림 ID를 통해 특정 알림을 읽음 처리한다.")
+  @DisplayName("알림 ID를 통해 특정 알림을 읽음(확인) 처리한다.")
   void readNotification_success() {
     // given
     UUID notificationId = UUID.randomUUID();
     Notification mockNotification = mock(Notification.class);
 
-    when(notificationRepository.findById(notificationId))
+    when(notificationRepository.findByIdAndDeletedAtIsNull(notificationId))
         .thenReturn(Optional.of(mockNotification));
 
     // when
     notificationService.readNotification(notificationId);
 
     // then
-    verify(mockNotification, times(1)).read();
+    verify(mockNotification, times(1)).confirm();
   }
 }

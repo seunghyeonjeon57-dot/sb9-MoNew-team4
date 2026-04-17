@@ -7,20 +7,24 @@ import java.util.UUID;
 
 public record NotificationResponse(
     UUID id,
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt,
+    boolean confirmed,
+    UUID userId,
     String content,
     ResourceType resourceType,
-    UUID resourceId,
-    boolean isRead,
-    LocalDateTime createdAt
+    UUID resourceId
 ) {
   public static NotificationResponse from(Notification notification) {
     return new NotificationResponse(
         notification.getId(),
+        notification.getCreatedAt(),
+        notification.getUpdatedAt(),
+        notification.isConfirmed(),
+        notification.getUserId(),
         notification.getContent(),
         notification.getResourceType(),
-        notification.getResourceId(),
-        notification.isRead(),
-        notification.getCreatedAt()
+        notification.getResourceId()
     );
   }
 }
