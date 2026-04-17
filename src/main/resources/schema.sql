@@ -1,5 +1,5 @@
 -- UUID 생성을 위한 확장 모듈 설치 (최초 1회)
-
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 1. 사용자 테이블 (Users)
 CREATE TABLE users

@@ -2,6 +2,7 @@ package com.example.monew.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -17,19 +18,35 @@ public class SecurityConfig {
     return new BCryptPasswordEncoder();
   }
 
+
   @Bean
-  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+  @Profile("dev")
+  public SecurityFilterChain devFilterChain(HttpSecurity http) throws Exception {
     http
         .csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(auth -> auth
-            // 1. 팀원들이 만든 기존 API는 배포 서버에서도 누구나 접근 가능하게 '화이트리스트' 등록
-            .requestMatchers("/api/articles/**", "/api/comments/**", "/api/interests/**","/api/notification/**")
-            .permitAll()
+            .anyRequest().permitAll() 
+        )
+        .formLogin(form -> form.disable())
+        .httpBasic(basic -> basic.disable());
 
-            // 2. 승현님이 만든 유저 관련 API (로그인, 회원가입 등)도 일단은 열어둠
-            .requestMatchers("/api/users/**").permitAll()
+    return http.build();
+  }
 
-            // 3. 나중에 정말로 권한이 필요한 API가 생기면 그때 하나씩 잠금
+
+  @Bean
+  @Profile("prod")
+  public SecurityFilterChain prodFilterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(csrf -> csrf.disable()) 
+        .authorizeHttpRequests(auth -> auth
+            
+            .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+
+            
+            .requestMatchers("/api/users/join", "/api/users/login").permitAll()
+
+            
             .anyRequest().authenticated()
         )
         .formLogin(form -> form.disable())
