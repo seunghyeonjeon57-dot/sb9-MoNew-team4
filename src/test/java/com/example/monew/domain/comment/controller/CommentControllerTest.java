@@ -17,6 +17,7 @@ import java.util.UUID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 
 // RED 원인: CommentController 클래스가 없어서 컴파일 에러 발생
 @WebMvcTest(CommentController.class)
@@ -54,5 +55,16 @@ class CommentControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
         .andExpect(status().isOk());
+  }
+
+  @Test
+  @DisplayName("댓글 삭제 요청 시 204 No Content를 반환한다.")
+  void deleteComment_HttpNoContent() throws Exception {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
+            .header("MoNew-Request-User-ID", userId.toString()))
+        .andExpect(status().isNoContent());
   }
 }

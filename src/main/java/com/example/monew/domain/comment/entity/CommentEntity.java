@@ -32,6 +32,9 @@ public class CommentEntity {
   @Column(name = "created_at", updatable = false)
   private LocalDateTime createdAt = LocalDateTime.now();
 
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
+
   public CommentEntity(UUID articleId, UUID userId, String content) {
     this.articleId = articleId;
     this.userId = userId;
@@ -43,6 +46,10 @@ public class CommentEntity {
 
   public void updateContent(String content) {
     this.content = content;
+  }
+
+  public void delete(){
+    this.deletedAt = LocalDateTime.now();
   }
 
 }

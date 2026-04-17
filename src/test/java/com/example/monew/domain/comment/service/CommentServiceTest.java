@@ -8,6 +8,7 @@ import com.example.monew.domain.comment.dto.CommentUpdateRequest;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentRepository;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,11 +20,13 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 public class CommentServiceTest {
@@ -102,4 +105,41 @@ public class CommentServiceTest {
         .hasMessage("댓글 수정 권한이 없습니다.");
   }
 
+  @Test
+  @DisplayName("댓글 삭제 시 논리 삭제(Soft Delete) 처리가 되어야 한다.")
+  void deleteComment_SoftDelete() {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    CommentEntity comment = new CommentEntity(UUID.randomUUID(), userId, "삭제될 댓글");
+    given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+    commentService.softDeleteComment(commentId);
+
+    // 논리 삭제이므로 DB에서 지워지는게 아니라 삭제 시간이 기록되어야 함
+    assertThat(comment.getDeletedAt()).isNotNull();
+  }
+
+
+  @Test
+  @DisplayName("특정 사용자의 모든 댓글을 논리 삭제하도록 레포지토리에 위임한다.")
+  void softDeleteByUserId() {
+    UUID userId = UUID.randomUUID();
+
+    commentService.softDeleteAllByUserId(userId);
+
+    verify(commentRepository, times(1))
+        .softDeleteAllByUserId(eq(userId), any(LocalDateTime.class));
+  }
+
+  @Test
+  @DisplayName("특정 사용자의 모든 댓글을 물리 삭제하도록 레포지토리에 위임한다.")
+  void hardDeleteAllByUserId() {
+    UUID userId = UUID.randomUUID();
+
+    commentService.hardDeleteAllByUserId(userId);
+
+    verify(commentRepository, times(1))
+        .deleteAllByUserId(userId);
+  }
 }
