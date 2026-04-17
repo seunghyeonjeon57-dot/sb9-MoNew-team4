@@ -102,9 +102,6 @@ public class CommentRepositoryTest {
     LocalDateTime now = LocalDateTime.now();
     commentRepository.softDeleteAllByUserId(targetUserId, now);
 
-    // Repository 인터페이스에 @Modifying(clearAutomatically = true)를 적어두었다면
-    // 여기서 entityManager.clear()를 생략해도 됩니다! (옵션이 잘 먹는지 테스트해보는 것도 좋습니다)
-
     List<CommentEntity> allComments = commentRepository.findAll();
 
     boolean targetDeleted = allComments.stream()

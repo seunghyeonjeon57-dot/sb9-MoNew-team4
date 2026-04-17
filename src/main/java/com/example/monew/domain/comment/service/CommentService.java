@@ -5,7 +5,9 @@ import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
 import com.example.monew.domain.comment.dto.CommentUpdateRequest;
 import com.example.monew.domain.comment.entity.CommentEntity;
+import com.example.monew.domain.comment.entity.CommentLikeEntity;
 import com.example.monew.domain.comment.mapper.CommentMapper;
+import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -20,6 +22,7 @@ public class CommentService {
   private final CommentRepository commentRepository;
   private final CommentMapper commentMapper;
   private final ArticleRepository articleRepository;
+  private final CommentLikeRepository commentLikeRepository;
 
   @Transactional
   public CommentDto registerComment(CommentRegisterRequest request) {
@@ -66,5 +69,33 @@ public class CommentService {
   @Transactional
   public void hardDeleteAllByUserId(UUID userId){
     commentRepository.deleteAllByUserId(userId);
+  }
+
+  @Transactional
+  public void addLike(UUID commentId, UUID userId) {
+    CommentEntity comment = commentRepository.findById(commentId)
+        .orElseThrow(() -> new IllegalArgumentException("이미 좋아요를 누른 댓글입니다."));
+
+    if(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)) {
+      throw new IllegalArgumentException("이미 좋아요를 누른 댓글입니다.");
+    }
+
+    comment.incrementLikeCount();
+
+    commentLikeRepository.save(new CommentLikeEntity(commentId, userId));
+  }
+
+  @Transactional
+  public void removeLike(UUID commentId, UUID userId) {
+    CommentEntity comment = commentRepository.findById(commentId)
+        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 댓글입니다"));
+
+    if(!commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)) {
+      throw new IllegalArgumentException("좋아요를 누르지 않은 댓글입니다.");
+    }
+
+    comment.decrementLikeCount();
+
+    commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
   }
 }

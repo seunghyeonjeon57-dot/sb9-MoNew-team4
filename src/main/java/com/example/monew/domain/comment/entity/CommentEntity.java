@@ -13,8 +13,8 @@ import java.util.UUID;
 public class CommentEntity {
 
   @Id
-  @GeneratedValue(generator = "uuid2")
-  @GenericGenerator(name = "uuid2", strategy = "uuid2")
+  @GeneratedValue
+  @Column(name = "comment_id", columnDefinition = "UUID")
   private UUID id;
 
   @Column(name = "article_id", nullable = false)
@@ -52,4 +52,18 @@ public class CommentEntity {
     this.deletedAt = LocalDateTime.now();
   }
 
+  public void incrementLikeCount() {
+    if(this.likeCount == null) {
+      this.likeCount = 0L;
+    }
+    this.likeCount++;
+  }
+
+  public void decrementLikeCount() {
+    if(this.likeCount == null || likeCount <= 0) {
+      this.likeCount = 0L;
+      return;
+    }
+    this.likeCount --;
+  }
 }
