@@ -8,6 +8,9 @@ import com.example.monew.domain.user.dto.request.UserLoginRequest;
 import com.example.monew.domain.user.dto.request.UserRegisterRequest;
 import com.example.monew.domain.user.dto.request.UserUpdateRequest;
 import com.example.monew.domain.user.entity.User;
+import com.example.monew.domain.user.exception.DuplicateEmailException;
+import com.example.monew.domain.user.exception.LoginFailedException;
+import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.mapper.UserMapper;
 import com.example.monew.domain.user.repository.UserRepository;
 import java.util.NoSuchElementException;
@@ -33,7 +36,7 @@ public class UserService {
   public void create(UserRegisterRequest request) {
     if(userRepository.existsByEmail(request.email())){
       log.warn("회원가입 실패: 이미 존재하는 이메일 -> {}", request.email()); // 중복 가입 시도는 경고 수준
-      throw new IllegalArgumentException("이미 존재하는 이메일입니다");
+      throw new DuplicateEmailException("이미 존재하는 이메일입니다.");
     }
     User user = userMapper.toEntity(request);
     user.updatePassword(passwordEncoder.encode(request.password()));
@@ -47,12 +50,12 @@ public class UserService {
     User user = userRepository.findByEmail(request.email())
         .orElseThrow(() -> {
           log.warn("로그인 실패: 존재하지 않는 이메일 -> {}", request.email());
-          return new IllegalArgumentException("이메일 또는 비밀번호가 잘못되었습니다.");
+          return new LoginFailedException("이메일 또는 비밀번호가 잘못되었습니다.");
         });
 
     if(!passwordEncoder.matches(request.password(), user.getPassword())){
       log.warn("로그인 실패: 비밀번호 불일치 -> Email={}", request.email());
-      throw new IllegalArgumentException("이메일 또는 비밀번호가 잘못되었습니다.");
+      throw new LoginFailedException("이메일 또는 비밀번호가 잘못되었습니다.");
     }
 
     log.info("유저 로그인 성공: ID={}", user.getId());
@@ -63,7 +66,7 @@ public class UserService {
   public UserDto updateUser(UUID id, UserUpdateRequest request){
     User user = userRepository.findById(id).orElseThrow(() -> {
       log.error("유저 수정 실패: 존재하지 않는 ID -> {}", id);
-      return new NoSuchElementException("유저가 존재하지않습니다.");
+      return new UserNotFoundException("해당 유저를 찾을 수 없습니다.");
     });
 
     String oldNickname = user.getNickname();
@@ -75,7 +78,7 @@ public class UserService {
 
   @Transactional
   public void softDeleteUser(UUID id){
-    User user = userRepository.findById(id).orElseThrow(() -> new NoSuchElementException("존재하지 않는 사용자입니다."));
+    User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("해당 유저를 찾을 수 없습니다."));
     userRepository.delete(user);
     log.info("유저 소프트 삭제 완료 (deleted_at 업데이트): ID={}", id);
   }
