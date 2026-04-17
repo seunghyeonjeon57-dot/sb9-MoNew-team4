@@ -13,8 +13,8 @@ import java.util.UUID;
 public class CommentEntity {
 
   @Id
-  @GeneratedValue
-  @Column(name = "comment_id", columnDefinition = "UUID")
+  @GeneratedValue(generator = "uuid2")
+  @GenericGenerator(name = "uuid2", strategy = "uuid2")
   private UUID id;
 
   @Column(name = "article_id", nullable = false)

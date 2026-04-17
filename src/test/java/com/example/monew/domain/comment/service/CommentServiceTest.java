@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.util.UUID;
 
@@ -96,7 +97,7 @@ public class CommentServiceTest {
   void updateComment_Unauthorized() {
     UUID commentId = UUID.randomUUID();
     UUID ownerId = UUID.randomUUID();
-    UUID requesterId = UUID.randomUUID();
+    UUID requesterId = UUID.randomUUID(); // 다른 사용자
     CommentUpdateRequest request = new CommentUpdateRequest("수정 내용");
 
     CommentEntity existingComment = new CommentEntity(UUID.randomUUID(), ownerId, "원본 내용");
