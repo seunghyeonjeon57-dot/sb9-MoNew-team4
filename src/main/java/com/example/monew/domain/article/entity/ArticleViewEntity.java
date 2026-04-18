@@ -26,7 +26,7 @@ public class ArticleViewEntity {
   private ArticleEntity articleEntity;
 
   @Column(nullable = false)
-  private String viewerId;
+  private UUID viewedBy;
 
   // 중복 방지를 위한 IP 주소를 저장
   private String clientIp;
@@ -36,9 +36,9 @@ public class ArticleViewEntity {
   private LocalDateTime viewedAt;
 
   @Builder
-  public ArticleViewEntity(ArticleEntity article, String viewerId, String clientIp) {
+  public ArticleViewEntity(ArticleEntity article, UUID viewedBy, String clientIp) {
     this.articleEntity = article;
-    this.viewerId = viewerId;
+    this.viewedBy = viewedBy;
     this.clientIp = clientIp;
   }
 }
