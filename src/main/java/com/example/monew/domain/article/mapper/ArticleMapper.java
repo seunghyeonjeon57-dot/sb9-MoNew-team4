@@ -12,7 +12,6 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface ArticleMapper {
 
-  @Mapping(target = "viewedByMe", source = "viewedByMe")
   ArticleDto toDto(ArticleEntity entity, boolean viewedByMe);
 
 }
