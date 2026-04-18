@@ -33,7 +33,7 @@ public class ArticleControllerPagingApiTest {
   @MockBean
   private ArticleService articleService;
 
-  @MockBean // ⭐ 이거 추가
+  @MockBean
   private ArticleViewService articleViewService;
 
   @Test

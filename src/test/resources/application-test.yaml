@@ -24,3 +24,15 @@ cloud:
       static: us-east-1
     s3:
       bucket: test-bucket
+
+# [추가] NewsCollector가 사용하는 API 키 가짜 설정
+naver:
+  client-id: dummy-id
+  client-secret: dummy-secret
+
+# [추가] NewsBatchScheduler가 사용하는 RSS URL 가짜 설정
+news:
+  rss:
+    hankyung: http://test-url.com
+    chosun: http://test-url.com
+    yonhap: http://test-url.com
