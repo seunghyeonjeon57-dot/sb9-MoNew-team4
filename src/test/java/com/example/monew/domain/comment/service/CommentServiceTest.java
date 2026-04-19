@@ -2,15 +2,21 @@ package com.example.monew.domain.comment.service;
 
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
+import com.example.monew.domain.comment.dto.CommentActivityDto;
 import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
 import com.example.monew.domain.comment.dto.CommentUpdateRequest;
+import com.example.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.comment.entity.CommentLikeEntity;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.user.entity.User;
+import com.example.monew.domain.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +48,10 @@ public class CommentServiceTest {
   private CommentService commentService;
   @Mock
   private CommentLikeRepository commentLikeRepository;
+  @Mock
+  private UserRepository userRepository;
+  @Mock
+  private EntityManager em;
 
   @Test
   @DisplayName("요청 DTO를 받아 댓글을 성공적으로 등록한다.")
@@ -179,5 +189,51 @@ public class CommentServiceTest {
     assertThatThrownBy(() -> commentService.addLike(commentId, userId))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("이미 좋아요를 누른 댓글입니다.");
+  }
+
+  @Test
+  @DisplayName("뉴스 기사 별 댓글 조회 시 좋아요 순 정렬과 커서 페이징이 정상 동작한다.")
+  void getArticleComments_LikesSort_Success() {
+    // Given
+    UUID articleId = UUID.randomUUID();
+    // size 1 요청 -> 2개 반환 (1개는 데이터, 1개는 hasNext 판별용)
+    List<CommentActivityDto> mockResult = List.of(
+        new CommentActivityDto(UUID.randomUUID(), articleId, "title", UUID.randomUUID(), "nick", "content", 10L, LocalDateTime.now()),
+        new CommentActivityDto(UUID.randomUUID(), articleId, "title", UUID.randomUUID(), "nick", "content", 5L, LocalDateTime.now())
+    );
+
+    given(commentRepository.findCommentsByArticleWithCursor(eq(articleId), any(), any(), any(), eq("LIKES"), eq(1)))
+        .willReturn(mockResult);
+
+    // When
+    CursorPageResponseCommentDto response = commentService.getArticleComments(
+        articleId, null, null, null, "LIKES", 1
+    );
+    // Then
+    assertThat(response.content()).hasSize(1);
+    assertThat(response.hasNext()).isTrue();
+    assertThat(response.nextCursor()).isEqualTo(mockResult.get(0).id().toString());
+  }
+
+  @Test
+  @DisplayName("뉴스 기사 별 댓글 조회 시 날짜 순 정렬과 커서 페이징이 정상 동작한다.")
+  void getArticleComments_DateSort_Success() {
+    // Given
+    UUID articleId = UUID.randomUUID();
+    List<CommentActivityDto> mockResult = List.of(
+        new CommentActivityDto(UUID.randomUUID(), articleId, "title", UUID.randomUUID(), "nick", "content", 1L, LocalDateTime.now())
+    );
+
+    given(commentRepository.findCommentsByArticleWithCursor(eq(articleId), any(), any(), any(), eq("DATE"), eq(10)))
+        .willReturn(mockResult);
+
+    // When
+    CursorPageResponseCommentDto response = commentService.getArticleComments(
+        articleId, null, null, null, "DATE", 10
+    );
+
+    // Then
+    assertThat(response.content()).hasSize(1);
+    assertThat(response.hasNext()).isFalse();
   }
 }

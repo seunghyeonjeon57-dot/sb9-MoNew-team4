@@ -2,7 +2,14 @@ package com.example.monew.domain.comment.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.monew.config.QueryDslTestConfig;
+import com.example.monew.domain.article.entity.ArticleEntity;
+import com.example.monew.domain.article.repository.ArticleRepository;
+import com.example.monew.domain.comment.dto.CommentActivityDto;
 import com.example.monew.domain.comment.entity.CommentEntity;
+import com.example.monew.domain.user.entity.User;
+import com.example.monew.domain.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -11,14 +18,22 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Import;
 
 @DataJpaTest
+@Import(QueryDslTestConfig.class)
 public class CommentRepositoryTest {
   // RED 원인: CommentRepository 인터페이스를 아직 만들지 않아서 컴파일 에러 발생
   @Autowired
   private CommentRepository commentRepository;
   @Autowired
   private TestEntityManager entityManager;
+  @Autowired
+  private UserRepository userRepository;
+  @Autowired
+  private ArticleRepository articleRepository;
+  @Autowired
+  private EntityManager em;
 
   @Test
   @DisplayName("댓글 엔티티를 DB에 저장하고 조회할 수 있다.")
@@ -115,4 +130,64 @@ public class CommentRepositoryTest {
     assertThat(targetDeleted).isTrue();
     assertThat(otherNotDeleted).isTrue();
   }
+
+  @Test
+  @DisplayName("특정 기사의 댓글 목록을 좋아요 순으로 커서 페이징 조회한다")
+  void findCommentsByArticleId_OrderByLikes() {
+    User user = new User("테스트닉네임", "test@test.com", "password");
+    userRepository.save(user);
+
+    ArticleEntity article = ArticleEntity.builder()
+        .source("출처")
+        .sourceUrl("url" + UUID.randomUUID())
+        .title("기사 제목")
+        .publishDate(LocalDateTime.now())
+        .summary("요약")
+        .interest("IT")
+        .build();
+    articleRepository.save(article);
+
+    CommentEntity c1 = new CommentEntity(article.getId(), user.getId(), "댓글 1");
+    CommentEntity c2 = new CommentEntity(article.getId(), user.getId(), "댓글 2");
+    CommentEntity c3 = new CommentEntity(article.getId(), user.getId(), "댓글 3");
+    commentRepository.saveAll(List.of(c1, c2, c3));
+
+    em.flush();
+    em.clear();
+
+    List<CommentActivityDto> result = commentRepository.findCommentsByArticleWithCursor(
+        article.getId(), null, null, null, "LIKES", 10
+    );
+
+    assertThat(result).hasSize(3);
+  }
+
+  @Test
+  @DisplayName("특정 기사의 댓글 목록을 최신순으로 커서 페이징 조회한다")
+  void findCommentsByArticleId_OrderByDate() {
+    User user = new User("테스트닉네임2", "test2@test.com", "password");
+    userRepository.save(user);
+
+    ArticleEntity article = ArticleEntity.builder()
+        .source("출처")
+        .sourceUrl("url2" + UUID.randomUUID())
+        .title("기사 제목2")
+        .publishDate(LocalDateTime.now())
+        .summary("요약")
+        .interest("IT")
+        .build();
+    articleRepository.save(article);
+
+    CommentEntity c1 = new CommentEntity(article.getId(), user.getId(), "최신 댓글");
+    commentRepository.save(c1);
+
+    em.flush();
+    em.clear();
+    List<CommentActivityDto> result = commentRepository.findCommentsByArticleWithCursor(
+        article.getId(), null, null, null, "DATE", 10
+    );
+
+    assertThat(result).isSortedAccordingTo((a, b) -> b.createdAt().compareTo(a.createdAt()));
+  }
+
 }

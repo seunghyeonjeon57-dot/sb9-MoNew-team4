@@ -24,7 +24,9 @@ import org.hibernate.annotations.Where;
 @Table(name = "articles")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLDelete(sql = "UPDATE articles SET is_deleted = true WHERE article_id = ?")
-@Where(clause = "is_deleted = false")
+//@Where(clause = "is_deleted = false")
+@Where(clause = "deleted_at IS NULL")
+@SQLDelete(sql = "UPDATE articles SET deleted_at = CURRENT_TIMESTAMP WHERE article_id = ?")
 public class ArticleEntity extends BaseEntity {
 
   @Id

@@ -1,15 +1,19 @@
 package com.example.monew.domain.comment.service;
 
 import com.example.monew.domain.article.repository.ArticleRepository;
+import com.example.monew.domain.comment.dto.CommentActivityDto;
 import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
 import com.example.monew.domain.comment.dto.CommentUpdateRequest;
+import com.example.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.comment.entity.CommentLikeEntity;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -97,5 +101,40 @@ public class CommentService {
     comment.decrementLikeCount();
 
     commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
+  }
+
+  @Transactional
+  public CursorPageResponseCommentDto getArticleComments(
+      UUID articleId,
+      UUID cursorId,
+      LocalDateTime cursorCreatedAt,
+      Long cursorLikeCount,
+      String sort,
+      int size
+  ) {
+
+    List<CommentActivityDto> comments = new ArrayList<>(
+        commentRepository.findCommentsByArticleWithCursor(
+            articleId, cursorId, cursorCreatedAt, cursorLikeCount, sort, size
+        )
+    );
+
+    boolean hasNext = comments.size() > size;
+    if(hasNext) {
+      comments.remove(size);
+    }
+
+    String nextCursor = null;
+    LocalDateTime nextAfter = null;
+
+    if(!comments.isEmpty()) {
+      CommentActivityDto lastComment = comments.get(comments.size() - 1);
+      nextCursor = lastComment.id().toString();
+      nextAfter = lastComment.createdAt();
+    }
+
+    return new CursorPageResponseCommentDto(
+        comments, nextCursor, nextAfter, size, null, hasNext
+    );
   }
 }
