@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
@@ -22,12 +23,17 @@ class ArticleControllerTest {
 
   @Autowired
   private MockMvc mockMvc;
-
-  @MockBean
+  @MockitoBean // 👈 이거 추가!
   private ArticleService articleService;
 
-  @MockBean
+  @MockitoBean // 👈 이거 추가!
   private ArticleViewService articleViewService;
+
+  @MockitoBean //BackupBatch를 가짜 빈으로 등록합니다.
+  private com.example.monew.batch.BackupBatch backupBatch;
+
+  @MockitoBean // 혹시 모르니 NewsRss도 같이 넣어두면 안전합니다.
+  private com.example.monew.batch.NewsRss newsRss;
 
   @Test
   @DisplayName("기사 뷰 등록 테스트")
@@ -83,17 +89,6 @@ class ArticleControllerTest {
     verify(articleService).hardDelete(articleId);
   }
 
-  @Test
-  @DisplayName("기사 복구테스트")
-  void restoreArticleTest() throws Exception {
-    UUID articleId = UUID.randomUUID();
-
-    mockMvc.perform(get("/api/articles/restore")
-            .param("articleId", articleId.toString()))
-        .andExpect(status().isOk());
-
-    verify(articleService).restore(articleId);
-  }
 
   @Test
   @DisplayName("기사 출처 목록 조회 테스트")

@@ -53,7 +53,7 @@ public class NewsCollector {
               .build()
       ).toList();
     } catch (Exception e) {
-      log.error("네이버 API 수집 실패: {}", e.getMessage());
+      log.error("네이버 API 수집 실패: {}", e.getMessage(), e);
       return List.of();
     }
   }
@@ -72,7 +72,7 @@ public class NewsCollector {
               .build()
       ).toList();
     } catch (Exception e) {
-      log.error("{} RSS 수집 실패: {}", pressName, e.getMessage());
+      log.error("{} RSS 수집 실패: {}", pressName, e.getMessage(), e);
       return List.of();
     }
   }

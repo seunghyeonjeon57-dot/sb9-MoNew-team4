@@ -45,4 +45,10 @@ public interface ArticleRepository extends JpaRepository<ArticleEntity, UUID> , 
   void restoreById(@Param("id") UUID id);
 
   boolean existsBySourceUrl(String sourceUrl);
+
+  List<ArticleEntity> findByPublishDateBetween(LocalDateTime start, LocalDateTime end);
+
+  List<ArticleEntity> findByPublishDateAfter(LocalDateTime date);
+
+  List<ArticleEntity> findAllBySourceUrlIn(List<String> urls);
 }

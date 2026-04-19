@@ -28,7 +28,6 @@ logging:
 
 # 뉴스 소스는 모든 환경 공통이므로 여기에 둡니다.
 news:
-  rss:
     api:
       naver:
         client-id: ${NAVER_CLIENT_ID}
