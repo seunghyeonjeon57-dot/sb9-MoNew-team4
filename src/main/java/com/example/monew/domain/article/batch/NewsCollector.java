@@ -2,12 +2,14 @@ package com.example.monew.domain.article.batch;
 
 import com.example.monew.domain.article.batch.dto.NaverApiResponse;
 import com.example.monew.domain.article.entity.ArticleEntity;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -22,13 +24,19 @@ import java.util.*;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class NewsCollector {
 
   @Value("${naver.client-id}") private String clientId;
   @Value("${naver.client-secret}") private String clientSecret;
 
-  private final RestTemplate restTemplate = new RestTemplate();
+  private final RestTemplate restTemplate;
+
+  public NewsCollector(RestTemplateBuilder restTemplateBuilder) {
+    this.restTemplate = restTemplateBuilder
+        .connectTimeout(Duration.ofSeconds(3))
+        .readTimeout(Duration.ofSeconds(5))
+        .build();
+  }
 
   // 네이버 날짜 포맷 (Tue, 21 Apr 2026 15:00:00 +0900) 대응
   private final DateTimeFormatter naverDateFormatter = DateTimeFormatter.RFC_1123_DATE_TIME;
@@ -65,7 +73,7 @@ public class NewsCollector {
       SyndFeed feed = new SyndFeedInput().build(reader);
       return feed.getEntries().stream()
           .map(entry -> {
-            // 신문사에 ?따라 날짜가 null 일 수 있음 -> 방어 로직 필 -> 추가
+            // 신문사에 따라 날짜가 null 일 수 있음 -> 방어 로직 필 -> 추가
             LocalDateTime pubDate = (entry.getPublishedDate() != null)
                 ? entry.getPublishedDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
                 : LocalDateTime.now();

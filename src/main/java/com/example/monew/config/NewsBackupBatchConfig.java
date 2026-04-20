@@ -64,9 +64,9 @@ public class NewsBackupBatchConfig {
   public Step restoreStep() {
     return new StepBuilder("restoreStep", jobRepository)
         .<ArticleEntity, ArticleEntity>chunk(100, transactionManager)
-        .reader(jsonFileItemReader(null)) // 파일을 한 줄씩 읽는 리더
-        .processor(duplicateCheckProcessor()) // 중복 체크 로직
-        .writer(articleJpaWriter()) // DB 저장
+        .reader(jsonFileItemReader(null))
+        .processor(duplicateCheckProcessor())
+        .writer(articleJpaWriter())
         .build();
   }
   @Bean
@@ -75,29 +75,23 @@ public class NewsBackupBatchConfig {
       @Value("#{jobParameters['filePath']}") String filePath) {
     return new FlatFileItemReaderBuilder<ArticleEntity>()
         .name("jsonFileItemReader")
-        .resource(new FileSystemResource(filePath)) // 다운로드된 로컬 파일 경로
-        .lineMapper((line, lineNumber) -> objectMapper.readValue(line, ArticleEntity.class)) // 한 줄(JSON)을 엔티티로 변환
+        .resource(new FileSystemResource(filePath))
+        .lineMapper((line, lineNumber) -> objectMapper.readValue(line, ArticleEntity.class))
         .build();
   }
   @Bean
   public ItemProcessor<ArticleEntity, ArticleEntity> duplicateCheckProcessor() {
     return article -> {
-      // 이미 존재하는 URL이면 null을 리턴해서 Writer로 안 보내게 함 (필터링)
       boolean exists = articleRepository.existsBySourceUrl(article.getSourceUrl());
       return exists ? null : article;
     };
   }
-
-
-  // 3. Writer: 중복 체크 통과한 녀석들만 DB에 묶음 저장
   @Bean
   public JpaItemWriter<ArticleEntity> articleJpaWriter() {
     return new JpaItemWriterBuilder<ArticleEntity>()
         .entityManagerFactory(entityManagerFactory)
         .build();
   }
-
-
   @Bean
   public JpaPagingItemReader<ArticleEntity> articleReader() {
     return new JpaPagingItemReaderBuilder<ArticleEntity>()
