@@ -204,7 +204,11 @@ class InterestApiIntegrationTest {
   @DisplayName("유저 물리 삭제 → 해당 유저 구독 전량 정리 (MON-101 cascade)")
   void userHardDelete_cleansSubscriptions() throws Exception {
     User user = userRepository.save(
-        new User("cascadeUser", "cascade_" + UUID.randomUUID() + "@monew.com", "pw123!"));
+        User.builder()
+            .nickname("cascadeUser")
+            .email("cascade_" + UUID.randomUUID() + "@monew.com")
+            .password("pw123!")
+            .build());
     UUID userId = user.getId();
 
     String nameA = "cascadeAlpha" + System.nanoTime();
