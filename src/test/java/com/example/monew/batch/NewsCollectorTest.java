@@ -1,29 +1,39 @@
 package com.example.monew.batch;
-
+import java.time.Duration;
+import static org.mockito.ArgumentMatchers.any;
 import com.example.monew.domain.article.batch.NewsCollector;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
+import org.springframework.web.client.RestTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class NewsCollectorTest {
+  @Mock(answer = Answers.RETURNS_SELF)
+  private RestTemplateBuilder restTemplateBuilder;
+
+  @Mock
+  private RestTemplate restTemplate;
 
   @InjectMocks
   private NewsCollector newsCollector;
 
   @BeforeEach
   void setUp() {
-    ReflectionTestUtils.setField(newsCollector, "clientId", "test-id");
-    ReflectionTestUtils.setField(newsCollector, "clientSecret", "test-secret");
+    lenient().when(restTemplateBuilder.build()).thenReturn(restTemplate);
   }
 
   @Test

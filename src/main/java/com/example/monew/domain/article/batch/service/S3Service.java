@@ -5,6 +5,8 @@ import com.example.monew.domain.article.batch.exception.S3DownloadException;
 import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
@@ -21,7 +23,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 @RequiredArgsConstructor
 public class S3Service {
 
-  private final S3Client s3Client; // AmazonS3 대신 S3Client 사용
+  private final S3Client s3Client;
 
   @Value("${cloud.aws.s3.bucket}")
   private String bucket;
@@ -39,7 +41,10 @@ public class S3Service {
 
   public File download(String key) {
     try {
-      File tempFile = File.createTempFile("s3-restore-", ".json");
+      Path dedicatedDir = Files.createTempDirectory("monew-uploads");
+
+      Path tempPath = Files.createTempFile(dedicatedDir, "s3-restore-", ".json");
+      File tempFile = tempPath.toFile();
 
       GetObjectRequest getObjectRequest = GetObjectRequest.builder()
           .bucket(bucket)
