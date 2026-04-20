@@ -40,6 +40,8 @@ CREATE TABLE subscriptions
     user_id     UUID NOT NULL,
     interest_id UUID NOT NULL,
     created_at  TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP WITHOUT TIME ZONE,
+    deleted_at  TIMESTAMP WITHOUT TIME ZONE,
 
     CONSTRAINT fk_sub_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     CONSTRAINT fk_sub_interest FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE,
