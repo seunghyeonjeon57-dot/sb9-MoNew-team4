@@ -15,7 +15,6 @@ import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.global.util.SimilarityUtils;
 import java.time.LocalDateTime;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -99,55 +98,12 @@ public class InterestService {
     }
   }
 
-  private Comparator<Interest> buildComparator(String orderBy, String direction) {
-    Comparator<Interest> comparator = "subscriberCount".equals(orderBy)
-        ? Comparator.comparingLong(Interest::getSubscriberCount)
-        : Comparator.comparing(Interest::getName);
-    return "DESC".equals(direction) ? comparator.reversed() : comparator;
-  }
-
-  private int resolveCursorOffset(List<Interest> sorted, String cursor, LocalDateTime after) {
-    if (cursor == null || cursor.isBlank()) {
-      return 0;
-    }
-    UUID cursorId;
-    try {
-      cursorId = UUID.fromString(cursor);
-    } catch (IllegalArgumentException e) {
-      return 0;
-    }
-    for (int i = 0; i < sorted.size(); i++) {
-      Interest item = sorted.get(i);
-      if (!item.getId().equals(cursorId)) {
-        continue;
-      }
-      if (after != null && item.getCreatedAt() != null
-          && !item.getCreatedAt().equals(after)) {
-        continue;
-      }
-      return i + 1;
-    }
-    return 0;
-  }
-
   private Set<UUID> subscribedIdsFor(UUID userId, List<Interest> filtered) {
     if (userId == null || filtered.isEmpty()) {
       return Set.of();
     }
     Collection<UUID> ids = filtered.stream().map(Interest::getId).toList();
     return subscriptionRepository.findInterestIdsByUserIdAndInterestIdIn(userId, ids);
-  }
-
-  private boolean matchesKeyword(Interest interest, String keyword) {
-    if (keyword == null || keyword.isBlank()) {
-      return true;
-    }
-    String needle = keyword.toLowerCase();
-    if (interest.getName().toLowerCase().contains(needle)) {
-      return true;
-    }
-    return interest.getKeywords().stream()
-        .anyMatch(k -> k.getValue().toLowerCase().contains(needle));
   }
 
   @Transactional
