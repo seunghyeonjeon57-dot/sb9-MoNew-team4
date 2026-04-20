@@ -9,12 +9,16 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
 @DataJpaTest
 class InterestRepositoryTest {
 
   @Autowired
   private InterestRepository interestRepository;
+
+  @Autowired
+  private TestEntityManager em;
 
   @Test
   @DisplayName("findByNameAndDeletedAtIsNull: 이름 중복 확인")
@@ -55,5 +59,41 @@ class InterestRepositoryTest {
     List<Interest> actives = interestRepository.findAllByDeletedAtIsNull();
 
     assertThat(actives).extracting(Interest::getName).containsExactlyInAnyOrder("A1");
+  }
+
+  @Test
+  @DisplayName("decrementSubscriberCountAll: 주어진 ID 집합의 subscriberCount를 한 방 UPDATE로 1씩 감소")
+  void decrementSubscriberCountAll_bulk() {
+    Interest a = interestRepository.save(new Interest("관심사A", List.of("a")));
+    Interest b = interestRepository.save(new Interest("관심사B", List.of("b")));
+
+    interestRepository.incrementSubscriberCount(a.getId());
+    interestRepository.incrementSubscriberCount(a.getId());
+    interestRepository.incrementSubscriberCount(b.getId());
+    em.flush();
+    em.clear();
+
+    int updated = interestRepository.decrementSubscriberCountAll(List.of(a.getId(), b.getId()));
+
+    assertThat(updated).isEqualTo(2);
+
+    Interest refreshedA = interestRepository.findById(a.getId()).orElseThrow();
+    Interest refreshedB = interestRepository.findById(b.getId()).orElseThrow();
+    assertThat(refreshedA.getSubscriberCount()).isEqualTo(1L);
+    assertThat(refreshedB.getSubscriberCount()).isZero();
+  }
+
+  @Test
+  @DisplayName("decrementSubscriberCountAll: subscriberCount가 0인 관심사는 음수로 내려가지 않는다")
+  void decrementSubscriberCountAll_guardAgainstNegative() {
+    Interest a = interestRepository.save(new Interest("관심사A", List.of("a")));
+    em.flush();
+    em.clear();
+
+    int updated = interestRepository.decrementSubscriberCountAll(List.of(a.getId()));
+
+    assertThat(updated).isZero();
+    Interest refreshed = interestRepository.findById(a.getId()).orElseThrow();
+    assertThat(refreshed.getSubscriberCount()).isZero();
   }
 }
