@@ -2,6 +2,7 @@ package com.example.monew.domain.interest.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.monew.config.JpaAuditConfig;
 import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.repository.InterestRepositoryCustom.CursorPage;
@@ -14,7 +15,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 
 @DataJpaTest
-@Import({QueryDslTestConfig.class, InterestRepositoryImpl.class})
+@Import({QueryDslTestConfig.class, JpaAuditConfig.class, InterestRepositoryImpl.class})
 class InterestRepositoryImplTest {
 
   @Autowired
