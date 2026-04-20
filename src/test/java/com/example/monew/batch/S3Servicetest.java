@@ -12,26 +12,33 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
-@ActiveProfiles ("test")
+@ActiveProfiles("test")
 class S3Servicetest {
 
   @MockitoBean
   private S3Service s3Service;
 
   @Test
-  @DisplayName("S3 파일 업로드 및 삭제 테스트")
-  void s3UploadAndGetTest() {
+  @DisplayName("S3 파일 업로드 및 다운로드 테스트")
+  void s3UploadAndGetTest() throws Exception { // 파일 처리를 위해 Exception 추가
     String testContent = "Hello, S3! This is a backup test.";
     String s3Path = "test/integration-test.txt";
 
-    given(s3Service.download(anyString())).willReturn(testContent);
+    java.io.File fakeFile = java.io.File.createTempFile("test-", ".json");
+    java.nio.file.Files.writeString(fakeFile.toPath(), testContent);
+
+    given(s3Service.download(anyString())).willReturn(fakeFile);
 
     s3Service.upload(s3Path, testContent);
-    System.out.println("업로드 호출 완료: " + s3Path);
 
-    String downloadedContent = s3Service.download(s3Path); // 설정한 가짜 값이 나와야 된다
+    // String -> File
+    java.io.File downloadedFile = s3Service.download(s3Path);
+
+    String downloadedContent = java.nio.file.Files.readString(downloadedFile.toPath());
 
     System.out.println("다운로드된 내용: " + downloadedContent);
     assertThat(downloadedContent).isEqualTo(testContent);
+
+    fakeFile.delete();
   }
-  }
+}

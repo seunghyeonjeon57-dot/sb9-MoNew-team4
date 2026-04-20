@@ -1,78 +1,54 @@
 package com.example.monew.batch;
 
-import com.example.monew.domain.article.batch.NewsBatchScheduler;
-import com.example.monew.domain.article.batch.NewsCollector;
-import com.example.monew.domain.article.batch.NewsRss;
-import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
+
+import com.example.monew.domain.article.batch.service.BackupService;
 import com.example.monew.domain.article.batch.service.S3Service;
-import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
-import com.example.monew.domain.article.service.ArticleService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.LocalDateTime;
+import java.io.File;
+import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.launch.JobLauncher;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class NewsBatchSchedulerTest {
 
-  @Mock
-  private NewsRss newsRss;
-
-  @Mock
-  private NewsCollector newsCollector;
-
-  @Mock
-  private ArticleService articleService;
-
-  @Mock
-  private ArticleRepository articleRepository;
-
-  @Mock
-  private S3Service s3Service;
-
-  @Spy
-  private ObjectMapper objectMapper = new ObjectMapper()
-      .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
-      .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+  @Mock private S3Service s3Service;
+  @Mock private JobLauncher jobLauncher;
+  @Mock private Job restoreJob;
+  @Mock private ArticleRepository articleRepository;
+  @Mock private ObjectMapper objectMapper;
 
   @InjectMocks
-  private NewsBatchScheduler newsBatchScheduler;
+  private BackupService backupService;
 
   @Test
-  @DisplayName("뉴스 수집 배치 실행 테스트 - RSS 수집 및 저장 검증")
-  void NewsBatchTest() {
-    ArticleEntity mockArticle = ArticleEntity.builder()
-        .title("테스트 뉴스")
-        .sourceUrl("https://test.com")
-        .publishDate(LocalDateTime.now()) // 오늘 날짜 설정
-        .build();
+  @DisplayName("복구 실행 시 S3 다운로드& 배치 호출 확인")
+  void restoreNewsSimpleTest() throws Exception {
+    LocalDate targetDate = LocalDate.now();
+    File fakeFile = File.createTempFile("test", ".json");
 
-    when(newsRss.getUrlList()).thenReturn(List.of("https://test-rss.com"));
+    given(s3Service.download(anyString())).willReturn(fakeFile);
 
-    when(newsCollector.fetchRss(anyString(), anyString(), anyString()))
-        .thenReturn(List.of(mockArticle));
+    backupService.restoreNews(targetDate);
 
-    when(articleRepository.findByPublishDateAfter(any(LocalDateTime.class)))
-        .thenReturn(List.of(mockArticle));
 
-    when(s3Service.download(anyString())).thenThrow(new S3FileNotFoundException("파일 없음"));
+    verify(s3Service).download(contains(targetDate.toString()));
 
-    newsBatchScheduler.runNewsBatch();
+    verify(jobLauncher).run(eq(restoreJob), any(JobParameters.class));
 
-    verify(articleService, atLeastOnce()).saveInChunks(anyList());
-
-    verify(s3Service, times(1)).upload(anyString(), anyString());
+    fakeFile.delete();
   }
 }

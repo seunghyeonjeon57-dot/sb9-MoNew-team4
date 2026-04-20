@@ -3,6 +3,7 @@ package com.example.monew.domain.article.batch.service;
 import com.amazonaws.SdkClientException;
 import com.example.monew.domain.article.batch.exception.S3DownloadException;
 import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,24 +37,24 @@ public class S3Service {
     s3Client.putObject(putObjectRequest, RequestBody.fromString(content, StandardCharsets.UTF_8));
   }
 
-  public String download(String key) {
+  public File download(String key) {
     try {
+      File tempFile = File.createTempFile("s3-restore-", ".json");
+
       GetObjectRequest getObjectRequest = GetObjectRequest.builder()
           .bucket(bucket)
           .key(key)
           .build();
 
-      return s3Client.getObjectAsBytes(getObjectRequest).asUtf8String();
+      s3Client.getObject(getObjectRequest, tempFile.toPath());
+
+      return tempFile;
+
     } catch (NoSuchKeyException e) {
       log.warn("S3 파일 없음 key={}", key);
       throw new S3FileNotFoundException(key);
-
-    } catch (S3Exception e) {
-      log.error("S3 서비스 에러 key={}, statusCode={}", key, e.statusCode(), e);
-      throw new S3DownloadException(key, e);
-
-    } catch (SdkClientException e) {
-      log.error("네트워크 에러 key={}", key, e);
+    } catch (Exception e) { // S3Exception, SdkClientException 등을 포괄적으로 처리
+      log.error("S3 파일 다운로드 중 에러 발생 key={}", key, e);
       throw new S3DownloadException(key, e);
     }
   }
