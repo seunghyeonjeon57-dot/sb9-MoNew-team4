@@ -31,4 +31,25 @@ class SubscriptionTest {
     assertThatThrownBy(() -> new Subscription(id, null))
         .isInstanceOf(NullPointerException.class);
   }
+
+  // 아래 두 테스트는 생성자 검증 테스트(nullIdsRejected)와 경로가 동일하지만,
+  // @Builder 가 생성자 레벨을 벗어나 클래스 레벨로 이동할 경우 null 가드 우회
+  // 경로가 생기는 회귀를 잡기 위한 안전장치로 유지한다.
+  @Test
+  @DisplayName("빌더 — interestId가 null이면 NullPointerException")
+  void builderNullInterestIdRejected() {
+    UUID userId = UUID.randomUUID();
+
+    assertThatThrownBy(() -> Subscription.builder().interestId(null).userId(userId).build())
+        .isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  @DisplayName("빌더 — userId가 null이면 NullPointerException")
+  void builderNullUserIdRejected() {
+    UUID interestId = UUID.randomUUID();
+
+    assertThatThrownBy(() -> Subscription.builder().interestId(interestId).userId(null).build())
+        .isInstanceOf(NullPointerException.class);
+  }
 }
