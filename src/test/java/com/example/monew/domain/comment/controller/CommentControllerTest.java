@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 // RED 원인: CommentController 클래스가 없어서 컴파일 에러 발생
 @WebMvcTest(CommentController.class)
@@ -85,6 +86,25 @@ class CommentControllerTest {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
 
+    mockMvc.perform(delete("/api/comments/{commentId}/comment-likes", commentId)
+            .header("MoNew-Request-User-ID", userId.toString()))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  @DisplayName("기사별 댓글 조회하면 200 OK를 반환한다.")
+  void getArticleComments_Success() throws Exception {
+    UUID articleId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    mockMvc.perform(get("/api/comments")
+            .header("Monew-Request-User-ID", userId.toString())
+            .param("articleId", articleId.toString())
+            .param("orderBy", "likeCount")
+            .param("direction", "DESC")
+            .param("limit", "50"))
+        .andExpect(status().isOk());
+  }
     mockMvc.perform(post("/api/comments/{commentId}/comment-likes", commentId)
             .header("MoNew-Request-User-ID", userId.toString()))
         .andExpect(status().isOk());

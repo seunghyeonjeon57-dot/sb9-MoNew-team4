@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface CommentRepository extends JpaRepository<CommentEntity, UUID> {
+public interface CommentRepository extends JpaRepository<CommentEntity, UUID> , CommentRepositoryCustom{
   void deleteAllByUserId(UUID userId);
 
   @Modifying(clearAutomatically = true)

@@ -3,20 +3,25 @@ package com.example.monew.domain.comment.controller;
 import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
 import com.example.monew.domain.comment.dto.CommentUpdateRequest;
+import com.example.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.comment.service.CommentService;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -75,5 +80,22 @@ public class CommentController {
   ) {
     commentService.removeLike(commentId, userId);
     return ResponseEntity.ok().build();
+  }
+
+  @GetMapping
+  public ResponseEntity<CursorPageResponseCommentDto> getArticleComments(
+      @RequestParam UUID articleId,
+      @RequestParam String orderBy,
+      @RequestParam String direction,
+      @RequestParam(required = false) UUID cursor,
+      @RequestParam(required = false)LocalDateTime after,
+      @RequestParam int limit,
+      @RequestHeader("MoNew-Request-User-ID") UUID userId
+  ) {
+    CursorPageResponseCommentDto request = commentService.getArticleComments(
+        articleId, cursor, after, null, orderBy, limit
+    );
+
+    return ResponseEntity.ok(request);
   }
 }
