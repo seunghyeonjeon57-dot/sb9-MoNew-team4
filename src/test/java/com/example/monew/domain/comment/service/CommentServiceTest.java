@@ -6,7 +6,9 @@ import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
 import com.example.monew.domain.comment.dto.CommentUpdateRequest;
 import com.example.monew.domain.comment.entity.CommentEntity;
+import com.example.monew.domain.comment.entity.CommentLikeEntity;
 import com.example.monew.domain.comment.mapper.CommentMapper;
+import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -38,6 +40,8 @@ public class CommentServiceTest {
   private ArticleRepository articleRepository;
   @InjectMocks
   private CommentService commentService;
+  @Mock
+  private CommentLikeRepository commentLikeRepository;
 
   @Test
   @DisplayName("요청 DTO를 받아 댓글을 성공적으로 등록한다.")
@@ -141,5 +145,39 @@ public class CommentServiceTest {
 
     verify(commentRepository, times(1))
         .deleteAllByUserId(userId);
+  }
+
+  @Test
+  @DisplayName("댓글에 좋아요를 누르면 좋아요 테이블에 기록이 남고, 댓글의 좋아요 수가 1 증가한다.")
+  void addLike_Success() {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    CommentEntity comment = new CommentEntity(UUID.randomUUID(), commentId, "좋아요 받을 댓글");
+
+    given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+    given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(false);
+
+    commentService.addLike(commentId, userId);
+
+    verify(commentLikeRepository, times(1)).save(any(CommentLikeEntity.class));
+    assertThat(comment.getLikeCount()).isEqualTo(1L);
+  }
+
+  @Test
+  @DisplayName("이미 좋아요를 누른 댓글에 다시 좋아요를 누르면 예외가 발생한다.")
+  void addLike_AlreadyLiked() {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    CommentEntity comment = new CommentEntity(UUID.randomUUID(), commentId, "댓글");
+
+    given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+    given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(true);
+
+    assertThatThrownBy(() -> commentService.addLike(commentId, userId))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("이미 좋아요를 누른 댓글입니다.");
   }
 }

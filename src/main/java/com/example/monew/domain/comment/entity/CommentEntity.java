@@ -52,4 +52,18 @@ public class CommentEntity {
     this.deletedAt = LocalDateTime.now();
   }
 
+  public void incrementLikeCount() {
+    if(this.likeCount == null) {
+      this.likeCount = 0L;
+    }
+    this.likeCount++;
+  }
+
+  public void decrementLikeCount() {
+    if(this.likeCount == null || likeCount <= 0) {
+      this.likeCount = 0L;
+      return;
+    }
+    this.likeCount --;
+  }
 }

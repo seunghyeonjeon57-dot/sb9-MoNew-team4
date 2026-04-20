@@ -58,4 +58,22 @@ public class CommentController {
     commentService.hardDeleteComment(commentID);
     return ResponseEntity.noContent().build();
   }
+
+  @PostMapping("/{commentId}/comment-likes")
+  public ResponseEntity<Void> addCommentLike(
+      @PathVariable UUID commentId,
+      @RequestHeader("MoNew-Request-User-ID") UUID userId
+  ) {
+    commentService.addLike(commentId, userId);
+    return ResponseEntity.ok().build();
+  }
+
+  @DeleteMapping("/{commentId}/comment-likes")
+  public ResponseEntity<Void> removeCommentLike(
+      @PathVariable UUID commentId,
+      @RequestHeader("MoNew-RequestHeader-User-ID") UUID userId
+  ) {
+    commentService.removeLike(commentId, userId);
+    return ResponseEntity.ok().build();
+  }
 }

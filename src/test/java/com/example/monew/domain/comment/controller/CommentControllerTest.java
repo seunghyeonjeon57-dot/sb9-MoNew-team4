@@ -67,4 +67,26 @@ class CommentControllerTest {
             .header("MoNew-Request-User-ID", userId.toString()))
         .andExpect(status().isNoContent());
   }
+
+  @Test
+  @DisplayName("댓글 좋아요를 등록하면 200 OK를 반환한다.")
+  void addCommentLike_Success() throws Exception {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    mockMvc.perform(post("/api/comments/{commentId}/comment-likes", commentId)
+        .header("MoNew-Request-User-ID", userId.toString()))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  @DisplayName("댓글 좋아요를 취소하면 200 OK를 반환한다.")
+  void removeCommentLike_Success() throws Exception {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    mockMvc.perform(post("/api/comments/{commentId}/comment-likes", commentId)
+            .header("MoNew-Request-User-ID", userId.toString()))
+        .andExpect(status().isOk());
+  }
 }
