@@ -26,7 +26,10 @@ public class CommentLikeRepositoryTest {
   void existCommentIdAndUserId_Test() {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    commentLikeRepository.save(new CommentLikeEntity(commentId, userId));
+    commentLikeRepository.save(CommentLikeEntity.builder()
+        .commentId(commentId)
+        .userId(userId)
+        .build());
 
     entityManager.flush();
     entityManager.clear();
@@ -43,7 +46,10 @@ public class CommentLikeRepositoryTest {
   void deleteCommentIdAndUserId_Test() {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    commentLikeRepository.save(new CommentLikeEntity(commentId, userId));
+    commentLikeRepository.save(CommentLikeEntity.builder()
+        .commentId(commentId)
+        .userId(userId)
+        .build());
 
     entityManager.flush();
     entityManager.clear();

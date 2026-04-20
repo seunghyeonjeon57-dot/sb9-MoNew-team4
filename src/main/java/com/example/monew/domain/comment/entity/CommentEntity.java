@@ -3,13 +3,13 @@ package com.example.monew.domain.comment.entity;
 import com.example.monew.global.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "comments")
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CommentEntity extends BaseEntity {
 
@@ -26,6 +26,7 @@ public class CommentEntity extends BaseEntity {
    @Column(nullable = false, length = 500)
   private String content;
 
+  @Builder.Default
   @Column(name = "like_count")
   private Long likeCount = 0L;
 

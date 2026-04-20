@@ -31,9 +31,11 @@ class CommentControllerTest {
   @Test
   @DisplayName("올바른 데이터로 댓글 등록 요청 시 200 OK를 반환한다.")
   void registerComment_HttpOk() throws Exception {
-    CommentRegisterRequest request = new CommentRegisterRequest(
-        UUID.randomUUID(), UUID.randomUUID(), "컨트롤러 테스트 댓글"
-    );
+    CommentRegisterRequest request = CommentRegisterRequest.builder()
+        .articleId(UUID.randomUUID())
+        .userId(UUID.randomUUID())
+        .content("컨트롤러 테스트 댓글")
+        .build();
     String jsonRequest = objectMapper.writeValueAsString(request);
 
     // 매핑이 없다면 404 Not Found 로 실패합니다.
@@ -48,7 +50,9 @@ class CommentControllerTest {
   void updateComment_HttpOk() throws Exception {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    CommentUpdateRequest request = new CommentUpdateRequest("수정된 댓글입니다.");
+    CommentUpdateRequest request = CommentUpdateRequest.builder()
+        .content("수정된 댓글입니다.")
+        .build();
     String jsonRequest = objectMapper.writeValueAsString(request);
 
     mockMvc.perform(patch("/api/comments/{commentId}", commentId)

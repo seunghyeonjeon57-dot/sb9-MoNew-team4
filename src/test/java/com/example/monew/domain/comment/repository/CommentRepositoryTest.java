@@ -38,11 +38,12 @@ public class CommentRepositoryTest {
   @Test
   @DisplayName("댓글 엔티티를 DB에 저장하고 조회할 수 있다.")
   void saveAndFindComment() {
-    CommentEntity comment = new CommentEntity(
-        UUID.randomUUID(),
-        UUID.randomUUID(),
-        "레포지토리 테스트 댓글"
-    );
+    CommentEntity comment = CommentEntity.builder()
+        .articleId(UUID.randomUUID())
+        .userId(UUID.randomUUID())
+        .content("레포지토리 테스트 댓글")
+        .likeCount(0L)
+        .build();
 
     CommentEntity savedComment = commentRepository.save(comment);
 
@@ -55,7 +56,12 @@ public class CommentRepositoryTest {
   @Test
   @DisplayName("엔티티 내용을 수정하고 플러시하면 DB에 반영된다.")
   void updateComment_Persistence() {
-    CommentEntity comment = new CommentEntity(UUID.randomUUID(), UUID.randomUUID(), "원본");
+    CommentEntity comment = CommentEntity.builder()
+        .articleId(UUID.randomUUID())
+        .userId(UUID.randomUUID())
+        .content("원본")
+        .likeCount(0L)
+        .build();
     CommentEntity saved = commentRepository.save(comment);
 
     saved.updateContent("수정됨");
@@ -73,9 +79,12 @@ public class CommentRepositoryTest {
     UUID otherUserId = UUID.randomUUID();
     UUID articleId = UUID.randomUUID();
 
-    commentRepository.save(new CommentEntity(articleId, targetUserId, "타겟 유저 댓글 1"));
-    commentRepository.save(new CommentEntity(articleId, targetUserId, "타겟 유저 댓글 2"));
-    commentRepository.save(new CommentEntity(articleId, otherUserId, "다른 유저 댓글"));
+    commentRepository.save(CommentEntity.builder()
+        .articleId(articleId).userId(targetUserId).content("타겟 유저 댓글 1").likeCount(0L).build());
+    commentRepository.save(CommentEntity.builder()
+        .articleId(articleId).userId(targetUserId).content("타겟 유저 댓글 2").likeCount(0L).build());
+    commentRepository.save(CommentEntity.builder()
+        .articleId(articleId).userId(otherUserId).content("다른 유저 댓글").likeCount(0L).build());
 
     entityManager.flush();
     entityManager.clear();
@@ -106,9 +115,12 @@ public class CommentRepositoryTest {
     UUID otherUserId = UUID.randomUUID();
     UUID articleId = UUID.randomUUID();
 
-    commentRepository.save(new CommentEntity(articleId, targetUserId, "타겟 유저 댓글 1"));
-    commentRepository.save(new CommentEntity(articleId, targetUserId, "타겟 유저 댓글 2"));
-    commentRepository.save(new CommentEntity(articleId, otherUserId, "다른 유저 댓글"));
+    commentRepository.save(CommentEntity.builder()
+        .articleId(articleId).userId(targetUserId).content("타겟 유저 댓글 1").likeCount(0L).build());
+    commentRepository.save(CommentEntity.builder()
+        .articleId(articleId).userId(targetUserId).content("타겟 유저 댓글 2").likeCount(0L).build());
+    commentRepository.save(CommentEntity.builder()
+        .articleId(articleId).userId(otherUserId).content("다른 유저 댓글").likeCount(0L).build());
 
     entityManager.flush();
     entityManager.clear();
@@ -134,7 +146,13 @@ public class CommentRepositoryTest {
   @Test
   @DisplayName("특정 기사의 댓글 목록을 좋아요 순으로 커서 페이징 조회한다")
   void findCommentsByArticleId_OrderByLikes() {
-    User user = new User("테스트닉네임", "test@test.com", "password");
+    User user = User.builder()
+        .nickname("테스트닉네임")
+        .email("test2@test.com")
+        .password("password")
+        .build();
+    userRepository.save(user);
+
     userRepository.save(user);
 
     ArticleEntity article = ArticleEntity.builder()
@@ -147,9 +165,24 @@ public class CommentRepositoryTest {
         .build();
     articleRepository.save(article);
 
-    CommentEntity c1 = new CommentEntity(article.getId(), user.getId(), "댓글 1");
-    CommentEntity c2 = new CommentEntity(article.getId(), user.getId(), "댓글 2");
-    CommentEntity c3 = new CommentEntity(article.getId(), user.getId(), "댓글 3");
+    CommentEntity c1 = CommentEntity.builder()
+        .articleId(article.getId())
+        .userId(user.getId())
+        .content("댓글 1")
+        .likeCount(0L)
+        .build();
+    CommentEntity c2 = CommentEntity.builder()
+        .articleId(article.getId())
+        .userId(user.getId())
+        .content("댓글 1")
+        .likeCount(0L)
+        .build();
+    CommentEntity c3 = CommentEntity.builder()
+        .articleId(article.getId())
+        .userId(user.getId())
+        .content("댓글 1")
+        .likeCount(0L)
+        .build();
     commentRepository.saveAll(List.of(c1, c2, c3));
 
     em.flush();
@@ -165,7 +198,12 @@ public class CommentRepositoryTest {
   @Test
   @DisplayName("특정 기사의 댓글 목록을 최신순으로 커서 페이징 조회한다")
   void findCommentsByArticleId_OrderByDate() {
-    User user = new User("테스트닉네임2", "test2@test.com", "password");
+    User user = User.builder()
+        .nickname("테스트닉네임2")
+        .email("test2@test.com")
+        .password("password")
+        .build();
+    userRepository.save(user);
     userRepository.save(user);
 
     ArticleEntity article = ArticleEntity.builder()
@@ -178,7 +216,12 @@ public class CommentRepositoryTest {
         .build();
     articleRepository.save(article);
 
-    CommentEntity c1 = new CommentEntity(article.getId(), user.getId(), "최신 댓글");
+    CommentEntity c1 = CommentEntity.builder()
+        .articleId(article.getId())
+        .userId(user.getId())
+        .content("최신 댓글")
+        .likeCount(0L) // 초기값 명시
+        .build();
     commentRepository.save(c1);
 
     em.flush();

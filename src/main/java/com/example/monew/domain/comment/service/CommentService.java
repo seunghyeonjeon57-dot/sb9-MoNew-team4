@@ -20,7 +20,6 @@ import com.example.monew.global.exception.ErrorCode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -128,7 +127,12 @@ public class CommentService {
     }
 
     comment.incrementLikeCount();
-    commentLikeRepository.save(new CommentLikeEntity(commentId, userId));
+
+    CommentLikeEntity commentLike = CommentLikeEntity.builder()
+        .commentId(commentId)
+        .userId(userId)
+        .build();
+    commentLikeRepository.save(commentLike);
 
     log.info("좋아요 추가 완료: userId={}, commentId={}", userId, commentId);
   }
