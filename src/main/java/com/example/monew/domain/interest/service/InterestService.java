@@ -139,8 +139,8 @@ public class InterestService {
   public void delete(UUID interestId) {
     Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
-    interest.markDeleted();
     subscriptionRepository.deleteAllByInterestId(interestId);
+    interestRepository.delete(interest);
   }
 
   @Transactional
