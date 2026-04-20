@@ -41,16 +41,28 @@ public class S3Service {
 
   public File download(String key) {
     try {
-      Path dedicatedDir = Files.createTempDirectory("monew-uploads");
-
-      Path tempPath = Files.createTempFile(dedicatedDir, "s3-restore-", ".json");
-      File tempFile = tempPath.toFile();
+      File tempFile;
+      String prefix = "s3-restore-";
+      String suffix = ".json";
+      if (java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+        var attr = java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+            java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")
+        );
+        tempFile = Files.createTempFile(prefix, suffix, attr).toFile();
+      } else {
+        tempFile = Files.createTempFile(prefix, suffix).toFile();
+        tempFile.setReadable(true, true);
+        tempFile.setWritable(true, true);
+        tempFile.setExecutable(true, true);
+      }
 
       GetObjectRequest getObjectRequest = GetObjectRequest.builder()
           .bucket(bucket)
           .key(key)
           .build();
 
+
+      tempFile.deleteOnExit();
       s3Client.getObject(getObjectRequest, tempFile.toPath());
 
       return tempFile;
