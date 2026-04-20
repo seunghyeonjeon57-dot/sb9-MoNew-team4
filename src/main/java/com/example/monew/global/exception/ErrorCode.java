@@ -31,11 +31,14 @@ public enum ErrorCode {
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 유저를 찾을 수 없습니다."),
   DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 존재하는 이메일입니다."),
   LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
-  NICKNAME_BLANK(HttpStatus.BAD_REQUEST, "닉네임은 공백일 수 없습니다.");
+  NICKNAME_BLANK(HttpStatus.BAD_REQUEST, "닉네임은 공백일 수 없습니다."),
 
-
-
-
+  // Comment 도메인
+  COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 댓글을 찾을 수 없습니다."),
+  COMMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "댓글 작성자만 삭제할 수 있습니다."),
+  COMMENT_CONTENT_BLANK(HttpStatus.BAD_REQUEST, "댓글 내용은 비어있을 수 없습니다."),
+  DUPLICATE_LIKE(HttpStatus.CONFLICT, "이미 좋아요를 누른 댓글입니다."),
+  LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "좋아요를 누르지 않은 댓글입니다.");
 
   private final HttpStatus status;
   private final String message;
