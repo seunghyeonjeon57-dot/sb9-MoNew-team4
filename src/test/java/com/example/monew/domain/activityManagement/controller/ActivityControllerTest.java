@@ -35,16 +35,16 @@ public class ActivityControllerTest {
     String expectedNickname = "test";
     LocalDateTime expectedCreatedAt = LocalDateTime.now();
 
-    UserActivityDto mockResponse = new UserActivityDto(
-        userId,
-        expectedEmail,
-        expectedNickname,
-        expectedCreatedAt,
-        List.of(),
-        List.of(),
-        List.of(),
-        List.of()
-    );
+    UserActivityDto mockResponse = UserActivityDto.builder()
+        .id(userId)
+        .email("test@test.com")
+        .nickname("test")
+        .createdAt(LocalDateTime.now())
+        .subscribedInterests(List.of())
+        .comments(List.of())
+        .commentLikes(List.of())
+        .articleViews(List.of())
+        .build();
 
     given(activityService.getUserActivity(userId)).willReturn(mockResponse);
 

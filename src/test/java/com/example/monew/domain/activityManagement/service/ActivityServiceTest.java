@@ -44,23 +44,18 @@ public class ActivityServiceTest {
     String expectedNickname = "뱀띠개발자";
     LocalDateTime expectedCreatedAt = LocalDateTime.now();
 
-    // ⭐ 1. 유저는 가입했으니 Postgres에는 데이터가 무조건 있다고 가짜(Mock) 객체 설정!
     User mockUser = mock(User.class);
     given(mockUser.getId()).willReturn(userId);
     given(mockUser.getEmail()).willReturn(expectedEmail);
     given(mockUser.getNickname()).willReturn(expectedNickname);
     given(mockUser.getCreatedAt()).willReturn(expectedCreatedAt);
 
-    // UserRepository가 이 가짜 유저를 반환하도록 설정
     given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
 
-    // ⭐ 2. 활동을 한 적이 없어서 MongoDB에는 데이터가 없다고 설정
     given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
 
-    // when
     UserActivityDto result = activityService.getUserActivity(userId);
 
-    // then
     assertThat(result).isNotNull();
     assertThat(result.id()).isEqualTo(userId);
     assertThat(result.email()).isEqualTo(expectedEmail);
