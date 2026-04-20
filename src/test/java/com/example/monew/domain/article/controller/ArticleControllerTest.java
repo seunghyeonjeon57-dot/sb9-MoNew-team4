@@ -1,13 +1,14 @@
 package com.example.monew.domain.article.controller;
 
-import com.example.monew.batch.service.BackupService;
+import com.example.monew.domain.article.batch.BackupBatch;
+import com.example.monew.domain.article.batch.NewsRss;
+import com.example.monew.domain.article.batch.service.BackupService;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.article.service.ArticleViewService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -33,10 +34,10 @@ class ArticleControllerTest {
   private ArticleViewService articleViewService;
 
   @MockitoBean
-  private com.example.monew.batch.BackupBatch backupBatch;
+  private BackupBatch backupBatch;
 
   @MockitoBean
-  private com.example.monew.batch.NewsRss newsRss;
+  private NewsRss newsRss;
 
   @Test
   @DisplayName("기사 뷰 등록 테스트")

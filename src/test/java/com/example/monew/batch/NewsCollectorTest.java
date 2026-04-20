@@ -1,6 +1,6 @@
 package com.example.monew.batch;
 
-import com.example.monew.batch.dto.NaverApiResponse;
+import com.example.monew.domain.article.batch.NewsCollector;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -7,8 +7,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 
-import com.example.monew.batch.service.BackupService;
-import com.example.monew.batch.service.S3Service;
+import com.example.monew.domain.article.batch.BackupBatch;
+import com.example.monew.domain.article.batch.service.BackupService;
+import com.example.monew.domain.article.batch.service.S3Service;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.fasterxml.jackson.databind.ObjectMapper; // ObjectMapper 주입 확인

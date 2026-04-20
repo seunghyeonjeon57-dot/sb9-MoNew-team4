@@ -1,7 +1,9 @@
-package com.example.monew.batch;
+package com.example.monew.domain.article.batch;
 
-import com.example.monew.batch.dto.NaverApiResponse;
+import com.example.monew.domain.article.batch.dto.NaverApiResponse;
 import com.example.monew.domain.article.entity.ArticleEntity;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -59,20 +61,26 @@ public class NewsCollector {
   }
 
   public List<ArticleEntity> fetchRss(String rssUrl, String pressName, String interest) {
-    try {
-      SyndFeed feed = new SyndFeedInput().build(new XmlReader(new URL(rssUrl)));
-      return feed.getEntries().stream().map(entry ->
-          ArticleEntity.builder()
-              .title(cleanHtml(entry.getTitle()))
-              .summary(entry.getDescription() != null ? cleanHtml(entry.getDescription().getValue()) : "")
-              .sourceUrl(entry.getLink())
-              .source(pressName)
-              .publishDate(entry.getPublishedDate().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime())
-              .interest(interest)
-              .build()
-      ).toList();
+    try (XmlReader reader = new XmlReader(new URL(rssUrl))) {
+      SyndFeed feed = new SyndFeedInput().build(reader);
+      return feed.getEntries().stream()
+          .map(entry -> {
+            // 신문사에 ?따라 날짜가 null 일 수 있음 -> 방어 로직 필 -> 추가
+            LocalDateTime pubDate = (entry.getPublishedDate() != null)
+                ? entry.getPublishedDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                : LocalDateTime.now();
+
+            return ArticleEntity.builder()
+                .title(cleanHtml(entry.getTitle()))
+                .summary(entry.getDescription() != null ? cleanHtml(entry.getDescription().getValue()) : "")
+                .sourceUrl(entry.getLink())
+                .source(pressName)
+                .publishDate(pubDate)
+                .interest(interest)
+                .build();
+          }).toList();
     } catch (Exception e) {
-      log.error("{} RSS 수집 실패: {}", pressName, e.getMessage(), e);
+      log.error("{} RSS 수집 실패: {}", pressName, e.getMessage());
       return List.of();
     }
   }

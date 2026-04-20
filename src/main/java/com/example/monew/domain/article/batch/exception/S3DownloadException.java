@@ -1,4 +1,4 @@
-package com.example.monew.batch.exception;
+package com.example.monew.domain.article.batch.exception;
 
 public class S3DownloadException extends RuntimeException {
   public S3DownloadException(String key, Throwable cause) {

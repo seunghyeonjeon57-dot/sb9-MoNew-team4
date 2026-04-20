@@ -1,4 +1,4 @@
-package com.example.monew.batch.dto;
+package com.example.monew.domain.article.batch.dto;
 
 import java.util.List;
 

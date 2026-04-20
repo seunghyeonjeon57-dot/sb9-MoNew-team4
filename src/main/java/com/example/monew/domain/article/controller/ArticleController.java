@@ -1,7 +1,7 @@
 package com.example.monew.domain.article.controller;
 
-import com.example.monew.batch.BackupBatch;
-import com.example.monew.batch.service.BackupService;
+import com.example.monew.domain.article.batch.BackupBatch;
+import com.example.monew.domain.article.batch.service.BackupService;
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.service.ArticleService;

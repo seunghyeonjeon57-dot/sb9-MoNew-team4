@@ -1,8 +1,8 @@
-package com.example.monew.batch;
+package com.example.monew.domain.article.batch;
 
-import com.example.monew.batch.exception.RestoreFailedException;
-import com.example.monew.batch.exception.S3FileNotFoundException;
-import com.example.monew.batch.service.S3Service;
+import com.example.monew.domain.article.batch.exception.RestoreFailedException;
+import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
+import com.example.monew.domain.article.batch.service.S3Service;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.article.service.ArticleService;
@@ -11,15 +11,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Value;
 import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -57,33 +54,18 @@ public class NewsBatchScheduler {
     backupToS3();
     log.info("뉴스 배치 프로세스 전체 종료");
   }
-//  @Transactional
-//  public void saveInChunks(List<ArticleEntity> articles) {
-//    if (articles.isEmpty()) return;
-//    List<String> sourceUrls = articles.stream()
-//        .map(ArticleEntity::getSourceUrl)
-//        .toList();
-//
-//    List<String> existingUrls = articleRepository.findAllBySourceUrlIn(sourceUrls)
-//        .stream()
-//        .map(ArticleEntity::getSourceUrl)
-//        .toList();
-//
-//    List<ArticleEntity> newArticles = articles.stream()
-//        .filter(article -> !existingUrls.contains(article.getSourceUrl()))
-//        .toList();
-//
-//    if (!newArticles.isEmpty()) {
-//      articleRepository.saveAll(newArticles);
-//      log.info("{}건 신규 뉴스 저장 완료", newArticles.size());
-//    }
-//  }
+
 
   private void backupToS3() {
     try {
       List<ArticleEntity> todayArticles = articleRepository.findByPublishDateAfter(
           java.time.LocalDate.now().atStartOfDay()
       );
+
+      if (todayArticles.isEmpty()) {
+        log.info("백업할 데이터가 없습니다.");
+        return;
+      }
 
       String json = objectMapper.writeValueAsString(todayArticles);
       String fileName = "backups/" + java.time.LocalDate.now() + ".json";

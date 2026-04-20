@@ -1,8 +1,8 @@
-package com.example.monew.batch.service;
+package com.example.monew.domain.article.batch.service;
 
 
-import com.example.monew.batch.exception.RestoreFailedException;
-import com.example.monew.batch.exception.S3FileNotFoundException;
+import com.example.monew.domain.article.batch.exception.RestoreFailedException;
+import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.example.monew.domain.article.entity.ArticleEntity;

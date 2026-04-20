@@ -1,4 +1,4 @@
-package com.example.monew.batch;
+package com.example.monew.domain.article.batch;
 
 import java.util.ArrayList;
 import java.util.List;

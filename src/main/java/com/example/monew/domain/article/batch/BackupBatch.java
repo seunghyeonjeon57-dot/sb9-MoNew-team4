@@ -1,7 +1,7 @@
-package com.example.monew.batch;
+package com.example.monew.domain.article.batch;
 
 
-import com.example.monew.batch.service.BackupService;
+import com.example.monew.domain.article.batch.service.BackupService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;

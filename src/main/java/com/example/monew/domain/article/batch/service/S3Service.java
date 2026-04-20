@@ -1,8 +1,8 @@
-package com.example.monew.batch.service;
+package com.example.monew.domain.article.batch.service;
 
 import com.amazonaws.SdkClientException;
-import com.example.monew.batch.exception.S3DownloadException;
-import com.example.monew.batch.exception.S3FileNotFoundException;
+import com.example.monew.domain.article.batch.exception.S3DownloadException;
+import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
