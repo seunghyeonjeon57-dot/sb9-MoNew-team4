@@ -26,18 +26,19 @@ public final class SimilarityUtils {
       a = b;
       b = tmp;
     }
-    int n = a.length();
-    int m = b.length();
+    int longerLen = a.length();
+    int shorterLen = b.length();
 
-    int[] prev = new int[m + 1];
-    int[] curr = new int[m + 1];
-    for (int j = 0; j <= m; j++) {
+    int[] prev = new int[shorterLen + 1];
+    int[] curr = new int[shorterLen + 1];
+    for (int j = 0; j <= shorterLen; j++) {
       prev[j] = j;
     }
 
-    for (int i = 1; i <= n; i++) {
+    // shorterLen == 0 일 때 내부 루프가 돌지 않고 prev[0] = i 만 누적되어 올바른 거리 반환
+    for (int i = 1; i <= longerLen; i++) {
       curr[0] = i;
-      for (int j = 1; j <= m; j++) {
+      for (int j = 1; j <= shorterLen; j++) {
         int cost = (a.charAt(i - 1) == b.charAt(j - 1)) ? 0 : 1;
         curr[j] = Math.min(
             Math.min(curr[j - 1] + 1, prev[j] + 1),
@@ -48,6 +49,6 @@ public final class SimilarityUtils {
       prev = curr;
       curr = tmp;
     }
-    return prev[m];
+    return prev[shorterLen];
   }
 }
