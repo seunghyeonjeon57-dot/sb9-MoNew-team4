@@ -20,8 +20,6 @@ import org.hibernate.annotations.Where;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Table(name = "users")
-@SQLDelete(sql = "UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
-@Where(clause = "deleted_at IS NULL")
 public class User extends BaseEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)

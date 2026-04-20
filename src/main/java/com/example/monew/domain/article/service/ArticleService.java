@@ -3,6 +3,7 @@ package com.example.monew.domain.article.service;
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.dto.ArticleRestoreResultDto;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
+import com.example.monew.domain.article.entity.ArticleViewEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.global.exception.ErrorCode;
@@ -21,16 +22,15 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ArticleService {
-
   private final ArticleRepository articleRepository;
   private final ArticleMapper articleMapper;
+  private final ArticleViewService articleViewService;
 
   @Transactional
   public ArticleDto getArticleDetail(UUID id) {
     ArticleEntity article = articleRepository.findById(id)
         .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
 
-    article.incrementViewCount();
     return articleMapper.toDto(article, false);
   }
 
@@ -68,8 +68,9 @@ public class ArticleService {
     return articleRepository.findAllSources();
   }
 
-  //임시
-  public void incrementViewCount(UUID articleId) {
+  @Transactional
+  public void incrementViewCount(UUID articleId, UUID viewedBy, String clientIp) {
+    articleViewService.logView(articleId, viewedBy, clientIp);
   }
 
   public CursorPageResponseArticleDto getArticles(UUID cursor, LocalDateTime after, int size) {

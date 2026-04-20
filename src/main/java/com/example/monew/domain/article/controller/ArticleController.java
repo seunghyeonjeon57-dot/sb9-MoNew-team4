@@ -3,10 +3,12 @@ package com.example.monew.domain.article.controller;
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.service.ArticleService;
+import com.example.monew.domain.article.service.ArticleViewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class ArticleController {
 
   private final ArticleService articleService;
+  private final ArticleViewService articleViewService;
 
   @Operation(summary = "뉴스 기사 목록 조회", description = "뉴스 기사 목록 조회")
   @ApiResponses({
@@ -48,8 +51,11 @@ public class ArticleController {
       @ApiResponse(responseCode = "200", description = "상세 조회 성공"),
       @ApiResponse(responseCode = "404", description = "기사를 찾을 수 없음")
   })
+
   @GetMapping("/{articleId}")
-  public ResponseEntity<ArticleDto> getArticleDetail(@PathVariable UUID articleId) {
+  public ResponseEntity<ArticleDto> getArticleDetail(
+      @PathVariable UUID articleId
+  ) {
     return ResponseEntity.ok(articleService.getArticleDetail(articleId));
   }
 
@@ -61,8 +67,13 @@ public class ArticleController {
 
 
   @PostMapping("/{articleId}/article-views")
-  public ResponseEntity<Void> incrementArticleView(@PathVariable UUID articleId) {
-    articleService.incrementViewCount(articleId);
+  public ResponseEntity<Void> incrementArticleView(
+      @PathVariable UUID articleId,
+      HttpServletRequest request
+  ) {
+    String clientIp = request.getRemoteAddr();
+    UUID viewedBy = UUID.randomUUID();
+    articleViewService.logView(articleId, viewedBy, clientIp);
     return ResponseEntity.ok().build();
   }
 
