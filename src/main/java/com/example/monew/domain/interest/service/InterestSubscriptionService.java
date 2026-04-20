@@ -33,18 +33,7 @@ public class InterestSubscriptionService {
     try {
       saved = subscriptionRepository.saveAndFlush(new Subscription(interestId, userId));
     } catch (DataIntegrityViolationException e) {
-      String constraintName = null;
-      if (e.getCause() instanceof ConstraintViolationException cve) {
-        constraintName = cve.getConstraintName();
-      }
-      if ("fk_sub_user".equalsIgnoreCase(constraintName)) {
-        throw new SubscriberNotFoundException(Map.of("userId", userId.toString()));
-      }
-      if ("fk_sub_interest".equalsIgnoreCase(constraintName)) {
-        throw new InterestNotFoundException(Map.of("interestId", interestId.toString()));
-      }
-      throw new DuplicateSubscriptionException(
-          Map.of("interestId", interestId.toString(), "userId", userId.toString()));
+      throw translateIntegrityViolation(e, interestId, userId);
     }
 
     interestRepository.incrementSubscriberCount(interest.getId());
@@ -60,6 +49,26 @@ public class InterestSubscriptionService {
 
     subscriptionRepository.delete(sub);
     interestRepository.decrementSubscriberCount(interestId);
+  }
+
+  private RuntimeException translateIntegrityViolation(
+      DataIntegrityViolationException e, UUID interestId, UUID userId) {
+    String constraintName = extractConstraintName(e);
+    if ("fk_sub_user".equalsIgnoreCase(constraintName)) {
+      return new SubscriberNotFoundException(Map.of("userId", userId.toString()));
+    }
+    if ("fk_sub_interest".equalsIgnoreCase(constraintName)) {
+      return new InterestNotFoundException(Map.of("interestId", interestId.toString()));
+    }
+    return new DuplicateSubscriptionException(
+        Map.of("interestId", interestId.toString(), "userId", userId.toString()));
+  }
+
+  private String extractConstraintName(DataIntegrityViolationException e) {
+    if (e.getCause() instanceof ConstraintViolationException cve) {
+      return cve.getConstraintName();
+    }
+    return null;
   }
 
 }
