@@ -5,6 +5,7 @@ import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.entity.Interest;
+import com.example.monew.domain.interest.exception.InterestNameImmutableException;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.InvalidSortParameterException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
@@ -35,6 +36,12 @@ public class InterestService {
 
   @Transactional
   public InterestResponse create(InterestCreateRequest request) {
+    interestRepository.findByNameAndDeletedAtIsNull(request.name())
+        .ifPresent(existing -> {
+          throw new SimilarInterestNameException(
+              Map.of("existing", existing.getName(), "similarity", 1.0));
+        });
+
     List<Interest> actives = interestRepository.findAllByDeletedAtIsNull();
     for (Interest existing : actives) {
       double similarity = SimilarityUtils.similarity(existing.getName(), request.name());
@@ -145,6 +152,10 @@ public class InterestService {
 
   @Transactional
   public InterestResponse updateKeywords(UUID interestId, InterestUpdateRequest request) {
+    if (request.name() != null) {
+      throw new InterestNameImmutableException(
+          Map.of("interestId", interestId.toString(), "rejectedName", request.name()));
+    }
     Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
     interest.replaceKeywords(request.keywords());
