@@ -1,6 +1,7 @@
 package com.example.monew.global.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,5 +31,30 @@ class SimilarityUtilsTest {
   void emptyStrings() {
     assertThat(SimilarityUtils.similarity("", "")).isEqualTo(1.0);
     assertThat(SimilarityUtils.similarity("a", "")).isEqualTo(0.0);
+  }
+
+  @Test
+  @DisplayName("대칭성 — similarity(a,b) == similarity(b,a) (짧은 쪽 swap 최적화 안전장치)")
+  void symmetric() {
+    assertThat(SimilarityUtils.similarity("인공지능", "인공지"))
+        .isEqualTo(SimilarityUtils.similarity("인공지", "인공지능"));
+    assertThat(SimilarityUtils.similarity("abcdef", "xyz"))
+        .isEqualTo(SimilarityUtils.similarity("xyz", "abcdef"));
+  }
+
+  @Test
+  @DisplayName("정확한 편집 거리 값 — 1글자 삭제는 1.0 - 1/maxLen")
+  void exactDistanceValue() {
+    assertThat(SimilarityUtils.similarity("인공지능", "인공지")).isEqualTo(0.75);
+    assertThat(SimilarityUtils.similarity("abcd", "abce")).isEqualTo(0.75);
+  }
+
+  @Test
+  @DisplayName("null 입력 → IllegalArgumentException")
+  void nullInput() {
+    assertThatThrownBy(() -> SimilarityUtils.similarity(null, "x"))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> SimilarityUtils.similarity("x", null))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 }
