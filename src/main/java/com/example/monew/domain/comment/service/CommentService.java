@@ -82,7 +82,7 @@ public class CommentService {
           return new CommentNotFoundException(ErrorCode.COMMENT_NOT_FOUND);
         });
 
-    comment.delete();
+    comment.markDeleted();
 
     log.info("댓글 논리 삭제 완료: commentId={}", commentId);
   }
