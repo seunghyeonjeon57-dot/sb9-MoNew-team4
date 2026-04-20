@@ -2,7 +2,6 @@ package com.example.monew.domain.user.service;
 
 
 import com.example.monew.domain.comment.repository.CommentRepository;
-import com.example.monew.domain.interest.entity.Subscription;
 import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.domain.user.dto.UserDto;
@@ -91,9 +90,7 @@ public class UserService {
   public void hardDeleteUser(UUID id){
     log.info("유저 하드 삭제 시작: ID={}", id);
 
-    List<UUID> interestIds = subscriptionRepository.findAllByUserId(id).stream()
-        .map(Subscription::getInterestId)
-        .toList();
+    List<UUID> interestIds = subscriptionRepository.findInterestIdsByUserId(id);
 
     subscriptionRepository.deleteAllByUserId(id);
     commentRepository.deleteAllByUserId(id);

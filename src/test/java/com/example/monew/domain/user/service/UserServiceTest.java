@@ -8,7 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.monew.domain.comment.repository.CommentRepository;
-import com.example.monew.domain.interest.entity.Subscription;
 import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.domain.user.dto.UserDto;
@@ -208,11 +207,11 @@ class UserServiceTest {
     @DisplayName("하드 삭제 성공 - 구독이 없을 때 subscriberCount 벌크 감소는 호출되지 않음")
     void success_hard_delete() {
       UUID userId = UUID.randomUUID();
-      when(subscriptionRepository.findAllByUserId(userId)).thenReturn(List.of());
+      when(subscriptionRepository.findInterestIdsByUserId(userId)).thenReturn(List.of());
 
       userService.hardDeleteUser(userId);
 
-      verify(subscriptionRepository).findAllByUserId(userId);
+      verify(subscriptionRepository).findInterestIdsByUserId(userId);
       verify(subscriptionRepository).deleteAllByUserId(userId);
       verify(commentRepository).deleteAllByUserId(userId);
       verify(userRepository).deleteById(userId);
@@ -226,14 +225,12 @@ class UserServiceTest {
       UUID userId = UUID.randomUUID();
       UUID interestAId = UUID.randomUUID();
       UUID interestBId = UUID.randomUUID();
-      when(subscriptionRepository.findAllByUserId(userId)).thenReturn(List.of(
-          new Subscription(interestAId, userId),
-          new Subscription(interestBId, userId)
-      ));
+      when(subscriptionRepository.findInterestIdsByUserId(userId))
+          .thenReturn(List.of(interestAId, interestBId));
 
       userService.hardDeleteUser(userId);
 
-      verify(subscriptionRepository).findAllByUserId(userId);
+      verify(subscriptionRepository).findInterestIdsByUserId(userId);
       verify(subscriptionRepository).deleteAllByUserId(userId);
       verify(commentRepository).deleteAllByUserId(userId);
       verify(userRepository).deleteById(userId);
