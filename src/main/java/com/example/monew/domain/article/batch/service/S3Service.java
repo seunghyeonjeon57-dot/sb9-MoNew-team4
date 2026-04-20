@@ -44,6 +44,7 @@ public class S3Service {
       File tempFile;
       String prefix = "s3-restore-";
       String suffix = ".json";
+      //보안
       if (java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
         var attr = java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
             java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")
