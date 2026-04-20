@@ -4,7 +4,6 @@ import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.interest.service.InterestSubscriptionService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,7 +25,7 @@ public class InterestSubscriptionController {
   public ResponseEntity<SubscriptionResponse> subscribe(
       @PathVariable UUID interestId,
       @RequestHeader(USER_HEADER) UUID userId) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(service.subscribe(interestId, userId));
+    return ResponseEntity.ok(service.subscribe(interestId, userId));
   }
 
   @DeleteMapping
@@ -34,6 +33,6 @@ public class InterestSubscriptionController {
       @PathVariable UUID interestId,
       @RequestHeader(USER_HEADER) UUID userId) {
     service.unsubscribe(interestId, userId);
-    return ResponseEntity.noContent().build();
+    return ResponseEntity.ok().build();
   }
 }

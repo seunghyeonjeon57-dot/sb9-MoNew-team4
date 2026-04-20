@@ -6,8 +6,10 @@ import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.service.InterestService;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,12 +33,14 @@ public class InterestController {
   @GetMapping
   public ResponseEntity<CursorPageResponse<InterestResponse>> list(
       @RequestParam(required = false) String keyword,
-      @RequestParam(required = false) String sortBy,
-      @RequestParam(required = false) String direction,
+      @RequestParam String orderBy,
+      @RequestParam String direction,
       @RequestParam(required = false) String cursor,
-      @RequestParam(defaultValue = "20") int size,
-      @RequestHeader(value = "MoNew-Request-User-ID", required = false) UUID userId) {
-    return ResponseEntity.ok(interestService.getInterests(keyword, sortBy, direction, cursor, size, userId));
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
+      @RequestParam int limit,
+      @RequestHeader("MoNew-Request-User-ID") UUID userId) {
+    return ResponseEntity.ok(
+        interestService.getInterests(keyword, orderBy, direction, cursor, after, limit, userId));
   }
 
   @PostMapping
