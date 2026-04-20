@@ -5,12 +5,14 @@ import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.entity.Subscription;
 import com.example.monew.domain.interest.exception.DuplicateSubscriptionException;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
+import com.example.monew.domain.interest.exception.SubscriberNotFoundException;
 import com.example.monew.domain.interest.exception.SubscriptionNotFoundException;
 import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,16 @@ public class InterestSubscriptionService {
     try {
       saved = subscriptionRepository.saveAndFlush(new Subscription(interestId, userId));
     } catch (DataIntegrityViolationException e) {
+      String constraintName = null;
+      if (e.getCause() instanceof ConstraintViolationException cve) {
+        constraintName = cve.getConstraintName();
+      }
+      if ("fk_sub_user".equalsIgnoreCase(constraintName)) {
+        throw new SubscriberNotFoundException(Map.of("userId", userId.toString()));
+      }
+      if ("fk_sub_interest".equalsIgnoreCase(constraintName)) {
+        throw new InterestNotFoundException(Map.of("interestId", interestId.toString()));
+      }
       throw new DuplicateSubscriptionException(
           Map.of("interestId", interestId.toString(), "userId", userId.toString()));
     }
