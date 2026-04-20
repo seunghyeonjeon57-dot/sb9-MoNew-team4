@@ -69,7 +69,9 @@ public class InterestService {
         .toList();
 
     String nextCursor = hasNext ? page.get(page.size() - 1).getId().toString() : null;
-    return new CursorPageResponse<>(content, nextCursor, size, totalElements, hasNext);
+    java.time.LocalDateTime nextAfter =
+        hasNext ? page.get(page.size() - 1).getCreatedAt() : null;
+    return new CursorPageResponse<>(content, nextCursor, nextAfter, size, totalElements, hasNext);
   }
 
   private void validateSortParams(String sortBy, String direction) {
