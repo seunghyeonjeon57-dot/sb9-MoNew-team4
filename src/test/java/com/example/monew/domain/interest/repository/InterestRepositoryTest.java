@@ -2,6 +2,7 @@ package com.example.monew.domain.interest.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.domain.interest.entity.Interest;
 import java.util.List;
 import java.util.Optional;
@@ -10,8 +11,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Import;
 
 @DataJpaTest
+@Import(QueryDslTestConfig.class)
 class InterestRepositoryTest {
 
   @Autowired
@@ -23,7 +26,7 @@ class InterestRepositoryTest {
   @Test
   @DisplayName("findByNameAndDeletedAtIsNull: 이름 중복 확인")
   void findByNameAndDeletedAtIsNull() {
-    Interest interest = new Interest("인공지능", List.of("AI"));
+    Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
     interestRepository.save(interest);
 
     Optional<Interest> found = interestRepository.findByNameAndDeletedAtIsNull("인공지능");
@@ -35,7 +38,7 @@ class InterestRepositoryTest {
   @Test
   @DisplayName("findByIdAndDeletedAtIsNull: 삭제되지 않은 인터레스트만 조회")
   void findByIdAndDeletedAtIsNull() {
-    Interest interest = new Interest("인공지능", List.of("AI"));
+    Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
     interestRepository.save(interest);
 
     Optional<Interest> found = interestRepository.findByIdAndDeletedAtIsNull(interest.getId());
@@ -51,8 +54,8 @@ class InterestRepositoryTest {
   @Test
   @DisplayName("findAllByDeletedAtIsNull: 삭제되지 않은 전체 리스트")
   void findAllByDeletedAtIsNull() {
-    interestRepository.save(new Interest("A1", List.of("A")));
-    Interest deleted = new Interest("B1", List.of("B"));
+    interestRepository.save(Interest.builder().name("A1").keywords(List.of("A")).build());
+    Interest deleted = Interest.builder().name("B1").keywords(List.of("B")).build();
     deleted.markDeleted();
     interestRepository.save(deleted);
 
@@ -64,8 +67,10 @@ class InterestRepositoryTest {
   @Test
   @DisplayName("decrementSubscriberCountAll: 주어진 ID 집합의 subscriberCount를 한 방 UPDATE로 1씩 감소")
   void decrementSubscriberCountAll_bulk() {
-    Interest a = interestRepository.save(new Interest("관심사A", List.of("a")));
-    Interest b = interestRepository.save(new Interest("관심사B", List.of("b")));
+    Interest a = interestRepository.save(
+        Interest.builder().name("관심사A").keywords(List.of("a")).build());
+    Interest b = interestRepository.save(
+        Interest.builder().name("관심사B").keywords(List.of("b")).build());
 
     interestRepository.incrementSubscriberCount(a.getId());
     interestRepository.incrementSubscriberCount(a.getId());
@@ -86,7 +91,8 @@ class InterestRepositoryTest {
   @Test
   @DisplayName("decrementSubscriberCountAll: subscriberCount가 0인 관심사는 음수로 내려가지 않는다")
   void decrementSubscriberCountAll_guardAgainstNegative() {
-    Interest a = interestRepository.save(new Interest("관심사A", List.of("a")));
+    Interest a = interestRepository.save(
+        Interest.builder().name("관심사A").keywords(List.of("a")).build());
     em.flush();
     em.clear();
 

@@ -55,13 +55,6 @@ public class ArticleEntity extends BaseEntity {
   @Column(name = "view_count", nullable = false)
   private long viewCount;
 
-
-  // 관심사 참조
-//  @ManyToOne(fetch = FetchType.LAZY)
-//  @JoinColumn(name = "interest_id")
-//  //private Interest interest;
-
-  //임시
   private String interest;
 
   @Builder

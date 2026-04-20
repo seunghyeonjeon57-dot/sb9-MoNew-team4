@@ -59,7 +59,7 @@ class InterestServiceTest {
   @Test
   @DisplayName("create: 정확 일치 이름 존재 → SimilarInterestNameException (similarity=1.0)")
   void createExactMatchRejected() {
-    Interest existing = new Interest("인공지능", List.of("AI"));
+    Interest existing = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
     when(interestRepository.findByNameAndDeletedAtIsNull("인공지능"))
         .thenReturn(Optional.of(existing));
 
@@ -71,7 +71,7 @@ class InterestServiceTest {
   @Test
   @DisplayName("updateKeywords: 존재하는 ID → 키워드 교체 후 응답")
   void updateKeywordsSuccess() {
-    Interest interest = new Interest("인공지능", List.of("AI"));
+    Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
 
@@ -104,8 +104,8 @@ class InterestServiceTest {
   @Test
   @DisplayName("getInterests: 활성 인터레스트 목록 + subscribedByMe 매핑 (bulk 쿼리)")
   void getInterestsList() {
-    Interest a = new Interest("A", List.of("a"));
-    Interest b = new Interest("B", List.of("b"));
+    Interest a = Interest.builder().name("A").keywords(List.of("a")).build();
+    Interest b = Interest.builder().name("B").keywords(List.of("b")).build();
     UUID userId = UUID.randomUUID();
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
     when(subscriptionRepository.findInterestIdsByUserIdAndInterestIdIn(
@@ -140,8 +140,8 @@ class InterestServiceTest {
   @Test
   @DisplayName("getInterests: orderBy=name, direction=DESC → 이름 내림차순")
   void getInterestsSortName() {
-    Interest a = new Interest("A", List.of("a"));
-    Interest b = new Interest("B", List.of("b"));
+    Interest a = Interest.builder().name("A").keywords(List.of("a")).build();
+    Interest b = Interest.builder().name("B").keywords(List.of("b")).build();
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
 
     CursorPageResponse<InterestResponse> page =
@@ -153,8 +153,8 @@ class InterestServiceTest {
   @Test
   @DisplayName("getInterests: orderBy=subscriberCount, direction=DESC → 구독자 수 내림차순")
   void getInterestsSortSubscriberCount() {
-    Interest a = new Interest("A", List.of("a"));
-    Interest b = new Interest("B", List.of("b"));
+    Interest a = Interest.builder().name("A").keywords(List.of("a")).build();
+    Interest b = Interest.builder().name("B").keywords(List.of("b")).build();
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
 
     CursorPageResponse<InterestResponse> page =
@@ -166,7 +166,7 @@ class InterestServiceTest {
   @Test
   @DisplayName("delete: 존재하는 ID → 구독 정리 후 물리 삭제")
   void deleteSuccess() {
-    Interest interest = new Interest("인공지능", List.of("AI"));
+    Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
 
@@ -189,7 +189,7 @@ class InterestServiceTest {
   @Test
   @DisplayName("create: 80%+ 유사 이름 존재 → SimilarInterestNameException")
   void createSimilarRejected() {
-    Interest existing = new Interest("인공지능", List.of("AI"));
+    Interest existing = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
     when(interestRepository.findByNameAndDeletedAtIsNull(anyString())).thenReturn(Optional.empty());
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(existing));
 
@@ -201,8 +201,8 @@ class InterestServiceTest {
   @Test
   @DisplayName("getInterests: keyword 지정 시 name 부분일치만 반환")
   void getInterestsKeywordNameMatch() {
-    Interest ai = new Interest("인공지능", List.of("ML"));
-    Interest bc = new Interest("블록체인", List.of("BTC"));
+    Interest ai = Interest.builder().name("인공지능").keywords(List.of("ML")).build();
+    Interest bc = Interest.builder().name("블록체인").keywords(List.of("BTC")).build();
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(ai, bc));
 
     CursorPageResponse<InterestResponse> page =
@@ -214,8 +214,8 @@ class InterestServiceTest {
   @Test
   @DisplayName("getInterests: keyword가 keywords 중 하나와 부분일치 시 포함")
   void getInterestsKeywordKeywordsMatch() {
-    Interest ai = new Interest("인공지능", List.of("ML"));
-    Interest bc = new Interest("블록체인", List.of("BTC"));
+    Interest ai = Interest.builder().name("인공지능").keywords(List.of("ML")).build();
+    Interest bc = Interest.builder().name("블록체인").keywords(List.of("BTC")).build();
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(ai, bc));
 
     CursorPageResponse<InterestResponse> page =
@@ -227,7 +227,7 @@ class InterestServiceTest {
   @Test
   @DisplayName("getInterests: keyword 대소문자 무시 - 이름 매칭")
   void getInterestsKeywordCaseInsensitiveName() {
-    Interest spring = new Interest("Spring Boot", List.of("Java"));
+    Interest spring = Interest.builder().name("Spring Boot").keywords(List.of("Java")).build();
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(spring));
 
     CursorPageResponse<InterestResponse> page =
@@ -239,7 +239,7 @@ class InterestServiceTest {
   @Test
   @DisplayName("getInterests: keyword 대소문자 무시 - keywords 매칭")
   void getInterestsKeywordCaseInsensitiveKeywords() {
-    Interest spring = new Interest("Spring Boot", List.of("Java"));
+    Interest spring = Interest.builder().name("Spring Boot").keywords(List.of("Java")).build();
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(spring));
 
     CursorPageResponse<InterestResponse> page = interestService.getInterests(
@@ -251,8 +251,8 @@ class InterestServiceTest {
   @Test
   @DisplayName("getInterests: limit=1 → 1건만 반환 + hasNext=true")
   void getInterests_limit1_hasNext() {
-    Interest a = new Interest("A", List.of("a"));
-    Interest b = new Interest("B", List.of("b"));
+    Interest a = Interest.builder().name("A").keywords(List.of("a")).build();
+    Interest b = Interest.builder().name("B").keywords(List.of("b")).build();
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
 
     CursorPageResponse<InterestResponse> page =
@@ -266,8 +266,8 @@ class InterestServiceTest {
   @Test
   @DisplayName("getInterests: cursor로 다음 페이지 조회 → 나머지 항목 반환")
   void getInterests_withCursor_returnsRemainingItems() {
-    Interest a = new Interest("A", List.of("a"));
-    Interest b = new Interest("B", List.of("b"));
+    Interest a = Interest.builder().name("A").keywords(List.of("a")).build();
+    Interest b = Interest.builder().name("B").keywords(List.of("b")).build();
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
 
     CursorPageResponse<InterestResponse> firstPage =
@@ -286,7 +286,7 @@ class InterestServiceTest {
   @Test
   @DisplayName("getInterests: 전체 항목이 limit 이하 → hasNext=false + nextCursor/nextAfter=null")
   void getInterests_lastPage_noNext() {
-    Interest a = new Interest("A", List.of("a"));
+    Interest a = Interest.builder().name("A").keywords(List.of("a")).build();
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a));
 
     CursorPageResponse<InterestResponse> page =

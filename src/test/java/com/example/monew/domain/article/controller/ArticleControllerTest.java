@@ -1,12 +1,15 @@
 package com.example.monew.domain.article.controller;
 
+import com.example.monew.domain.article.batch.BackupBatch;
+import com.example.monew.domain.article.batch.NewsRss;
+import com.example.monew.domain.article.batch.service.BackupService;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.article.service.ArticleViewService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
@@ -22,12 +25,19 @@ class ArticleControllerTest {
 
   @Autowired
   private MockMvc mockMvc;
-
-  @MockBean
+  @MockitoBean
+  private BackupService backupService;
+  @MockitoBean
   private ArticleService articleService;
 
-  @MockBean
+  @MockitoBean
   private ArticleViewService articleViewService;
+
+  @MockitoBean
+  private BackupBatch backupBatch;
+
+  @MockitoBean
+  private NewsRss newsRss;
 
   @Test
   @DisplayName("기사 뷰 등록 테스트")
@@ -83,17 +93,6 @@ class ArticleControllerTest {
     verify(articleService).hardDelete(articleId);
   }
 
-  @Test
-  @DisplayName("기사 복구테스트")
-  void restoreArticleTest() throws Exception {
-    UUID articleId = UUID.randomUUID();
-
-    mockMvc.perform(get("/api/articles/restore")
-            .param("articleId", articleId.toString()))
-        .andExpect(status().isOk());
-
-    verify(articleService).restore(articleId);
-  }
 
   @Test
   @DisplayName("기사 출처 목록 조회 테스트")

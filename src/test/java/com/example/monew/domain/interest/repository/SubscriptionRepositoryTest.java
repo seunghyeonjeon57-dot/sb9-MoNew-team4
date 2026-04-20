@@ -2,14 +2,17 @@ package com.example.monew.domain.interest.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.domain.interest.entity.Subscription;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 
 @DataJpaTest
+@Import(QueryDslTestConfig.class)
 class SubscriptionRepositoryTest {
 
   @Autowired
@@ -20,7 +23,8 @@ class SubscriptionRepositoryTest {
   void existsByInterestIdAndUserId() {
     UUID interestId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    subscriptionRepository.save(new Subscription(interestId, userId));
+    subscriptionRepository.save(
+        Subscription.builder().interestId(interestId).userId(userId).build());
 
     assertThat(subscriptionRepository.existsByInterestIdAndUserId(interestId, userId)).isTrue();
     assertThat(subscriptionRepository.existsByInterestIdAndUserId(interestId, UUID.randomUUID())).isFalse();
@@ -31,7 +35,8 @@ class SubscriptionRepositoryTest {
   void findByInterestIdAndUserId() {
     UUID interestId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    Subscription saved = subscriptionRepository.save(new Subscription(interestId, userId));
+    Subscription saved = subscriptionRepository.save(
+        Subscription.builder().interestId(interestId).userId(userId).build());
 
     assertThat(subscriptionRepository.findByInterestIdAndUserId(interestId, userId))
         .isPresent()
@@ -44,8 +49,10 @@ class SubscriptionRepositoryTest {
   @DisplayName("deleteAllByInterestId: 인터레스트 삭제 시 구독 정리")
   void deleteAllByInterestId() {
     UUID interestId = UUID.randomUUID();
-    subscriptionRepository.save(new Subscription(interestId, UUID.randomUUID()));
-    subscriptionRepository.save(new Subscription(interestId, UUID.randomUUID()));
+    subscriptionRepository.save(
+        Subscription.builder().interestId(interestId).userId(UUID.randomUUID()).build());
+    subscriptionRepository.save(
+        Subscription.builder().interestId(interestId).userId(UUID.randomUUID()).build());
 
     long deleted = subscriptionRepository.deleteAllByInterestId(interestId);
 
@@ -57,9 +64,12 @@ class SubscriptionRepositoryTest {
   void deleteAllByUserId() {
     UUID userId = UUID.randomUUID();
     UUID otherUserId = UUID.randomUUID();
-    subscriptionRepository.save(new Subscription(UUID.randomUUID(), userId));
-    subscriptionRepository.save(new Subscription(UUID.randomUUID(), userId));
-    subscriptionRepository.save(new Subscription(UUID.randomUUID(), otherUserId)); // 다른 유저
+    subscriptionRepository.save(
+        Subscription.builder().interestId(UUID.randomUUID()).userId(userId).build());
+    subscriptionRepository.save(
+        Subscription.builder().interestId(UUID.randomUUID()).userId(userId).build());
+    subscriptionRepository.save(
+        Subscription.builder().interestId(UUID.randomUUID()).userId(otherUserId).build()); // 다른 유저
 
     long deleted = subscriptionRepository.deleteAllByUserId(userId);
 

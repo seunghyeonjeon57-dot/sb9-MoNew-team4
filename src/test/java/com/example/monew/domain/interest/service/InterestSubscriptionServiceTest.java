@@ -41,7 +41,7 @@ class InterestSubscriptionServiceTest {
   @Test
   @DisplayName("subscribe: 정상 → saveAndFlush + incrementSubscriberCount + SubscriptionDto 반환")
   void subscribeSuccess() {
-    Interest interest = new Interest("인공지능", List.of("AI", "ML"));
+    Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI", "ML")).build();
     UUID userId = UUID.randomUUID();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
@@ -70,7 +70,7 @@ class InterestSubscriptionServiceTest {
   @Test
   @DisplayName("subscribe: DB unique 위반 → DuplicateSubscriptionException 변환")
   void subscribeDuplicate() {
-    Interest interest = new Interest("인공지능", List.of("AI"));
+    Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
     UUID userId = UUID.randomUUID();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
@@ -86,7 +86,7 @@ class InterestSubscriptionServiceTest {
   void unsubscribeSuccess() {
     UUID interestId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    Subscription sub = new Subscription(interestId, userId);
+    Subscription sub = Subscription.builder().interestId(interestId).userId(userId).build();
     when(subscriptionRepository.findByInterestIdAndUserId(interestId, userId))
         .thenReturn(Optional.of(sub));
 
