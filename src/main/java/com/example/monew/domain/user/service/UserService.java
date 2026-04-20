@@ -79,8 +79,8 @@ public class UserService {
   @Transactional
   public void softDeleteUser(UUID id){
     User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("해당 유저를 찾을 수 없습니다."));
-    user.markDeleted();
-    log.info("유저 소프트 삭제 완료 (deleted_at 업데이트): ID={}", id);
+    user.withdraw();
+    log.info("유저 논리 삭제 완료 (상태: DELETED, 시점: {}): ID={}", user.getDeletedAt(), id);
   }
 
   @Transactional
