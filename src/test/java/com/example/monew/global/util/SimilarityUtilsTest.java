@@ -57,4 +57,25 @@ class SimilarityUtilsTest {
     assertThatThrownBy(() -> SimilarityUtils.similarity("x", null))
         .isInstanceOf(IllegalArgumentException.class);
   }
+
+  @Test
+  @DisplayName("긴 문자열(500자 레벨) — 편집 거리 정확값 회귀")
+  void longStringExactDistance() {
+    String base = "a".repeat(500);
+    String oneInsert = base + "b";
+    // 1글자 삽입 → 거리 1, maxLen 501 → 유사도 1 - 1/501
+    assertThat(SimilarityUtils.similarity(oneInsert, base))
+        .isEqualTo(1.0 - 1.0 / 501);
+    // swap 안전장치: 길이 반대로 넣어도 동일
+    assertThat(SimilarityUtils.similarity(base, oneInsert))
+        .isEqualTo(1.0 - 1.0 / 501);
+  }
+
+  @Test
+  @DisplayName("긴 문자열 완전 불일치 — 거리 == maxLen")
+  void longStringTotallyDifferent() {
+    String a = "a".repeat(300);
+    String b = "b".repeat(300);
+    assertThat(SimilarityUtils.similarity(a, b)).isEqualTo(0.0);
+  }
 }
