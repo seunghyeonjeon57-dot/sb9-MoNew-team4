@@ -31,8 +31,14 @@ public class ArticleService {
 
   @Transactional
   public ArticleDto getArticleDetail(UUID id) {
+    log.info("뉴스 상세 조회 요청 - ID: {}", id);
     ArticleEntity article = articleRepository.findById(id)
-        .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
+        .orElseThrow(() -> {
+          log.warn("뉴스 조회 실패 - 존재하지 않는 ID: {}", id);
+          new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
+
+          return new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
+        });
 
     return articleMapper.toDto(article, false);
   }
@@ -41,23 +47,34 @@ public class ArticleService {
   public void saveArticle(ArticleEntity article) {
     if (!articleRepository.existsBySourceUrl(article.getSourceUrl())) {
       articleRepository.save(article);
+      log.debug("개별 뉴스 저장 완료 - URL: {}", article.getSourceUrl());
+    } else {
+      log.debug("중복 뉴스 스킵 - URL: {}", article.getSourceUrl());
     }
+
   }
 
   @Transactional
   public void isDeleted(UUID id) {
+    log.info("뉴스 논리 삭제 요청 - ID: {}", id);
     ArticleEntity article = articleRepository.findById(id)
-        .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
+        .orElseThrow(() -> {
+          log.warn("[DeleteArticle] 삭제 실패 - 존재하지 않는 ID: {}", id);
+          return new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
+        });
 
     articleRepository.delete(article);
+    log.info("뉴스 논리 삭제 완료 - ID: {}", id);
   }
 
   @Transactional
   public void hardDelete(UUID id) {
+    log.info("뉴스 물리 삭제 진행 - ID: {}", id);
     articleRepository.hardDeleteById(id);
   }
-
+  @Transactional
   public ArticleRestoreResultDto restore(UUID id) {
+    log.info("뉴스 복구 요청 - ID: {}", id);
     articleRepository.restoreById(id);
 
     return new ArticleRestoreResultDto(
@@ -73,9 +90,11 @@ public class ArticleService {
 
   @Transactional
   public void incrementViewCount(UUID articleId, UUID viewedBy, String clientIp) {
+    log.info("조회수 로그 기록 - Article: {}, User: {}, IP: {}", articleId, viewedBy, clientIp);
     articleViewService.logView(articleId, viewedBy, clientIp);
   }
   public CursorPageResponseArticleDto getArticles(UUID cursor, LocalDateTime after, int size) {
+    log.info("목록 조회 요청 - Cursor: {}, After: {}, Size: {}", cursor, after, size);
 
     List<ArticleEntity> articles =
         articleRepository.findByCursor(cursor, after, size);
@@ -85,6 +104,7 @@ public class ArticleService {
     if (hasNext) {
       articles.remove(size);
     }
+    log.debug("DB 조회 완료 - 결과 건수: {}, 다음 페이지 존재 여부: {}", articles.size(), hasNext);
 
     List<ArticleDto> content = articles.stream()
         .map(a -> articleMapper.toDto(a, false))
