@@ -11,6 +11,7 @@ import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.global.util.SimilarityUtils;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -26,8 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class InterestService {
 
   private static final double SIMILARITY_THRESHOLD = 0.8;
-  private static final Set<String> ALLOWED_SORT_BY = Set.of("name", "subscriberCount");
-  private static final Set<String> ALLOWED_DIRECTION = Set.of("asc", "desc");
+  private static final Set<String> ALLOWED_ORDER_BY = Set.of("name", "subscriberCount");
+  private static final Set<String> ALLOWED_DIRECTION = Set.of("ASC", "DESC");
 
   private final InterestRepository interestRepository;
   private final SubscriptionRepository subscriptionRepository;
@@ -48,20 +49,21 @@ public class InterestService {
 
   @Transactional(readOnly = true)
   public CursorPageResponse<InterestResponse> getInterests(
-      String keyword, String sortBy, String direction, String cursor, int size, UUID userId) {
-    validateSortParams(sortBy, direction);
+      String keyword, String orderBy, String direction, String cursor,
+      LocalDateTime after, int limit, UUID userId) {
+    validateSortParams(orderBy, direction);
 
     List<Interest> filtered = interestRepository.findAllByDeletedAtIsNull().stream()
         .filter(i -> matchesKeyword(i, keyword))
-        .sorted(buildComparator(sortBy, direction))
+        .sorted(buildComparator(orderBy, direction))
         .toList();
 
     long totalElements = filtered.size();
-    int startIndex = resolveCursorOffset(filtered, cursor);
+    int startIndex = resolveCursorOffset(filtered, cursor, after);
 
-    List<Interest> sliced = filtered.stream().skip(startIndex).limit((long) size + 1).toList();
-    boolean hasNext = sliced.size() > size;
-    List<Interest> page = hasNext ? sliced.subList(0, size) : sliced;
+    List<Interest> sliced = filtered.stream().skip(startIndex).limit((long) limit + 1).toList();
+    boolean hasNext = sliced.size() > limit;
+    List<Interest> page = hasNext ? sliced.subList(0, limit) : sliced;
 
     Set<UUID> subscribedIds = subscribedIdsFor(userId, page);
     List<InterestResponse> content = page.stream()
@@ -69,36 +71,46 @@ public class InterestService {
         .toList();
 
     String nextCursor = hasNext ? page.get(page.size() - 1).getId().toString() : null;
-    java.time.LocalDateTime nextAfter =
-        hasNext ? page.get(page.size() - 1).getCreatedAt() : null;
-    return new CursorPageResponse<>(content, nextCursor, nextAfter, size, totalElements, hasNext);
+    LocalDateTime nextAfter = hasNext ? page.get(page.size() - 1).getCreatedAt() : null;
+    return new CursorPageResponse<>(content, nextCursor, nextAfter, limit, totalElements, hasNext);
   }
 
-  private void validateSortParams(String sortBy, String direction) {
-    if (sortBy != null && !ALLOWED_SORT_BY.contains(sortBy)) {
-      throw new InvalidSortParameterException(Map.of("sortBy", sortBy));
+  private void validateSortParams(String orderBy, String direction) {
+    if (!ALLOWED_ORDER_BY.contains(orderBy)) {
+      throw new InvalidSortParameterException(Map.of("orderBy", String.valueOf(orderBy)));
     }
-    if (direction != null && !ALLOWED_DIRECTION.contains(direction)) {
-      throw new InvalidSortParameterException(Map.of("direction", direction));
+    if (!ALLOWED_DIRECTION.contains(direction)) {
+      throw new InvalidSortParameterException(Map.of("direction", String.valueOf(direction)));
     }
   }
 
-  private Comparator<Interest> buildComparator(String sortBy, String direction) {
-    Comparator<Interest> comparator = "subscriberCount".equals(sortBy)
+  private Comparator<Interest> buildComparator(String orderBy, String direction) {
+    Comparator<Interest> comparator = "subscriberCount".equals(orderBy)
         ? Comparator.comparingLong(Interest::getSubscriberCount)
         : Comparator.comparing(Interest::getName);
-    return "desc".equals(direction) ? comparator.reversed() : comparator;
+    return "DESC".equals(direction) ? comparator.reversed() : comparator;
   }
 
-  private int resolveCursorOffset(List<Interest> sorted, String cursor) {
+  private int resolveCursorOffset(List<Interest> sorted, String cursor, LocalDateTime after) {
     if (cursor == null || cursor.isBlank()) {
       return 0;
     }
-    UUID cursorId = UUID.fromString(cursor);
+    UUID cursorId;
+    try {
+      cursorId = UUID.fromString(cursor);
+    } catch (IllegalArgumentException e) {
+      return 0;
+    }
     for (int i = 0; i < sorted.size(); i++) {
-      if (sorted.get(i).getId().equals(cursorId)) {
-        return i + 1;
+      Interest item = sorted.get(i);
+      if (!item.getId().equals(cursorId)) {
+        continue;
       }
+      if (after != null && item.getCreatedAt() != null
+          && !item.getCreatedAt().equals(after)) {
+        continue;
+      }
+      return i + 1;
     }
     return 0;
   }
