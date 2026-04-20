@@ -10,6 +10,7 @@ import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.InvalidSortParameterException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.repository.InterestRepository;
+import com.example.monew.domain.interest.repository.InterestRepositoryCustom;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.global.util.SimilarityUtils;
 import java.time.LocalDateTime;
@@ -60,26 +61,33 @@ public class InterestService {
       LocalDateTime after, int limit, UUID userId) {
     validateSortParams(orderBy, direction);
 
-    List<Interest> filtered = interestRepository.findAllByDeletedAtIsNull().stream()
-        .filter(i -> matchesKeyword(i, keyword))
-        .sorted(buildComparator(orderBy, direction))
-        .toList();
+    UUID cursorId = parseCursorUuid(cursor);
+    InterestRepositoryCustom.CursorPage page = interestRepository.findByCursor(
+        keyword, orderBy, direction, cursorId, limit);
 
-    long totalElements = filtered.size();
-    int startIndex = resolveCursorOffset(filtered, cursor, after);
-
-    List<Interest> sliced = filtered.stream().skip(startIndex).limit((long) limit + 1).toList();
-    boolean hasNext = sliced.size() > limit;
-    List<Interest> page = hasNext ? sliced.subList(0, limit) : sliced;
-
-    Set<UUID> subscribedIds = subscribedIdsFor(userId, page);
-    List<InterestResponse> content = page.stream()
+    Set<UUID> subscribedIds = subscribedIdsFor(userId, page.content());
+    List<InterestResponse> content = page.content().stream()
         .map(i -> InterestResponse.from(i, subscribedIds.contains(i.getId())))
         .toList();
 
-    String nextCursor = hasNext ? page.get(page.size() - 1).getId().toString() : null;
-    LocalDateTime nextAfter = hasNext ? page.get(page.size() - 1).getCreatedAt() : null;
-    return new CursorPageResponse<>(content, nextCursor, nextAfter, limit, totalElements, hasNext);
+    Interest tail = page.content().isEmpty() ? null
+        : page.content().get(page.content().size() - 1);
+    String nextCursor = page.hasNext() && tail != null ? tail.getId().toString() : null;
+    LocalDateTime nextAfter = page.hasNext() && tail != null ? tail.getCreatedAt() : null;
+
+    return new CursorPageResponse<>(content, nextCursor, nextAfter, limit,
+        page.totalElements(), page.hasNext());
+  }
+
+  private UUID parseCursorUuid(String cursor) {
+    if (cursor == null || cursor.isBlank()) {
+      return null;
+    }
+    try {
+      return UUID.fromString(cursor);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
   }
 
   private void validateSortParams(String orderBy, String direction) {
