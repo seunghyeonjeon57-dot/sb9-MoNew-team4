@@ -43,7 +43,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
         .join(article).on(comment.articleId.eq(article.id))
         .join(user).on(comment.userId.eq(user.id))
         .where(
-            comment.articleId.eq(article.id),
+            comment.articleId.eq(articleId),
             cursorCondition(sort, cursorId, cursorCreatedAt, cursorLikeCount)
         )
         .limit(size + 1);
