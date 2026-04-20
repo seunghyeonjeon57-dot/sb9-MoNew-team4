@@ -55,4 +55,18 @@ class InterestTest {
     assertThatThrownBy(() -> new Interest("인공지능", List.of()))
         .isInstanceOf(IllegalArgumentException.class);
   }
+
+  @Test
+  @DisplayName("빌더 — name이 blank이면 IllegalArgumentException")
+  void builderBlankNameRejected() {
+    assertThatThrownBy(() -> Interest.builder().name(" ").keywords(List.of("AI")).build())
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  @DisplayName("빌더 — keywords가 비어 있으면 IllegalArgumentException")
+  void builderEmptyKeywordsRejected() {
+    assertThatThrownBy(() -> Interest.builder().name("인공지능").keywords(List.of()).build())
+        .isInstanceOf(IllegalArgumentException.class);
+  }
 }
