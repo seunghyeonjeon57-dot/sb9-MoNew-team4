@@ -18,7 +18,7 @@
 | B4 | 관심사 삭제 (soft delete + 구독 cascade) | `InterestService.delete` + `Interest.markDeleted` + `subscriptionRepository.deleteAllByInterestId` | ✅ |
 | B5 | 관심사 구독 | `InterestSubscriptionController.subscribe` → `InterestSubscriptionService.subscribe` | ✅ |
 | B6 | 관심사 구독 취소 | `InterestSubscriptionController.unsubscribe` → `InterestSubscriptionService.unsubscribe` | ✅ |
-| B7 | 요청자 식별 헤더 `MoNew-Request-User-ID` | 구독/구독취소 필수, 목록 조회 선택 | ✅ |
+| B7 | 요청자 식별 헤더 `Monew-Request-User-ID` | 구독/구독취소 필수, 목록 조회 선택 | ✅ |
 | B8 | 공통 에러 응답(code/message/details) | `GlobalExceptionHandler` + `ErrorCode` + `ErrorResponse` | ✅ |
 
 ### 1.2 심화 요구사항

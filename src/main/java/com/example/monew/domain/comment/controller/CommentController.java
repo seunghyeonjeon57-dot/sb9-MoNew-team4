@@ -65,7 +65,7 @@ public class CommentController {
   @PostMapping("/{commentId}/comment-likes")
   public ResponseEntity<Void> addCommentLike(
       @PathVariable UUID commentId,
-      @RequestHeader("MoNew-Request-User-ID") UUID userId
+      @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     commentService.addLike(commentId, userId);
     return ResponseEntity.ok().build();
@@ -74,7 +74,7 @@ public class CommentController {
   @DeleteMapping("/{commentId}/comment-likes")
   public ResponseEntity<Void> removeCommentLike(
       @PathVariable UUID commentId,
-      @RequestHeader("MoNew-Request-User-ID") UUID userId
+      @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     commentService.removeLike(commentId, userId);
     return ResponseEntity.ok().build();
@@ -88,7 +88,7 @@ public class CommentController {
       @RequestParam(required = false) UUID cursor,
       @RequestParam(required = false)LocalDateTime after,
       @RequestParam int limit,
-      @RequestHeader("MoNew-Request-User-ID") UUID userId
+      @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     CursorPageResponseCommentDto request = commentService.getArticleComments(
         articleId, cursor, after, null, orderBy, limit
