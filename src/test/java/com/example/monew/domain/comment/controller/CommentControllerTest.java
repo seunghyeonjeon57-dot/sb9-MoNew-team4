@@ -105,4 +105,8 @@ class CommentControllerTest {
             .param("limit", "50"))
         .andExpect(status().isOk());
   }
+    mockMvc.perform(post("/api/comments/{commentId}/comment-likes", commentId)
+            .header("MoNew-Request-User-ID", userId.toString()))
+        .andExpect(status().isOk());
+  }
 }

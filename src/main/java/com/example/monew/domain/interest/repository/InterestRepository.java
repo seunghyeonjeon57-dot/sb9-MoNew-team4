@@ -1,6 +1,7 @@
 package com.example.monew.domain.interest.repository;
 
 import com.example.monew.domain.interest.entity.Interest;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,4 +25,9 @@ public interface InterestRepository extends JpaRepository<Interest, UUID> {
   @Modifying
   @Query("UPDATE Interest i SET i.subscriberCount = i.subscriberCount - 1 WHERE i.id = :id AND i.subscriberCount > 0")
   int decrementSubscriberCount(@Param("id") UUID id);
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query("UPDATE Interest i SET i.subscriberCount = i.subscriberCount - 1 "
+      + "WHERE i.id IN :ids AND i.subscriberCount > 0")
+  int decrementSubscriberCountAll(@Param("ids") Collection<UUID> ids);
 }

@@ -1,8 +1,11 @@
 package com.example.monew.domain.user.entity;
 
+import com.example.monew.domain.user.entity.type.UserStatus;
 import com.example.monew.global.base.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -12,16 +15,13 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
+
 
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Table(name = "users")
-@SQLDelete(sql = "UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
-@Where(clause = "deleted_at IS NULL")
 public class User extends BaseEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -32,6 +32,8 @@ public class User extends BaseEntity {
   private String email;
   @Column(nullable = false)
   private String password;
+  @Enumerated(EnumType.STRING)
+  private UserStatus status = UserStatus.ACTIVE;
 
   @Builder
   public User(String nickname,String email,String password){
@@ -48,6 +50,10 @@ public class User extends BaseEntity {
   }
   public void updatePassword(String encodedPassword) {
     this.password = encodedPassword;
+  }
+  public void withdraw(){
+    this.status=UserStatus.DELETED;
+    this.markDeleted();
   }
 
 }

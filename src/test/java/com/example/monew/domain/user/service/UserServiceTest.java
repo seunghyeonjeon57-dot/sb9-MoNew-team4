@@ -8,14 +8,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.dto.request.UserLoginRequest;
 import com.example.monew.domain.user.dto.request.UserRegisterRequest;
 import com.example.monew.domain.user.dto.request.UserUpdateRequest;
 import com.example.monew.domain.user.entity.User;
+import com.example.monew.domain.user.exception.DuplicateEmailException;
+import com.example.monew.domain.user.exception.LoginFailedException;
+import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.mapper.UserMapper;
 import com.example.monew.domain.user.repository.UserRepository;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,6 +47,8 @@ class UserServiceTest {
   private SubscriptionRepository subscriptionRepository;
   @Mock
   private CommentRepository commentRepository;
+  @Mock
+  private InterestRepository interestRepository;
   @InjectMocks
   private UserService userService;
 
@@ -68,7 +75,7 @@ class UserServiceTest {
       User user = User.builder().email(request.email()).nickname(request.nickname()).password("encoded_password").build();
       when(userRepository.existsByEmail(user.getEmail())).thenReturn(true);
       assertThatThrownBy(() -> userService.create(request))
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(DuplicateEmailException.class);
     }
   }
 
@@ -104,7 +111,7 @@ class UserServiceTest {
       when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
       assertThatThrownBy(() -> userService.login(request))
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(LoginFailedException.class);
     }
     @Test
     @DisplayName("이메일 불일치 시 로그인 실패")
@@ -117,7 +124,7 @@ class UserServiceTest {
 
       
       assertThatThrownBy(() -> userService.login(request))
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(LoginFailedException.class);
     }
   }
 
@@ -165,7 +172,7 @@ class UserServiceTest {
 
 
       assertThatThrownBy(() -> userService.updateUser(userId, request))
-          .isInstanceOf(NoSuchElementException.class)
+          .isInstanceOf(UserNotFoundException.class)
           .hasMessage("유저가 존재하지않습니다.");
     }
 
@@ -197,21 +204,37 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("하드 삭제 성공 - 연관 데이터 삭제 확인")
+    @DisplayName("하드 삭제 성공 - 구독이 없을 때 subscriberCount 벌크 감소는 호출되지 않음")
     void success_hard_delete() {
-      
       UUID userId = UUID.randomUUID();
+      when(subscriptionRepository.findInterestIdsByUserId(userId)).thenReturn(List.of());
 
-      
       userService.hardDeleteUser(userId);
 
-      
-      
+      verify(subscriptionRepository).findInterestIdsByUserId(userId);
       verify(subscriptionRepository).deleteAllByUserId(userId);
-      
       verify(commentRepository).deleteAllByUserId(userId);
-      
       verify(userRepository).deleteById(userId);
+      verify(interestRepository, org.mockito.Mockito.never())
+          .decrementSubscriberCountAll(org.mockito.ArgumentMatchers.anyCollection());
+    }
+
+    @Test
+    @DisplayName("하드 삭제 성공 - 구독이 있을 때 관심사 subscriberCount 벌크 감소가 정확히 1회 호출")
+    void success_hard_delete_decrementsSubscriberCount() {
+      UUID userId = UUID.randomUUID();
+      UUID interestAId = UUID.randomUUID();
+      UUID interestBId = UUID.randomUUID();
+      when(subscriptionRepository.findInterestIdsByUserId(userId))
+          .thenReturn(List.of(interestAId, interestBId));
+
+      userService.hardDeleteUser(userId);
+
+      verify(subscriptionRepository).findInterestIdsByUserId(userId);
+      verify(subscriptionRepository).deleteAllByUserId(userId);
+      verify(commentRepository).deleteAllByUserId(userId);
+      verify(userRepository).deleteById(userId);
+      verify(interestRepository).decrementSubscriberCountAll(List.of(interestAId, interestBId));
     }
 
     @Test
@@ -223,7 +246,7 @@ class UserServiceTest {
 
       
       assertThatThrownBy(() -> userService.softDeleteUser(userId))
-          .isInstanceOf(NoSuchElementException.class)
+          .isInstanceOf(UserNotFoundException.class)
           .hasMessage("존재하지 않는 사용자입니다.");
 
       

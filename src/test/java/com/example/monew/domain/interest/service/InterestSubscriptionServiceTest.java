@@ -39,9 +39,9 @@ class InterestSubscriptionServiceTest {
   private InterestSubscriptionService service;
 
   @Test
-  @DisplayName("subscribe: 정상 → saveAndFlush + incrementSubscriberCount 호출")
+  @DisplayName("subscribe: 정상 → saveAndFlush + incrementSubscriberCount + SubscriptionDto 반환")
   void subscribeSuccess() {
-    Interest interest = new Interest("인공지능", List.of("AI"));
+    Interest interest = new Interest("인공지능", List.of("AI", "ML"));
     UUID userId = UUID.randomUUID();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
@@ -50,7 +50,10 @@ class InterestSubscriptionServiceTest {
 
     SubscriptionResponse response = service.subscribe(interest.getId(), userId);
 
-    assertThat(response.userId()).isEqualTo(userId);
+    assertThat(response.interestId()).isEqualTo(interest.getId());
+    assertThat(response.interestName()).isEqualTo("인공지능");
+    assertThat(response.interestKeywords()).containsExactly("AI", "ML");
+    assertThat(response.interestSubscriberCount()).isEqualTo(0L);
     verify(interestRepository).incrementSubscriberCount(eq(interest.getId()));
   }
 

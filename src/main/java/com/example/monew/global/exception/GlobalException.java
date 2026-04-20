@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -56,6 +57,15 @@ public class GlobalException {
         .status(ErrorCode.MISSING_REQUEST_HEADER.getStatus())
         .body(ErrorResponse.of(ErrorCode.MISSING_REQUEST_HEADER,
             Map.of("header", e.getHeaderName())));
+  }
+
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<ErrorResponse> handleMissingRequestParameter(MissingServletRequestParameterException e) {
+    log.warn("필수 요청 파라미터 누락: {}", e.getParameterName());
+    return ResponseEntity
+        .status(ErrorCode.INVALID_REQUEST.getStatus())
+        .body(ErrorResponse.of(ErrorCode.INVALID_REQUEST,
+            Map.of("parameter", e.getParameterName(), "type", e.getParameterType())));
   }
 
   @ExceptionHandler(MethodArgumentTypeMismatchException.class)

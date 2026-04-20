@@ -4,19 +4,24 @@ import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.entity.QArticleEntity;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.stereotype.Repository;
 
-@RequiredArgsConstructor
+@Repository
 public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
-
   private final JPAQueryFactory queryFactory;
 
-  QArticleEntity article = QArticleEntity.articleEntity;
+  private final QArticleEntity article = QArticleEntity.articleEntity;
 
+
+  public ArticleRepositoryImpl(EntityManager em) {
+    this.queryFactory = new JPAQueryFactory(em);
+  }
   @Override
   public List<ArticleEntity> findByCursor(UUID cursor, LocalDateTime after, int size) {
 
