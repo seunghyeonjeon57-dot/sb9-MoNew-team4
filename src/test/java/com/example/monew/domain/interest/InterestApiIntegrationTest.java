@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
@@ -48,6 +49,9 @@ class InterestApiIntegrationTest {
 
   @Autowired
   private SubscriptionRepository subscriptionRepository;
+
+  @Autowired
+  private InterestRepository interestRepository;
 
   @Test
   @DisplayName("I1→I5→I2→I6→I2→I3→I4 전체 플로우 (구독 200, 취소 200, 삭제 204)")
@@ -237,5 +241,10 @@ class InterestApiIntegrationTest {
     userService.hardDeleteUser(userId);
 
     assertThat(subscriptionRepository.findAllByUserId(userId)).isEmpty();
+
+    assertThat(interestRepository.findByIdAndDeletedAtIsNull(interestA).orElseThrow()
+        .getSubscriberCount()).isZero();
+    assertThat(interestRepository.findByIdAndDeletedAtIsNull(interestB).orElseThrow()
+        .getSubscriberCount()).isZero();
   }
 }
