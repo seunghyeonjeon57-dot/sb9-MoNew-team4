@@ -1,16 +1,18 @@
 package com.example.monew.domain.comment.entity;
 
-import com.example.monew.global.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
-import java.time.LocalDateTime;
 import java.util.UUID;
+import com.example.monew.global.base.BaseEntity;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
 @Entity
 @Table(name = "comments")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SQLDelete(sql = "UPDATE comment SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 public class CommentEntity extends BaseEntity {
 
   @Id
