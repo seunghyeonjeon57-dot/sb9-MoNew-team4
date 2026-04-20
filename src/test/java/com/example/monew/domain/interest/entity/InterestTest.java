@@ -65,6 +65,9 @@ class InterestTest {
         .isInstanceOf(IllegalArgumentException.class);
   }
 
+  // 아래 세 테스트는 생성자 검증 테스트(blankNameRejected / emptyKeywordsRejected)와
+  // 경로가 동일하지만, @Builder 가 생성자 레벨을 벗어나 클래스 레벨로 이동할 경우
+  // 검증 우회 경로가 생기는 회귀를 잡기 위한 안전장치로 유지한다.
   @Test
   @DisplayName("빌더 — name이 blank이면 IllegalArgumentException")
   void builderBlankNameRejected() {
@@ -76,6 +79,13 @@ class InterestTest {
   @DisplayName("빌더 — keywords가 비어 있으면 IllegalArgumentException")
   void builderEmptyKeywordsRejected() {
     assertThatThrownBy(() -> Interest.builder().name("인공지능").keywords(List.of()).build())
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  @DisplayName("빌더 — keywords가 null이면 IllegalArgumentException")
+  void builderNullKeywordsRejected() {
+    assertThatThrownBy(() -> Interest.builder().name("인공지능").keywords(null).build())
         .isInstanceOf(IllegalArgumentException.class);
   }
 }
