@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.dto.request.UserLoginRequest;
@@ -19,6 +20,7 @@ import com.example.monew.domain.user.exception.LoginFailedException;
 import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.mapper.UserMapper;
 import com.example.monew.domain.user.repository.UserRepository;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,6 +47,8 @@ class UserServiceTest {
   private SubscriptionRepository subscriptionRepository;
   @Mock
   private CommentRepository commentRepository;
+  @Mock
+  private InterestRepository interestRepository;
   @InjectMocks
   private UserService userService;
 
@@ -200,21 +204,37 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("하드 삭제 성공 - 연관 데이터 삭제 확인")
+    @DisplayName("하드 삭제 성공 - 구독이 없을 때 subscriberCount 벌크 감소는 호출되지 않음")
     void success_hard_delete() {
-      
       UUID userId = UUID.randomUUID();
+      when(subscriptionRepository.findInterestIdsByUserId(userId)).thenReturn(List.of());
 
-      
       userService.hardDeleteUser(userId);
 
-      
-      
+      verify(subscriptionRepository).findInterestIdsByUserId(userId);
       verify(subscriptionRepository).deleteAllByUserId(userId);
-      
       verify(commentRepository).deleteAllByUserId(userId);
-      
       verify(userRepository).deleteById(userId);
+      verify(interestRepository, org.mockito.Mockito.never())
+          .decrementSubscriberCountAll(org.mockito.ArgumentMatchers.anyCollection());
+    }
+
+    @Test
+    @DisplayName("하드 삭제 성공 - 구독이 있을 때 관심사 subscriberCount 벌크 감소가 정확히 1회 호출")
+    void success_hard_delete_decrementsSubscriberCount() {
+      UUID userId = UUID.randomUUID();
+      UUID interestAId = UUID.randomUUID();
+      UUID interestBId = UUID.randomUUID();
+      when(subscriptionRepository.findInterestIdsByUserId(userId))
+          .thenReturn(List.of(interestAId, interestBId));
+
+      userService.hardDeleteUser(userId);
+
+      verify(subscriptionRepository).findInterestIdsByUserId(userId);
+      verify(subscriptionRepository).deleteAllByUserId(userId);
+      verify(commentRepository).deleteAllByUserId(userId);
+      verify(userRepository).deleteById(userId);
+      verify(interestRepository).decrementSubscriberCountAll(List.of(interestAId, interestBId));
     }
 
     @Test

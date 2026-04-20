@@ -3,6 +3,7 @@ package com.example.monew.domain.interest.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,6 +12,7 @@ import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.entity.Interest;
+import com.example.monew.domain.interest.exception.InterestNameImmutableException;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.InvalidSortParameterException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
@@ -42,6 +44,7 @@ class InterestServiceTest {
   @Test
   @DisplayName("create: 신규 이름 + 키워드 → 저장 후 응답 반환")
   void createSuccess() {
+    when(interestRepository.findByNameAndDeletedAtIsNull(anyString())).thenReturn(Optional.empty());
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of());
     when(interestRepository.save(any(Interest.class)))
         .thenAnswer(inv -> inv.getArgument(0));
@@ -54,6 +57,18 @@ class InterestServiceTest {
   }
 
   @Test
+  @DisplayName("create: 정확 일치 이름 존재 → SimilarInterestNameException (similarity=1.0)")
+  void createExactMatchRejected() {
+    Interest existing = new Interest("인공지능", List.of("AI"));
+    when(interestRepository.findByNameAndDeletedAtIsNull("인공지능"))
+        .thenReturn(Optional.of(existing));
+
+    assertThatThrownBy(() ->
+        interestService.create(new InterestCreateRequest("인공지능", List.of("ML"))))
+        .isInstanceOf(SimilarInterestNameException.class);
+  }
+
+  @Test
   @DisplayName("updateKeywords: 존재하는 ID → 키워드 교체 후 응답")
   void updateKeywordsSuccess() {
     Interest interest = new Interest("인공지능", List.of("AI"));
@@ -61,9 +76,18 @@ class InterestServiceTest {
         .thenReturn(Optional.of(interest));
 
     InterestResponse response = interestService.updateKeywords(
-        interest.getId(), new InterestUpdateRequest(List.of("ML", "DL")));
+        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")));
 
     assertThat(response.keywords()).containsExactly("ML", "DL");
+  }
+
+  @Test
+  @DisplayName("updateKeywords: name 포함 → InterestNameImmutableException")
+  void updateKeywordsNameImmutable() {
+    UUID id = UUID.randomUUID();
+    assertThatThrownBy(() ->
+        interestService.updateKeywords(id, new InterestUpdateRequest("바뀐이름", List.of("ML"))))
+        .isInstanceOf(InterestNameImmutableException.class);
   }
 
   @Test
@@ -73,7 +97,7 @@ class InterestServiceTest {
     when(interestRepository.findByIdAndDeletedAtIsNull(id)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() ->
-        interestService.updateKeywords(id, new InterestUpdateRequest(List.of("ML"))))
+        interestService.updateKeywords(id, new InterestUpdateRequest(null, List.of("ML"))))
         .isInstanceOf(InterestNotFoundException.class);
   }
 
@@ -90,7 +114,7 @@ class InterestServiceTest {
         .thenReturn(Set.of(a.getId()));
 
     CursorPageResponse<InterestResponse> page =
-        interestService.getInterests(null, null, null, null, 20, userId);
+        interestService.getInterests(null, "name", "ASC", null, null, 20, userId);
 
     assertThat(page.content()).hasSize(2);
     assertThat(page.content().stream().filter(r -> r.name().equals("A")).findFirst().orElseThrow().subscribedByMe()).isTrue();
@@ -98,27 +122,49 @@ class InterestServiceTest {
   }
 
   @Test
-  @DisplayName("getInterests: 잘못된 sortBy → InvalidSortParameterException")
+  @DisplayName("getInterests: 잘못된 orderBy → InvalidSortParameterException")
   void getInterestsInvalidSort() {
-    assertThatThrownBy(() -> interestService.getInterests(null, "foo", "asc", null, 20, null))
+    assertThatThrownBy(() ->
+        interestService.getInterests(null, "foo", "ASC", null, null, 20, null))
         .isInstanceOf(InvalidSortParameterException.class);
   }
 
   @Test
-  @DisplayName("getInterests: sortBy=name, direction=desc → 이름 내림차순")
+  @DisplayName("getInterests: 잘못된 direction(소문자) → InvalidSortParameterException")
+  void getInterestsInvalidDirection() {
+    assertThatThrownBy(() ->
+        interestService.getInterests(null, "name", "asc", null, null, 20, null))
+        .isInstanceOf(InvalidSortParameterException.class);
+  }
+
+  @Test
+  @DisplayName("getInterests: orderBy=name, direction=DESC → 이름 내림차순")
   void getInterestsSortName() {
     Interest a = new Interest("A", List.of("a"));
     Interest b = new Interest("B", List.of("b"));
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
 
     CursorPageResponse<InterestResponse> page =
-        interestService.getInterests(null, "name", "desc", null, 20, null);
+        interestService.getInterests(null, "name", "DESC", null, null, 20, null);
 
     assertThat(page.content()).extracting(InterestResponse::name).containsExactly("B", "A");
   }
 
   @Test
-  @DisplayName("delete: 존재하는 ID → markDeleted + 구독 일괄 정리")
+  @DisplayName("getInterests: orderBy=subscriberCount, direction=DESC → 구독자 수 내림차순")
+  void getInterestsSortSubscriberCount() {
+    Interest a = new Interest("A", List.of("a"));
+    Interest b = new Interest("B", List.of("b"));
+    when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
+
+    CursorPageResponse<InterestResponse> page =
+        interestService.getInterests(null, "subscriberCount", "DESC", null, null, 20, null);
+
+    assertThat(page.content()).hasSize(2);
+  }
+
+  @Test
+  @DisplayName("delete: 존재하는 ID → 구독 정리 후 물리 삭제")
   void deleteSuccess() {
     Interest interest = new Interest("인공지능", List.of("AI"));
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
@@ -126,8 +172,8 @@ class InterestServiceTest {
 
     interestService.delete(interest.getId());
 
-    assertThat(interest.isDeleted()).isTrue();
     verify(subscriptionRepository).deleteAllByInterestId(interest.getId());
+    verify(interestRepository).delete(interest);
   }
 
   @Test
@@ -144,6 +190,7 @@ class InterestServiceTest {
   @DisplayName("create: 80%+ 유사 이름 존재 → SimilarInterestNameException")
   void createSimilarRejected() {
     Interest existing = new Interest("인공지능", List.of("AI"));
+    when(interestRepository.findByNameAndDeletedAtIsNull(anyString())).thenReturn(Optional.empty());
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(existing));
 
     assertThatThrownBy(() ->
@@ -159,7 +206,7 @@ class InterestServiceTest {
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(ai, bc));
 
     CursorPageResponse<InterestResponse> page =
-        interestService.getInterests("인공", null, null, null, 20, null);
+        interestService.getInterests("인공", "name", "ASC", null, null, 20, null);
 
     assertThat(page.content()).extracting(InterestResponse::name).containsExactly("인공지능");
   }
@@ -172,7 +219,7 @@ class InterestServiceTest {
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(ai, bc));
 
     CursorPageResponse<InterestResponse> page =
-        interestService.getInterests("BTC", null, null, null, 20, null);
+        interestService.getInterests("BTC", "name", "ASC", null, null, 20, null);
 
     assertThat(page.content()).extracting(InterestResponse::name).containsExactly("블록체인");
   }
@@ -184,7 +231,7 @@ class InterestServiceTest {
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(spring));
 
     CursorPageResponse<InterestResponse> page =
-        interestService.getInterests("spring", null, null, null, 20, null);
+        interestService.getInterests("spring", "name", "ASC", null, null, 20, null);
 
     assertThat(page.content()).extracting(InterestResponse::name).containsExactly("Spring Boot");
   }
@@ -195,20 +242,21 @@ class InterestServiceTest {
     Interest spring = new Interest("Spring Boot", List.of("Java"));
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(spring));
 
-    CursorPageResponse<InterestResponse> page = interestService.getInterests("JAVA", null, null, null, 20, null);
+    CursorPageResponse<InterestResponse> page = interestService.getInterests(
+        "JAVA", "name", "ASC", null, null, 20, null);
 
     assertThat(page.content()).extracting(InterestResponse::name).containsExactly("Spring Boot");
   }
 
   @Test
-  @DisplayName("getInterests: size=1 → 1건만 반환 + hasNext=true")
-  void getInterests_size1_hasNext() {
+  @DisplayName("getInterests: limit=1 → 1건만 반환 + hasNext=true")
+  void getInterests_limit1_hasNext() {
     Interest a = new Interest("A", List.of("a"));
     Interest b = new Interest("B", List.of("b"));
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
 
     CursorPageResponse<InterestResponse> page =
-        interestService.getInterests(null, "name", "asc", null, 1, null);
+        interestService.getInterests(null, "name", "ASC", null, null, 1, null);
 
     assertThat(page.content()).hasSize(1);
     assertThat(page.hasNext()).isTrue();
@@ -223,12 +271,12 @@ class InterestServiceTest {
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
 
     CursorPageResponse<InterestResponse> firstPage =
-        interestService.getInterests(null, "name", "asc", null, 1, null);
+        interestService.getInterests(null, "name", "ASC", null, null, 1, null);
     String cursor = firstPage.nextCursor();
 
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a, b));
     CursorPageResponse<InterestResponse> secondPage =
-        interestService.getInterests(null, "name", "asc", cursor, 1, null);
+        interestService.getInterests(null, "name", "ASC", cursor, null, 1, null);
 
     assertThat(secondPage.content()).hasSize(1);
     assertThat(secondPage.content().get(0).name()).isEqualTo("B");
@@ -236,16 +284,17 @@ class InterestServiceTest {
   }
 
   @Test
-  @DisplayName("getInterests: 전체 항목이 size 이하 → hasNext=false + nextCursor=null")
+  @DisplayName("getInterests: 전체 항목이 limit 이하 → hasNext=false + nextCursor/nextAfter=null")
   void getInterests_lastPage_noNext() {
     Interest a = new Interest("A", List.of("a"));
     when(interestRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(a));
 
     CursorPageResponse<InterestResponse> page =
-        interestService.getInterests(null, null, null, null, 20, null);
+        interestService.getInterests(null, "name", "ASC", null, null, 20, null);
 
     assertThat(page.hasNext()).isFalse();
     assertThat(page.nextCursor()).isNull();
+    assertThat(page.nextAfter()).isNull();
     assertThat(page.content()).hasSize(1);
   }
 }
