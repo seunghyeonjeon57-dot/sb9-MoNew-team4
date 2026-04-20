@@ -12,7 +12,6 @@ import com.example.monew.domain.comment.entity.CommentLikeEntity;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
-import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
@@ -24,8 +23,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,9 +53,12 @@ public class CommentServiceTest {
   @Test
   @DisplayName("요청 DTO를 받아 댓글을 성공적으로 등록한다.")
   void registerComment() {
-    CommentRegisterRequest request = new CommentRegisterRequest(
-        UUID.randomUUID(), UUID.randomUUID(), "서비스 테스트 댓글"
-    );
+    CommentRegisterRequest request = CommentRegisterRequest.builder()
+        .articleId(UUID.randomUUID())
+        .userId(UUID.randomUUID())
+        .content("서비스 테스트 댓글")
+        .build();
+
     ArticleEntity article = ArticleEntity.builder().build();
     given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article));
 
@@ -71,14 +71,14 @@ public class CommentServiceTest {
   @DisplayName("존재하지 않는 기사 ID로 댓글을 등록하면 예외가 발생한다.")
   void registerComment_ArticleNotFound() {
 
-    UUID fakeArticleId = UUID.randomUUID();
-    CommentRegisterRequest request = new CommentRegisterRequest(
-        fakeArticleId,
-        UUID.randomUUID(),
-        "기사가 없는 유령 댓글"
-    );
+    UUID articleId = UUID.randomUUID();
+    CommentRegisterRequest request = CommentRegisterRequest.builder()
+        .articleId(articleId)
+        .userId(UUID.randomUUID())
+        .content("기사가 없는 유령 댓글")
+        .build();
 
-    given(articleRepository.findById(fakeArticleId)).willReturn(Optional.empty());
+    given(articleRepository.findById(articleId)).willReturn(Optional.empty());
 
 
     assertThatThrownBy(() -> commentService.registerComment(request))
@@ -92,7 +92,9 @@ public class CommentServiceTest {
 
     UUID fakeCommentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    CommentUpdateRequest request = new CommentUpdateRequest("수정 내용");
+    CommentUpdateRequest request = CommentUpdateRequest.builder()
+        .content("수정 내용")
+        .build();
 
     given(commentRepository.findById(fakeCommentId)).willReturn(Optional.empty());
 
@@ -108,9 +110,16 @@ public class CommentServiceTest {
     UUID commentId = UUID.randomUUID();
     UUID ownerId = UUID.randomUUID();
     UUID requesterId = UUID.randomUUID(); // 다른 사용자
-    CommentUpdateRequest request = new CommentUpdateRequest("수정 내용");
+    CommentUpdateRequest request = CommentUpdateRequest.builder()
+        .content("수정 내용")
+        .build();
 
-    CommentEntity existingComment = new CommentEntity(UUID.randomUUID(), ownerId, "원본 내용");
+    CommentEntity existingComment = CommentEntity.builder()
+        .articleId(UUID.randomUUID())
+        .userId(ownerId)
+        .content("원본 내용")
+        .likeCount(0L)
+        .build();
 
     given(commentRepository.findById(commentId)).willReturn(Optional.of(existingComment));
 
@@ -125,7 +134,13 @@ public class CommentServiceTest {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
 
-    CommentEntity comment = new CommentEntity(UUID.randomUUID(), userId, "삭제될 댓글");
+    CommentEntity comment = CommentEntity.builder()
+        .articleId(UUID.randomUUID())
+        .userId(userId)
+        .content("삭제될 댓글")
+        .likeCount(0L)
+        .build();
+
     given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
     commentService.softDeleteComment(commentId);
@@ -162,7 +177,12 @@ public class CommentServiceTest {
   void addLike_Success() {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    CommentEntity comment = new CommentEntity(UUID.randomUUID(), commentId, "좋아요 받을 댓글");
+    CommentEntity comment = CommentEntity.builder()
+        .articleId(UUID.randomUUID())
+        .userId(commentId)
+        .content("좋아요 받을 댓글")
+        .likeCount(0L)
+        .build();
 
     given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
@@ -180,7 +200,12 @@ public class CommentServiceTest {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
 
-    CommentEntity comment = new CommentEntity(UUID.randomUUID(), commentId, "댓글");
+    CommentEntity comment = CommentEntity.builder()
+        .articleId(UUID.randomUUID())
+        .userId(commentId)
+        .content("댓글")
+        .likeCount(0L)
+        .build();
 
     given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
@@ -194,22 +219,36 @@ public class CommentServiceTest {
   @Test
   @DisplayName("뉴스 기사 별 댓글 조회 시 좋아요 순 정렬과 커서 페이징이 정상 동작한다.")
   void getArticleComments_LikesSort_Success() {
-    // Given
     UUID articleId = UUID.randomUUID();
-    // size 1 요청 -> 2개 반환 (1개는 데이터, 1개는 hasNext 판별용)
-    List<CommentActivityDto> mockResult = List.of(
-        new CommentActivityDto(UUID.randomUUID(), articleId, "title", UUID.randomUUID(), "nick", "content", 10L, LocalDateTime.now()),
-        new CommentActivityDto(UUID.randomUUID(), articleId, "title", UUID.randomUUID(), "nick", "content", 5L, LocalDateTime.now())
-    );
+    CommentActivityDto comment1 = CommentActivityDto.builder()
+        .id(UUID.randomUUID())
+        .articleId(articleId)
+        .articleTitle("title")
+        .userId(UUID.randomUUID())
+        .userNickname("nick")
+        .content("content")
+        .likeCount(10L)
+        .createdAt(LocalDateTime.now())
+        .build();
 
+    CommentActivityDto comment2 = CommentActivityDto.builder()
+        .id(UUID.randomUUID())
+        .articleId(articleId)
+        .articleTitle("title")
+        .userId(UUID.randomUUID())
+        .userNickname("nick")
+        .content("content")
+        .likeCount(5L)
+        .createdAt(LocalDateTime.now())
+        .build();
+
+    List<CommentActivityDto> mockResult = List.of(comment1, comment2);
     given(commentRepository.findCommentsByArticleWithCursor(eq(articleId), any(), any(), any(), eq("LIKES"), eq(1)))
         .willReturn(mockResult);
 
-    // When
     CursorPageResponseCommentDto response = commentService.getArticleComments(
         articleId, null, null, null, "LIKES", 1
     );
-    // Then
     assertThat(response.content()).hasSize(1);
     assertThat(response.hasNext()).isTrue();
     assertThat(response.nextCursor()).isEqualTo(mockResult.get(0).id().toString());
@@ -218,21 +257,27 @@ public class CommentServiceTest {
   @Test
   @DisplayName("뉴스 기사 별 댓글 조회 시 날짜 순 정렬과 커서 페이징이 정상 동작한다.")
   void getArticleComments_DateSort_Success() {
-    // Given
     UUID articleId = UUID.randomUUID();
-    List<CommentActivityDto> mockResult = List.of(
-        new CommentActivityDto(UUID.randomUUID(), articleId, "title", UUID.randomUUID(), "nick", "content", 1L, LocalDateTime.now())
-    );
+    CommentActivityDto comment = CommentActivityDto.builder()
+        .id(UUID.randomUUID())
+        .articleId(articleId)
+        .articleTitle("title")
+        .userId(UUID.randomUUID())
+        .userNickname("nick")
+        .content("content")
+        .likeCount(1L)
+        .createdAt(LocalDateTime.now())
+        .build();
+
+    List<CommentActivityDto> mockResult = List.of(comment);
 
     given(commentRepository.findCommentsByArticleWithCursor(eq(articleId), any(), any(), any(), eq("DATE"), eq(10)))
         .willReturn(mockResult);
 
-    // When
     CursorPageResponseCommentDto response = commentService.getArticleComments(
         articleId, null, null, null, "DATE", 10
     );
 
-    // Then
     assertThat(response.content()).hasSize(1);
     assertThat(response.hasNext()).isFalse();
   }

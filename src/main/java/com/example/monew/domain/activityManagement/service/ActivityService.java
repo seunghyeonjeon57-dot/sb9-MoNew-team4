@@ -44,15 +44,15 @@ public class ActivityService {
 
   log.info("사용자 활동 내역 조회 완료: userId={}", userId);
 
-    return new UserActivityDto(
-        user.getId(),
-        user.getEmail(),
-        user.getNickname(),
-        user.getCreatedAt(),
-        document.getSubscribedInterests(),
-        document.getRecentComments(),
-        document.getRecentLikes(),
-        document.getRecentArticles()
-    );
+    return UserActivityDto.builder()
+        .id(user.getId())
+        .email(user.getEmail())
+        .nickname(user.getNickname())
+        .createdAt(user.getCreatedAt())
+        .subscribedInterests(document.getSubscribedInterests())
+        .comments(document.getRecentComments())
+        .commentLikes(document.getRecentLikes())
+        .articleViews(document.getRecentArticles())
+        .build();
   }
 }

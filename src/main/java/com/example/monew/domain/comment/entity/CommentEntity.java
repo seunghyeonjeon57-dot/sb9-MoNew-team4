@@ -10,6 +10,8 @@ import org.hibernate.annotations.Where;
 @Entity
 @Table(name = "comments")
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLDelete(sql = "UPDATE comment SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @Where(clause = "deleted_at IS NULL")
@@ -28,6 +30,7 @@ public class CommentEntity extends BaseEntity {
    @Column(nullable = false, length = 500)
   private String content;
 
+  @Builder.Default
   @Column(name = "like_count")
   private Long likeCount = 0L;
 
