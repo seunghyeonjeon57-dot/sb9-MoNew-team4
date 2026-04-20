@@ -6,17 +6,23 @@ import com.example.monew.domain.comment.entity.QCommentEntity;
 import com.example.monew.domain.user.entity.QUser;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.querydsl.jpa.impl.JPAQuery;
+import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
-@RequiredArgsConstructor
+@Repository
 public class CommentRepositoryImpl implements CommentRepositoryCustom{
+
   private final JPAQueryFactory queryFactory;
+  private final QCommentEntity comment = QCommentEntity.commentEntity;
+
+  public CommentRepositoryImpl(EntityManager em) {
+    this.queryFactory = new JPAQueryFactory(em);
+  }
 
   @Override
   public List<CommentActivityDto> findCommentsByArticleWithCursor(
