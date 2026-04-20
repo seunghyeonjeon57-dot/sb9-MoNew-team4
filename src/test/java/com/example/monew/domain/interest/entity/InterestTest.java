@@ -12,7 +12,10 @@ class InterestTest {
   @Test
   @DisplayName("name + keywords로 생성: 키워드 리스트가 보존되고, isDeleted=false, subscriberCount=0")
   void createWithNameAndKeywords() {
-    Interest interest = new Interest("인공지능", List.of("AI", "ML"));
+    Interest interest = Interest.builder()
+        .name("인공지능")
+        .keywords(List.of("AI", "ML"))
+        .build();
 
     assertThat(interest.getName()).isEqualTo("인공지능");
     assertThat(interest.getKeywords()).extracting(InterestKeyword::getValue)
@@ -24,7 +27,10 @@ class InterestTest {
   @Test
   @DisplayName("replaceKeywords: 기존 키워드를 비우고 새 리스트로 교체")
   void replaceKeywordsClearsAndAppends() {
-    Interest interest = new Interest("인공지능", List.of("AI"));
+    Interest interest = Interest.builder()
+        .name("인공지능")
+        .keywords(List.of("AI"))
+        .build();
 
     interest.replaceKeywords(List.of("ML", "DL"));
 
@@ -35,7 +41,10 @@ class InterestTest {
   @Test
   @DisplayName("markDeleted: isDeleted=true 전환")
   void markDeletedFlipsFlag() {
-    Interest interest = new Interest("인공지능", List.of("AI"));
+    Interest interest = Interest.builder()
+        .name("인공지능")
+        .keywords(List.of("AI"))
+        .build();
 
     interest.markDeleted();
 
