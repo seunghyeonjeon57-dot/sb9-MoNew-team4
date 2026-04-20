@@ -18,11 +18,11 @@ public interface InterestRepository extends JpaRepository<Interest, UUID> {
 
   List<Interest> findAllByDeletedAtIsNull();
 
-  @Modifying
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("UPDATE Interest i SET i.subscriberCount = i.subscriberCount + 1 WHERE i.id = :id")
   int incrementSubscriberCount(@Param("id") UUID id);
 
-  @Modifying
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("UPDATE Interest i SET i.subscriberCount = i.subscriberCount - 1 WHERE i.id = :id AND i.subscriberCount > 0")
   int decrementSubscriberCount(@Param("id") UUID id);
 
