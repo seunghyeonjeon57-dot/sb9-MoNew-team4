@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -27,6 +28,7 @@ public class Subscription extends BaseEntity {
   @Column(nullable = false)
   private UUID userId;
 
+  @Builder
   public Subscription(UUID interestId, UUID userId) {
     this.interestId = Objects.requireNonNull(interestId, "interestId는 null일 수 없습니다.");
     this.userId = Objects.requireNonNull(userId, "userId는 null일 수 없습니다.");
