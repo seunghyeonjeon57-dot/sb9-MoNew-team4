@@ -86,7 +86,7 @@ class InterestSubscriptionServiceTest {
   void unsubscribeSuccess() {
     UUID interestId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    Subscription sub = new Subscription(interestId, userId);
+    Subscription sub = Subscription.builder().interestId(interestId).userId(userId).build();
     when(subscriptionRepository.findByInterestIdAndUserId(interestId, userId))
         .thenReturn(Optional.of(sub));
 
