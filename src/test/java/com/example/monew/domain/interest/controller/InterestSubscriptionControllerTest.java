@@ -15,6 +15,8 @@ import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.SubscriptionNotFoundException;
 import com.example.monew.domain.interest.service.InterestSubscriptionService;
 import com.example.monew.global.exception.GlobalException;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -38,20 +40,24 @@ class InterestSubscriptionControllerTest {
   private InterestSubscriptionService service;
 
   @Test
-  @DisplayName("POST /api/interests/{id}/subscriptions: 성공 → 201")
-  void subscribe201() throws Exception {
+  @DisplayName("POST /api/interests/{id}/subscriptions: 성공 → 200 + SubscriptionDto")
+  void subscribe200() throws Exception {
     UUID interestId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
     UUID subId = UUID.randomUUID();
+    LocalDateTime createdAt = LocalDateTime.now();
     when(service.subscribe(eq(interestId), eq(userId)))
-        .thenReturn(new SubscriptionResponse(subId, interestId, userId));
+        .thenReturn(new SubscriptionResponse(
+            subId, interestId, "인공지능", List.of("AI", "ML"), 3L, createdAt));
 
     mockMvc.perform(post("/api/interests/" + interestId + "/subscriptions")
             .header(USER_HEADER, userId.toString()))
-        .andExpect(status().isCreated())
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(subId.toString()))
         .andExpect(jsonPath("$.interestId").value(interestId.toString()))
-        .andExpect(jsonPath("$.userId").value(userId.toString()));
+        .andExpect(jsonPath("$.interestName").value("인공지능"))
+        .andExpect(jsonPath("$.interestKeywords[0]").value("AI"))
+        .andExpect(jsonPath("$.interestSubscriberCount").value(3));
   }
 
   @Test
@@ -92,14 +98,14 @@ class InterestSubscriptionControllerTest {
   }
 
   @Test
-  @DisplayName("DELETE /subscriptions: 성공 → 204")
-  void unsubscribe204() throws Exception {
+  @DisplayName("DELETE /subscriptions: 성공 → 200")
+  void unsubscribe200() throws Exception {
     UUID interestId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
 
     mockMvc.perform(delete("/api/interests/" + interestId + "/subscriptions")
             .header(USER_HEADER, userId.toString()))
-        .andExpect(status().isNoContent());
+        .andExpect(status().isOk());
 
     verify(service).unsubscribe(interestId, userId);
   }

@@ -36,7 +36,8 @@ public class InterestSubscriptionService {
     }
 
     interestRepository.incrementSubscriberCount(interest.getId());
-    return SubscriptionResponse.from(saved);
+    Interest refreshed = interestRepository.findByIdAndDeletedAtIsNull(interestId).orElse(interest);
+    return SubscriptionResponse.of(saved, refreshed);
   }
 
   @Transactional

@@ -1,5 +1,6 @@
 package com.example.monew.domain.interest.entity;
 
+import com.example.monew.global.base.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -14,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "subscriptions")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Subscription {
+public class Subscription extends BaseEntity {
 
   @Id
   @Column(columnDefinition = "uuid")

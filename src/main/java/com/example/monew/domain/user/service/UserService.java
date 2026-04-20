@@ -2,6 +2,7 @@ package com.example.monew.domain.user.service;
 
 
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.dto.request.UserLoginRequest;
@@ -13,6 +14,7 @@ import com.example.monew.domain.user.exception.LoginFailedException;
 import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.mapper.UserMapper;
 import com.example.monew.domain.user.repository.UserRepository;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ public class UserService {
   private final PasswordEncoder passwordEncoder;
   private final SubscriptionRepository subscriptionRepository;
   private final CommentRepository commentRepository;
+  private final InterestRepository interestRepository;
 
   @Transactional
   public void create(UserRegisterRequest request) {
@@ -79,16 +82,24 @@ public class UserService {
   @Transactional
   public void softDeleteUser(UUID id){
     User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("해당 유저를 찾을 수 없습니다."));
-    user.markDeleted();
-    log.info("유저 소프트 삭제 완료 (deleted_at 업데이트): ID={}", id);
+    user.withdraw();
+    log.info("유저 논리 삭제 완료 (상태: DELETED, 시점: {}): ID={}", user.getDeletedAt(), id);
   }
 
   @Transactional
   public void hardDeleteUser(UUID id){
     log.info("유저 하드 삭제 시작: ID={}", id);
+
+    List<UUID> interestIds = subscriptionRepository.findInterestIdsByUserId(id);
+
     subscriptionRepository.deleteAllByUserId(id);
     commentRepository.deleteAllByUserId(id);
     userRepository.deleteById(id);
+
+    if (!interestIds.isEmpty()) {
+      interestRepository.decrementSubscriberCountAll(interestIds);
+    }
+
     log.info("유저 및 연관 데이터 전체 삭제 완료: ID={}", id);
   }
 }
