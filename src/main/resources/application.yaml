@@ -28,11 +28,12 @@ logging:
 
 # 뉴스 소스는 모든 환경 공통이므로 여기에 둡니다.
 news:
-  rss:
-    sources:
-      - name: "한국경제"
-        url: "https://www.hankyung.com/feed/all-news"
-      - name: "조선일보"
-        url: "https://www.chosun.com/arc/outboundfeeds/rss/category/all-posts/"
-      - name: "연합뉴스"
-        url: "https://www.yonhapnewstv.co.kr/browse/feed/"
+    api:
+      naver:
+        client-id: ${NAVER_CLIENT_ID}
+        client-secret: ${NAVER_CLIENT_SECRET}
+        url: "https://openapi.naver.com/v1/search/news.json"
+    rss:
+      hankyung: ${RSS_URL_HANKYUNG:https://www.hankyung.com/feed/all-news}
+      chosun: ${RSS_URL_CHOSUN:https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml}
+      yonhap: ${RSS_URL_YONHAP:https://www.yna.co.kr/rss/news.xml}
