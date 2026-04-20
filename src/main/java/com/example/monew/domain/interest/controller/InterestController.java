@@ -38,14 +38,14 @@ public class InterestController {
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
       @RequestParam int limit,
-      @RequestHeader("MoNew-Request-User-ID") UUID userId) {
+      @RequestHeader("Monew-Request-User-ID") UUID userId) {
     return ResponseEntity.ok(
         interestService.getInterests(keyword, orderBy, direction, cursor, after, limit, userId));
   }
 
   @PostMapping
   public ResponseEntity<InterestResponse> create(
-      @RequestHeader("MoNew-Request-User-ID") UUID userId,
+      @RequestHeader("Monew-Request-User-ID") UUID userId,
       @Valid @RequestBody InterestCreateRequest request) {
     InterestResponse response = interestService.create(request);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -53,7 +53,7 @@ public class InterestController {
 
   @PatchMapping("/{id}")
   public ResponseEntity<InterestResponse> updateKeywords(
-      @RequestHeader("MoNew-Request-User-ID") UUID userId,
+      @RequestHeader("Monew-Request-User-ID") UUID userId,
       @PathVariable UUID id,
       @Valid @RequestBody InterestUpdateRequest request) {
     return ResponseEntity.ok(interestService.updateKeywords(id, request));
@@ -61,7 +61,7 @@ public class InterestController {
 
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> delete(
-      @RequestHeader("MoNew-Request-User-ID") UUID userId,
+      @RequestHeader("Monew-Request-User-ID") UUID userId,
       @PathVariable UUID id) {
     interestService.delete(id);
     return ResponseEntity.noContent().build();

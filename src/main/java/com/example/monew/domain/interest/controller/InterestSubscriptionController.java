@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class InterestSubscriptionController {
 
-  private static final String USER_HEADER = "MoNew-Request-User-ID";
+  private static final String USER_HEADER = "Monew-Request-User-ID";
 
   private final InterestSubscriptionService service;
 

@@ -33,7 +33,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class InterestApiIntegrationTest {
 
-  private static final String USER_HEADER = "MoNew-Request-User-ID";
+  private static final String USER_HEADER = "Monew-Request-User-ID";
 
   @Autowired
   private MockMvc mockMvc;

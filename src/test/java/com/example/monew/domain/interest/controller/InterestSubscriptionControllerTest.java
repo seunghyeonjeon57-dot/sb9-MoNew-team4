@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(GlobalException.class)
 class InterestSubscriptionControllerTest {
 
-  private static final String USER_HEADER = "MoNew-Request-User-ID";
+  private static final String USER_HEADER = "Monew-Request-User-ID";
 
   @Autowired
   private MockMvc mockMvc;
