@@ -9,6 +9,9 @@ import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.global.exception.ErrorCode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +20,7 @@ import com.example.monew.domain.article.repository.ArticleRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -72,7 +75,6 @@ public class ArticleService {
   public void incrementViewCount(UUID articleId, UUID viewedBy, String clientIp) {
     articleViewService.logView(articleId, viewedBy, clientIp);
   }
-
   public CursorPageResponseArticleDto getArticles(UUID cursor, LocalDateTime after, int size) {
 
     List<ArticleEntity> articles =
@@ -105,5 +107,27 @@ public class ArticleService {
         null,
         hasNext
     );
+  }
+
+  @Transactional
+  public void saveInChunks(List<ArticleEntity> articles) {
+    if (articles.isEmpty()) return;
+
+    List<String> sourceUrls = articles.stream()
+        .map(ArticleEntity::getSourceUrl)
+        .toList();
+    Set<String> existingUrls = articleRepository.findAllBySourceUrlIn(sourceUrls)
+        .stream()
+        .map(ArticleEntity::getSourceUrl)
+        .collect(Collectors.toSet());
+
+    List<ArticleEntity> newArticles = articles.stream()
+        .filter(article -> !existingUrls.contains(article.getSourceUrl()))
+        .toList();
+
+    if (!newArticles.isEmpty()) {
+      articleRepository.saveAll(newArticles);
+      log.info("{}건 신규 뉴스 저장 완료", newArticles.size());
+    }
   }
 }

@@ -1,5 +1,6 @@
 package com.example.monew.domain.article.controller;
 
+import com.example.monew.batch.service.BackupService;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.article.service.ArticleViewService;
 import org.junit.jupiter.api.DisplayName;
@@ -23,16 +24,18 @@ class ArticleControllerTest {
 
   @Autowired
   private MockMvc mockMvc;
-  @MockitoBean // 👈 이거 추가!
+  @MockitoBean
+  private BackupService backupService;
+  @MockitoBean
   private ArticleService articleService;
 
-  @MockitoBean // 👈 이거 추가!
+  @MockitoBean
   private ArticleViewService articleViewService;
 
-  @MockitoBean //BackupBatch를 가짜 빈으로 등록합니다.
+  @MockitoBean
   private com.example.monew.batch.BackupBatch backupBatch;
 
-  @MockitoBean // 혹시 모르니 NewsRss도 같이 넣어두면 안전합니다.
+  @MockitoBean
   private com.example.monew.batch.NewsRss newsRss;
 
   @Test

@@ -1,6 +1,7 @@
 package com.example.monew.domain.article.controller;
 
 import com.example.monew.batch.BackupBatch;
+import com.example.monew.batch.service.BackupService;
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.service.ArticleService;
@@ -28,7 +29,7 @@ public class ArticleController {
 
   private final ArticleService articleService;
   private final ArticleViewService articleViewService;
-
+  private final BackupService backupService;
   private final BackupBatch backupBatch;
 
   @Operation(summary = "뉴스 기사 목록 조회", description = "조건에 맞는 뉴스 기사 목록을 조회합니다.")
@@ -118,23 +119,13 @@ public class ArticleController {
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate date
   ) {
     try {
-      backupBatch.restoreNews(date);
+      backupService.restoreNews(date);
       return ResponseEntity.ok(date + " 자 데이터 S3 복구 프로세스 완료");
     } catch (Exception e) {
       return ResponseEntity.internalServerError().body("복구 중 오류 발생: " + e.getMessage());
     }
   }
 
-//
-//  @Operation(summary = "뉴스 복구", description = "논리 삭제된 뉴스 기사를 다시 복구")
-//  @ApiResponses({
-//      @ApiResponse(responseCode = "200", description = "복구 성공")
-//  })
-//  @GetMapping("/restore")
-//  public ResponseEntity<Void> restoreArticle(@RequestParam UUID articleId) {
-//    articleService.restore(articleId);
-//    return ResponseEntity.ok().build();
-//  }
 
   @Operation(summary = "출처 목록 조회", description = "출처 목록을 조회합니다.")
   @ApiResponses({

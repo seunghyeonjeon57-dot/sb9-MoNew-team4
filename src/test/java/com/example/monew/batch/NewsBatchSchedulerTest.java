@@ -1,7 +1,10 @@
 package com.example.monew.batch;
 
+import com.example.monew.batch.service.BackupService;
+import com.example.monew.batch.service.S3Service;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
+import com.example.monew.domain.article.service.ArticleService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +16,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -20,39 +24,45 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class NewsBatchSchedulerTest {
+
   @Mock
   private NewsRss newsRss;
+
   @Mock
   private NewsCollector newsCollector;
-  @Spy
-  private ObjectMapper objectMapper = new ObjectMapper();
+
+  @Mock
+  private BackupService backupService;
+
+  @Mock
+  private ArticleService articleService;
+
   @Mock
   private ArticleRepository articleRepository;
+
   @Mock
-  private com.example.monew.batch.service.S3Service s3Service;
+  private S3Service s3Service;
+
+  @Spy
+  private ObjectMapper objectMapper = new ObjectMapper();
+
   @InjectMocks
   private NewsBatchScheduler newsBatchScheduler;
 
   @Test
-  @DisplayName("뉴스 배치 성공")
   void NewsBatchTest() {
-    when(newsRss.getUrlList()).thenReturn(List.of("hankyung"));
-
-    when(articleRepository.findByPublishDateAfter(any())).thenReturn(List.of());
 
     ArticleEntity mockArticle = ArticleEntity.builder()
         .title("테스트 뉴스")
         .sourceUrl("https://test.com")
         .build();
 
-    lenient().when(newsCollector.fetchNaver(anyString())).thenReturn(List.of(mockArticle));
-    lenient().when(newsCollector.fetchRss(any(), any(), any())).thenReturn(List.of(mockArticle));
-
-    lenient().when(articleRepository.findAllBySourceUrlIn(anyList())).thenReturn(List.of());
-    lenient().when(articleRepository.existsBySourceUrl(anyString())).thenReturn(false);
+    when(newsCollector.fetchNaver(anyString()))
+        .thenReturn(List.of(mockArticle));
 
     newsBatchScheduler.runNewsBatch();
 
-    verify(articleRepository, atLeastOnce()).saveAll(anyList());
+    verify(articleService, atLeastOnce())
+        .saveInChunks(anyList());
   }
 }

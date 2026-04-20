@@ -1,15 +1,21 @@
 package com.example.monew.batch.service;
 
-import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.SdkClientException;
+import com.example.monew.batch.exception.S3DownloadException;
+import com.example.monew.batch.exception.S3FileNotFoundException;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class S3Service {
@@ -19,7 +25,7 @@ public class S3Service {
   @Value("${cloud.aws.s3.bucket}")
   private String bucket;
 
-  // 파일 업로드 (v2 방식)
+  // 파일 업로드 v2 방식
   public void upload(String key, String content) {
     PutObjectRequest putObjectRequest = PutObjectRequest.builder()
         .bucket(bucket)
@@ -30,7 +36,6 @@ public class S3Service {
     s3Client.putObject(putObjectRequest, RequestBody.fromString(content, StandardCharsets.UTF_8));
   }
 
-  // 파일 다운로드 (v2 방식)
   public String download(String key) {
     try {
       GetObjectRequest getObjectRequest = GetObjectRequest.builder()
@@ -39,8 +44,17 @@ public class S3Service {
           .build();
 
       return s3Client.getObjectAsBytes(getObjectRequest).asUtf8String();
-    } catch (Exception e) {
-      return null; // 파일이 없을 경우
+    } catch (NoSuchKeyException e) {
+      log.warn("S3 파일 없음 key={}", key);
+      throw new S3FileNotFoundException(key);
+
+    } catch (S3Exception e) {
+      log.error("S3 서비스 에러 key={}, statusCode={}", key, e.statusCode(), e);
+      throw new S3DownloadException(key, e);
+
+    } catch (SdkClientException e) {
+      log.error("네트워크 에러 key={}", key, e);
+      throw new S3DownloadException(key, e);
     }
   }
 }
