@@ -15,7 +15,10 @@ class SubscriptionTest {
     UUID interestId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
 
-    Subscription sub = new Subscription(interestId, userId);
+    Subscription sub = Subscription.builder()
+        .interestId(interestId)
+        .userId(userId)
+        .build();
 
     assertThat(sub.getInterestId()).isEqualTo(interestId);
     assertThat(sub.getUserId()).isEqualTo(userId);
