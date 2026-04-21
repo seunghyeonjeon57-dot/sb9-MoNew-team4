@@ -2,13 +2,20 @@ package com.example.monew.domain.comment.service;
 
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
+import com.example.monew.domain.comment.dto.CommentActivityDto;
 import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
 import com.example.monew.domain.comment.dto.CommentUpdateRequest;
+import com.example.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.example.monew.domain.comment.entity.CommentEntity;
+import com.example.monew.domain.comment.entity.CommentLikeEntity;
 import com.example.monew.domain.comment.mapper.CommentMapper;
+import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,8 +23,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,13 +43,22 @@ public class CommentServiceTest {
   private ArticleRepository articleRepository;
   @InjectMocks
   private CommentService commentService;
+  @Mock
+  private CommentLikeRepository commentLikeRepository;
+  @Mock
+  private UserRepository userRepository;
+  @Mock
+  private EntityManager em;
 
   @Test
   @DisplayName("요청 DTO를 받아 댓글을 성공적으로 등록한다.")
   void registerComment() {
-    CommentRegisterRequest request = new CommentRegisterRequest(
-        UUID.randomUUID(), UUID.randomUUID(), "서비스 테스트 댓글"
-    );
+    CommentRegisterRequest request = CommentRegisterRequest.builder()
+        .articleId(UUID.randomUUID())
+        .userId(UUID.randomUUID())
+        .content("서비스 테스트 댓글")
+        .build();
+
     ArticleEntity article = ArticleEntity.builder().build();
     given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article));
 
@@ -57,14 +71,14 @@ public class CommentServiceTest {
   @DisplayName("존재하지 않는 기사 ID로 댓글을 등록하면 예외가 발생한다.")
   void registerComment_ArticleNotFound() {
 
-    UUID fakeArticleId = UUID.randomUUID();
-    CommentRegisterRequest request = new CommentRegisterRequest(
-        fakeArticleId,
-        UUID.randomUUID(),
-        "기사가 없는 유령 댓글"
-    );
+    UUID articleId = UUID.randomUUID();
+    CommentRegisterRequest request = CommentRegisterRequest.builder()
+        .articleId(articleId)
+        .userId(UUID.randomUUID())
+        .content("기사가 없는 유령 댓글")
+        .build();
 
-    given(articleRepository.findById(fakeArticleId)).willReturn(Optional.empty());
+    given(articleRepository.findById(articleId)).willReturn(Optional.empty());
 
 
     assertThatThrownBy(() -> commentService.registerComment(request))
@@ -78,7 +92,9 @@ public class CommentServiceTest {
 
     UUID fakeCommentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    CommentUpdateRequest request = new CommentUpdateRequest("수정 내용");
+    CommentUpdateRequest request = CommentUpdateRequest.builder()
+        .content("수정 내용")
+        .build();
 
     given(commentRepository.findById(fakeCommentId)).willReturn(Optional.empty());
 
@@ -94,9 +110,16 @@ public class CommentServiceTest {
     UUID commentId = UUID.randomUUID();
     UUID ownerId = UUID.randomUUID();
     UUID requesterId = UUID.randomUUID(); // 다른 사용자
-    CommentUpdateRequest request = new CommentUpdateRequest("수정 내용");
+    CommentUpdateRequest request = CommentUpdateRequest.builder()
+        .content("수정 내용")
+        .build();
 
-    CommentEntity existingComment = new CommentEntity(UUID.randomUUID(), ownerId, "원본 내용");
+    CommentEntity existingComment = CommentEntity.builder()
+        .articleId(UUID.randomUUID())
+        .userId(ownerId)
+        .content("원본 내용")
+        .likeCount(0L)
+        .build();
 
     given(commentRepository.findById(commentId)).willReturn(Optional.of(existingComment));
 
@@ -111,7 +134,13 @@ public class CommentServiceTest {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
 
-    CommentEntity comment = new CommentEntity(UUID.randomUUID(), userId, "삭제될 댓글");
+    CommentEntity comment = CommentEntity.builder()
+        .articleId(UUID.randomUUID())
+        .userId(userId)
+        .content("삭제될 댓글")
+        .likeCount(0L)
+        .build();
+
     given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
     commentService.softDeleteComment(commentId);
@@ -141,5 +170,115 @@ public class CommentServiceTest {
 
     verify(commentRepository, times(1))
         .deleteAllByUserId(userId);
+  }
+
+  @Test
+  @DisplayName("댓글에 좋아요를 누르면 좋아요 테이블에 기록이 남고, 댓글의 좋아요 수가 1 증가한다.")
+  void addLike_Success() {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    CommentEntity comment = CommentEntity.builder()
+        .articleId(UUID.randomUUID())
+        .userId(commentId)
+        .content("좋아요 받을 댓글")
+        .likeCount(0L)
+        .build();
+
+    given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+    given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(false);
+
+    commentService.addLike(commentId, userId);
+
+    verify(commentLikeRepository, times(1)).save(any(CommentLikeEntity.class));
+    assertThat(comment.getLikeCount()).isEqualTo(1L);
+  }
+
+  @Test
+  @DisplayName("이미 좋아요를 누른 댓글에 다시 좋아요를 누르면 예외가 발생한다.")
+  void addLike_AlreadyLiked() {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    CommentEntity comment = CommentEntity.builder()
+        .articleId(UUID.randomUUID())
+        .userId(commentId)
+        .content("댓글")
+        .likeCount(0L)
+        .build();
+
+    given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+    given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(true);
+
+    assertThatThrownBy(() -> commentService.addLike(commentId, userId))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("이미 좋아요를 누른 댓글입니다.");
+  }
+
+  @Test
+  @DisplayName("뉴스 기사 별 댓글 조회 시 좋아요 순 정렬과 커서 페이징이 정상 동작한다.")
+  void getArticleComments_LikesSort_Success() {
+    UUID articleId = UUID.randomUUID();
+    CommentActivityDto comment1 = CommentActivityDto.builder()
+        .id(UUID.randomUUID())
+        .articleId(articleId)
+        .articleTitle("title")
+        .userId(UUID.randomUUID())
+        .userNickname("nick")
+        .content("content")
+        .likeCount(10L)
+        .createdAt(LocalDateTime.now())
+        .build();
+
+    CommentActivityDto comment2 = CommentActivityDto.builder()
+        .id(UUID.randomUUID())
+        .articleId(articleId)
+        .articleTitle("title")
+        .userId(UUID.randomUUID())
+        .userNickname("nick")
+        .content("content")
+        .likeCount(5L)
+        .createdAt(LocalDateTime.now())
+        .build();
+
+    List<CommentActivityDto> mockResult = List.of(comment1, comment2);
+    given(commentRepository.findCommentsByArticleWithCursor(eq(articleId), any(), any(), any(), eq("LIKES"), eq(1)))
+        .willReturn(mockResult);
+
+    CursorPageResponseCommentDto response = commentService.getArticleComments(
+        articleId, null, null, null, "LIKES", 1
+    );
+    assertThat(response.content()).hasSize(1);
+    assertThat(response.hasNext()).isTrue();
+    assertThat(response.nextCursor()).isEqualTo(mockResult.get(0).id().toString());
+  }
+
+  @Test
+  @DisplayName("뉴스 기사 별 댓글 조회 시 날짜 순 정렬과 커서 페이징이 정상 동작한다.")
+  void getArticleComments_DateSort_Success() {
+    UUID articleId = UUID.randomUUID();
+    CommentActivityDto comment = CommentActivityDto.builder()
+        .id(UUID.randomUUID())
+        .articleId(articleId)
+        .articleTitle("title")
+        .userId(UUID.randomUUID())
+        .userNickname("nick")
+        .content("content")
+        .likeCount(1L)
+        .createdAt(LocalDateTime.now())
+        .build();
+
+    List<CommentActivityDto> mockResult = List.of(comment);
+
+    given(commentRepository.findCommentsByArticleWithCursor(eq(articleId), any(), any(), any(), eq("DATE"), eq(10)))
+        .willReturn(mockResult);
+
+    CursorPageResponseCommentDto response = commentService.getArticleComments(
+        articleId, null, null, null, "DATE", 10
+    );
+
+    assertThat(response.content()).hasSize(1);
+    assertThat(response.hasNext()).isFalse();
   }
 }

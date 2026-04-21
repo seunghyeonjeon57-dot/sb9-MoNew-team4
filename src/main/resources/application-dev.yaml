@@ -3,20 +3,23 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: jdbc:postgresql://localhost:5433/monew
+    username: postgres
+    password: monew1234 # 실제 로컬 DB 비밀번호
     driver-class-name: org.postgresql.Driver
   data:
     mongodb:
       uri: mongodb://localhost:27017/monew_db
 
-# 로컬 테스트용 S3
+# 로컬에서도 S3 기능을 실환경과 동일하게 테스트하기 위한 설정
 cloud:
   aws:
-    s3:
-      bucket: ${AWS_S3_BUCKET_NAME}
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
     region:
       static: ${AWS_REGION}
+    s3:
+      bucket: ${AWS_S3_BUCKET_NAME}
     stack:
       auto: false

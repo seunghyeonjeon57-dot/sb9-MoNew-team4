@@ -3,7 +3,9 @@ package com.example.monew.domain.comment.dto;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
+import lombok.Builder;
 
+@Builder
 public record CommentRegisterRequest(
     UUID articleId,
     UUID userId,

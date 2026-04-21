@@ -1,18 +1,13 @@
 spring:
   profiles:
-    active: dev
+    active: dev # 기본 실행 환경을 dev로 지정
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
-    driver-class-name: org.postgresql.Driver
+    driver-class-name: org.postgresql.Driver # 모든 환경 공통 드라이버
 
   jpa:
-    hibernate:
-      ddl-auto: create
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: true
+    show-sql: true # 쿼리 확인을 위해 공통 적용 (운영 시 prod에서 끌 수 있음)
     properties:
       hibernate:
         format_sql: true
@@ -31,23 +26,14 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [%X{request_id}] [%X{client_ip}] %msg%n"
 
-cloud:
-  aws:
-    credentials:
-      access-key: ${AWS_ACCESS_KEY}
-      secret-key: ${AWS_SECRET_KEY}
-    region:
-      static: ${AWS_REGION}
-    s3:
-      bucket: ${AWS_BUCKET_NAME}
-
-# 아래는 뉴스 관련 설정 그대로 두시면 됩니다.
+# 뉴스 소스는 모든 환경 공통이므로 여기에 둡니다.
 news:
-  rss:
-    sources:
-      - name: "한국경제"
-        url: "https://www.hankyung.com/feed/all-news"
-      - name: "조선일보"
-        url: "https://www.chosun.com/arc/outboundfeeds/rss/category/all-posts/"
-      - name: "연합뉴스"
-        url: "https://www.yonhapnewstv.co.kr/browse/feed/"
+    api:
+      naver:
+        client-id: ${NAVER_CLIENT_ID}
+        client-secret: ${NAVER_CLIENT_SECRET}
+        url: "https://openapi.naver.com/v1/search/news.json"
+    rss:
+      hankyung: ${RSS_URL_HANKYUNG:https://www.hankyung.com/feed/all-news}
+      chosun: ${RSS_URL_CHOSUN:https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml}
+      yonhap: ${RSS_URL_YONHAP:https://www.yna.co.kr/rss/news.xml}

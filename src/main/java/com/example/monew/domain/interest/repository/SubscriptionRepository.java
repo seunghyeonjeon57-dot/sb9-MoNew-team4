@@ -20,6 +20,9 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
 
   List<Subscription> findAllByUserId(UUID userId);
 
+  @Query("SELECT s.interestId FROM Subscription s WHERE s.userId = :userId")
+  List<UUID> findInterestIdsByUserId(@Param("userId") UUID userId);
+
   @Query("SELECT s.interestId FROM Subscription s "
       + "WHERE s.userId = :userId AND s.interestId IN :interestIds")
   Set<UUID> findInterestIdsByUserIdAndInterestIdIn(

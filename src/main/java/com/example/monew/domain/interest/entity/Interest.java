@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.util.StringUtils;
@@ -34,6 +35,7 @@ public class Interest extends BaseEntity {
   @Column(nullable = false)
   private long subscriberCount = 0L;
 
+  @Builder
   public Interest(String name, List<String> keywords) {
     if (!StringUtils.hasText(name)) {
       throw new IllegalArgumentException("관심사 이름은 비어 있을 수 없습니다.");

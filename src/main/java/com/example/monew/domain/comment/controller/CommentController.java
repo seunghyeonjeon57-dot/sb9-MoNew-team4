@@ -3,20 +3,23 @@ package com.example.monew.domain.comment.controller;
 import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
 import com.example.monew.domain.comment.dto.CommentUpdateRequest;
-import com.example.monew.domain.comment.entity.CommentEntity;
+import com.example.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.example.monew.domain.comment.service.CommentService;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -36,7 +39,7 @@ public class CommentController {
   @PatchMapping("/{commentId}")
   public ResponseEntity<CommentDto> updateComment(
       @PathVariable UUID commentId,
-      @RequestHeader("Monew-Request-User-Id") UUID userId,
+      @RequestHeader("Monew-Request-User-ID") UUID userId,
       @RequestBody CommentUpdateRequest request
   ){
     CommentDto comment = commentService.updateComment(commentId, userId, request);
@@ -53,9 +56,44 @@ public class CommentController {
 
   @DeleteMapping("/{commentId}/hard")
   public ResponseEntity<Void> hardDeleteComment(
-      @PathVariable UUID commentID
+      @PathVariable UUID commentId
   ){
-    commentService.hardDeleteComment(commentID);
+    commentService.hardDeleteComment(commentId);
     return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/{commentId}/comment-likes")
+  public ResponseEntity<Void> addCommentLike(
+      @PathVariable UUID commentId,
+      @RequestHeader("Monew-Request-User-ID") UUID userId
+  ) {
+    commentService.addLike(commentId, userId);
+    return ResponseEntity.ok().build();
+  }
+
+  @DeleteMapping("/{commentId}/comment-likes")
+  public ResponseEntity<Void> removeCommentLike(
+      @PathVariable UUID commentId,
+      @RequestHeader("Monew-Request-User-ID") UUID userId
+  ) {
+    commentService.removeLike(commentId, userId);
+    return ResponseEntity.ok().build();
+  }
+
+  @GetMapping
+  public ResponseEntity<CursorPageResponseCommentDto> getArticleComments(
+      @RequestParam UUID articleId,
+      @RequestParam String orderBy,
+      @RequestParam String direction,
+      @RequestParam(required = false) UUID cursor,
+      @RequestParam(required = false)LocalDateTime after,
+      @RequestParam int limit,
+      @RequestHeader("Monew-Request-User-ID") UUID userId
+  ) {
+    CursorPageResponseCommentDto request = commentService.getArticleComments(
+        articleId, cursor, after, null, orderBy, limit
+    );
+
+    return ResponseEntity.ok(request);
   }
 }

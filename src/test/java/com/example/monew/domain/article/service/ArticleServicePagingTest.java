@@ -31,7 +31,7 @@ class ArticleServicePagingTest {
   ArticleService articleService;
 
   @Test
-  @DisplayName("커서 페에징 성공(서비스)")
+  @DisplayName("커서 페이징 성공(서비스)")
   void PagingTest() {
 
     UUID id1 = UUID.randomUUID();
