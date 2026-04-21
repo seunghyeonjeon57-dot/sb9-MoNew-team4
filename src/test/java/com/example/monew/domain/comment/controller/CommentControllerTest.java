@@ -2,8 +2,10 @@ package com.example.monew.domain.comment.controller;
 
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
 import com.example.monew.domain.comment.dto.CommentUpdateRequest;
+import com.example.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.example.monew.domain.comment.service.CommentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,11 +16,17 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // RED 원인: CommentController 클래스가 없어서 컴파일 에러 발생
 @WebMvcTest(CommentController.class)
@@ -101,12 +109,34 @@ class CommentControllerTest {
     UUID articleId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
 
+    CursorPageResponseCommentDto mockResponse = new CursorPageResponseCommentDto(
+        List.of(),
+        null,
+        null,
+        50,
+        null,
+        false
+    );
+
+    given(commentService.getArticleComments(
+        eq(articleId),
+        eq(userId),
+        isNull(),
+        isNull(),
+        isNull(),
+        eq("likeCount"),
+        eq(50)
+    )).willReturn(mockResponse);
+
     mockMvc.perform(get("/api/comments")
             .header("Monew-Request-User-ID", userId.toString())
             .param("articleId", articleId.toString())
             .param("orderBy", "likeCount")
             .param("direction", "DESC")
             .param("limit", "50"))
-        .andExpect(status().isOk());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.size").value(50))
+        .andExpect(jsonPath("$.hasNext").value(false))
+        .andDo(print());;
   }
 }

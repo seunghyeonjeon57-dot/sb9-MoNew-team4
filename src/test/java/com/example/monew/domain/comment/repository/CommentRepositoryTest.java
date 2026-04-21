@@ -6,7 +6,7 @@ import com.example.monew.config.JpaAuditConfig;
 import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
-import com.example.monew.domain.comment.dto.CommentActivityDto;
+import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
@@ -153,8 +153,6 @@ public class CommentRepositoryTest {
         .build();
     userRepository.save(user);
 
-    userRepository.save(user);
-
     ArticleEntity article = ArticleEntity.builder()
         .source("출처")
         .sourceUrl("url" + UUID.randomUUID())
@@ -169,18 +167,18 @@ public class CommentRepositoryTest {
         .articleId(article.getId())
         .userId(user.getId())
         .content("댓글 1")
-        .likeCount(0L)
+        .likeCount(10L)
         .build();
     CommentEntity c2 = CommentEntity.builder()
         .articleId(article.getId())
         .userId(user.getId())
-        .content("댓글 1")
-        .likeCount(0L)
+        .content("댓글 2")
+        .likeCount(5L)
         .build();
     CommentEntity c3 = CommentEntity.builder()
         .articleId(article.getId())
         .userId(user.getId())
-        .content("댓글 1")
+        .content("댓글 3")
         .likeCount(0L)
         .build();
     commentRepository.saveAll(List.of(c1, c2, c3));
@@ -188,22 +186,31 @@ public class CommentRepositoryTest {
     em.flush();
     em.clear();
 
-    List<CommentActivityDto> result = commentRepository.findCommentsByArticleWithCursor(
-        article.getId(), null, null, null, "LIKES", 10
+    List<CommentDto> result = commentRepository.findCommentsByArticleWithCursor(
+        article.getId(),
+        null,
+        null,
+        null,
+        null,
+        "LIKES",
+        10
     );
 
     assertThat(result).hasSize(3);
+    assertThat(result).hasSize(3);
+    assertThat(result.get(0).likeCount()).isEqualTo(10L);
+    assertThat(result.get(1).likeCount()).isEqualTo(5L);
+    assertThat(result.get(2).likeCount()).isEqualTo(0L);
   }
 
   @Test
   @DisplayName("특정 기사의 댓글 목록을 최신순으로 커서 페이징 조회한다")
-  void findCommentsByArticleId_OrderByDate() {
+  void findCommentsByArticleId_OrderByDate() throws InterruptedException{
     User user = User.builder()
         .nickname("테스트닉네임2")
         .email("test2@test.com")
         .password("password")
         .build();
-    userRepository.save(user);
     userRepository.save(user);
 
     ArticleEntity article = ArticleEntity.builder()
@@ -219,16 +226,48 @@ public class CommentRepositoryTest {
     CommentEntity c1 = CommentEntity.builder()
         .articleId(article.getId())
         .userId(user.getId())
-        .content("최신 댓글")
+        .content("가장 오래된 댓글")
         .likeCount(0L)
         .build();
     commentRepository.save(c1);
 
+    Thread.sleep(10);
+
+    CommentEntity c2 = CommentEntity.builder()
+        .articleId(article.getId())
+        .userId(user.getId())
+        .content("중간 댓글")
+        .likeCount(0L)
+        .build();
+    commentRepository.save(c2);
+
+    Thread.sleep(10);
+
+    CommentEntity c3 = CommentEntity.builder()
+        .articleId(article.getId())
+        .userId(user.getId())
+        .content("가장 최신 댓글")
+        .likeCount(0L)
+        .build();
+    commentRepository.save(c3);
+
     em.flush();
     em.clear();
-    List<CommentActivityDto> result = commentRepository.findCommentsByArticleWithCursor(
-        article.getId(), null, null, null, "DATE", 10
+
+    List<CommentDto> result = commentRepository.findCommentsByArticleWithCursor(
+        article.getId(),
+        null,
+        null,
+        null,
+        null,
+        "DATE",
+        10
     );
+
+    assertThat(result).hasSize(3);
+
+    assertThat(result.get(0).content()).isEqualTo("가장 최신 댓글");
+    assertThat(result.get(2).content()).isEqualTo("가장 오래된 댓글");
 
     assertThat(result).isSortedAccordingTo((a, b) -> b.createdAt().compareTo(a.createdAt()));
   }

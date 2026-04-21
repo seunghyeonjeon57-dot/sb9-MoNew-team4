@@ -3,7 +3,10 @@ package com.example.monew.domain.comment.service;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.repository.ArticleRepository;
-import com.example.monew.domain.comment.dto.*;
+import com.example.monew.domain.comment.dto.CommentDto;
+import com.example.monew.domain.comment.dto.CommentRegisterRequest;
+import com.example.monew.domain.comment.dto.CommentUpdateRequest;
+import com.example.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.comment.entity.CommentLikeEntity;
 import com.example.monew.domain.comment.exception.CommentAccessDenied;
@@ -12,21 +15,23 @@ import com.example.monew.domain.comment.exception.CommentNotFoundException;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -100,7 +105,7 @@ public class CommentServiceTest {
         .content("수정 내용")
         .build();
 
-    given(commentRepository.findById(fakeCommentId)).willReturn(Optional.empty());
+    given(commentRepository.findByIdAndDeletedAtIsNull(fakeCommentId)).willReturn(Optional.empty());
 
 
     assertThatThrownBy(() -> commentService.updateComment(fakeCommentId, userId, request))
@@ -125,7 +130,8 @@ public class CommentServiceTest {
         .likeCount(0L)
         .build();
 
-    given(commentRepository.findById(commentId)).willReturn(Optional.of(existingComment));
+    given(commentRepository.findByIdAndDeletedAtIsNull(any(UUID.class)))
+        .willReturn(Optional.of(existingComment));
 
     assertThatThrownBy(() -> commentService.updateComment(commentId, requesterId, request))
         .isInstanceOf(CommentAccessDenied.class)
@@ -146,7 +152,7 @@ public class CommentServiceTest {
         .likeCount(0L)
         .build();
 
-    given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+    given(commentRepository.findByIdAndDeletedAtIsNull(commentId)).willReturn(Optional.of(comment));
 
     commentService.softDeleteComment(commentId);
 
@@ -187,7 +193,7 @@ public class CommentServiceTest {
         .likeCount(0L)
         .build();
 
-    given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+    given(commentRepository.findByIdAndDeletedAtIsNull(commentId)).willReturn(Optional.of(comment));
 
     given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(false);
 
@@ -210,7 +216,7 @@ public class CommentServiceTest {
         .likeCount(0L)
         .build();
 
-    given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+    given(commentRepository.findByIdAndDeletedAtIsNull(commentId)).willReturn(Optional.of(comment));
 
     given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(true);
 
@@ -223,64 +229,97 @@ public class CommentServiceTest {
   @DisplayName("뉴스 기사 별 댓글 조회 시 좋아요 순 정렬과 커서 페이징이 정상 동작한다.")
   void getArticleComments_LikesSort_Success() {
     UUID articleId = UUID.randomUUID();
+    UUID currentUserId = UUID.randomUUID();
+
     given(articleRepository.existsById(any(UUID.class))).willReturn(true);
-    CommentActivityDto comment1 = CommentActivityDto.builder()
-        .id(UUID.randomUUID())
-        .articleId(articleId)
-        .articleTitle("title")
-        .userId(UUID.randomUUID())
-        .userNickname("nick")
-        .content("content")
-        .likeCount(10L)
-        .createdAt(LocalDateTime.now())
-        .build();
 
-    CommentActivityDto comment2 = CommentActivityDto.builder()
-        .id(UUID.randomUUID())
-        .articleId(articleId)
-        .articleTitle("title")
-        .userId(UUID.randomUUID())
-        .userNickname("nick")
-        .content("content")
-        .likeCount(5L)
-        .createdAt(LocalDateTime.now())
-        .build();
+    CommentDto comment1 = new CommentDto(
+        UUID.randomUUID(),
+        articleId,
+        UUID.randomUUID(),
+        "test",
+        "content",
+        10L,
+        true,
+        LocalDateTime.now()
+    );
 
-    List<CommentActivityDto> mockResult = List.of(comment1, comment2);
-    given(commentRepository.findCommentsByArticleWithCursor(eq(articleId), any(), any(), any(), eq("LIKES"), eq(1)))
-        .willReturn(mockResult);
+    CommentDto comment2 = new CommentDto(
+        UUID.randomUUID(),
+        articleId,
+        UUID.randomUUID(),
+        "test",
+        "content",
+        5L,
+        false,
+        LocalDateTime.now()
+    );
+
+    List<CommentDto> mockResult = List.of(comment1, comment2);
+
+    given(commentRepository.findCommentsByArticleWithCursor(
+        eq(articleId),
+        eq(currentUserId),
+        isNull(),
+        isNull(),
+        isNull(),
+        eq("LIKES"),
+        eq(2)
+    )).willReturn(mockResult);
 
     CursorPageResponseCommentDto response = commentService.getArticleComments(
-        articleId, null, null, null, "LIKES", 1
+        articleId,
+        currentUserId,
+        null,
+        null,
+        null,
+        "LIKES",
+        1
     );
     assertThat(response.content()).hasSize(1);
     assertThat(response.hasNext()).isTrue();
-    assertThat(response.nextCursor()).isEqualTo(mockResult.get(0).id().toString());
+    assertThat(response.nextCursor()).isEqualTo(comment1.id().toString());
   }
 
   @Test
   @DisplayName("뉴스 기사 별 댓글 조회 시 날짜 순 정렬과 커서 페이징이 정상 동작한다.")
   void getArticleComments_DateSort_Success() {
     UUID articleId = UUID.randomUUID();
-    given(articleRepository.existsById(any(UUID.class))).willReturn(true);
-    CommentActivityDto comment = CommentActivityDto.builder()
-        .id(UUID.randomUUID())
-        .articleId(articleId)
-        .articleTitle("title")
-        .userId(UUID.randomUUID())
-        .userNickname("nick")
-        .content("content")
-        .likeCount(1L)
-        .createdAt(LocalDateTime.now())
-        .build();
+    UUID currentUserId = UUID.randomUUID();
 
-    List<CommentActivityDto> mockResult = List.of(comment);
+    given(articleRepository.existsById(articleId)).willReturn(true);
 
-    given(commentRepository.findCommentsByArticleWithCursor(eq(articleId), any(), any(), any(), eq("DATE"), eq(10)))
-        .willReturn(mockResult);
+    CommentDto comment = new CommentDto(
+        UUID.randomUUID(),
+        articleId,
+        UUID.randomUUID(),
+        "test",
+        "content",
+        1L,
+        false,
+        LocalDateTime.now()
+    );
+
+    List<CommentDto> mockResult = List.of(comment);
+
+    given(commentRepository.findCommentsByArticleWithCursor(
+        eq(articleId),
+        eq(currentUserId),
+        isNull(),
+        isNull(),
+        isNull(),
+        eq("DATE"),
+        eq(11)
+    )).willReturn(mockResult);
 
     CursorPageResponseCommentDto response = commentService.getArticleComments(
-        articleId, null, null, null, "DATE", 10
+        articleId,
+        currentUserId,
+        null,
+        null,
+        null,
+        "DATE",
+        10
     );
 
     assertThat(response.content()).hasSize(1);

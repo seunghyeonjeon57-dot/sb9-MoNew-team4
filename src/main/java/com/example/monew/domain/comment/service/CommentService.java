@@ -2,7 +2,6 @@ package com.example.monew.domain.comment.service;
 
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.repository.ArticleRepository;
-import com.example.monew.domain.comment.dto.CommentActivityDto;
 import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
 import com.example.monew.domain.comment.dto.CommentUpdateRequest;
@@ -54,7 +53,7 @@ public class CommentService {
   @Transactional
   public CommentDto updateComment(UUID commentId, UUID userId, CommentUpdateRequest request){
     log.info("댓글 수정 시도: commentId={}, userId={}", commentId, userId);
-    CommentEntity comment = commentRepository.findById(commentId)
+    CommentEntity comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(() -> {
           log.warn("댓글 수정 실패: 존재하지 않는 댓글입니다. commentId={}", commentId);
           return new CommentNotFoundException(ErrorCode.COMMENT_NOT_FOUND);
@@ -75,7 +74,7 @@ public class CommentService {
   public void softDeleteComment(UUID commentId){
     log.info("댓글 논리 삭제 시도: commentId={}", commentId);
 
-    CommentEntity comment = commentRepository.findById(commentId)
+    CommentEntity comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(() -> {
           log.warn("댓글 논리 삭제 실패: 존재하지 않는 댓글 CommentID={}", commentId);
           return new CommentNotFoundException(ErrorCode.COMMENT_NOT_FOUND);
@@ -90,7 +89,7 @@ public class CommentService {
   public void hardDeleteComment(UUID commentId){
     log.info("댓글 물리 삭제 시도: commentId={}", commentId);
 
-    CommentEntity comment = commentRepository.findById(commentId)
+    CommentEntity comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(() -> {
           log.warn("댓글 물리 삭제 실패: 존재 하지 않는 댓글 commentId={}", commentId);
           return new CommentNotFoundException(ErrorCode.COMMENT_NOT_FOUND);
@@ -118,7 +117,7 @@ public class CommentService {
   @Transactional
   public void addLike(UUID commentId, UUID userId) {
     log.info("좋아요 추가 시도: userId={}, commentId={}", userId, commentId);
-    CommentEntity comment = commentRepository.findById(commentId)
+    CommentEntity comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(() -> {
           log.warn("좋아요 추가 실패: 존재하지 않는 댓글 ID={}", commentId);
           return new CommentNotFoundException(ErrorCode.COMMENT_NOT_FOUND);
@@ -144,7 +143,7 @@ public class CommentService {
   public void removeLike(UUID commentId, UUID userId) {
     log.info("좋아요 취소 시도: userId={}, commentId={}", userId, commentId);
 
-    CommentEntity comment = commentRepository.findById(commentId)
+    CommentEntity comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(() -> {
           log.warn("좋아요 취소 실패: 존재하지 않는 댓글 ID={}", commentId);
           return new CommentNotFoundException(ErrorCode.COMMENT_NOT_FOUND);
@@ -165,6 +164,7 @@ public class CommentService {
   @Transactional(readOnly = true)
   public CursorPageResponseCommentDto getArticleComments(
       UUID articleId,
+      UUID currentUserId,
       UUID cursorId,
       LocalDateTime cursorCreatedAt,
       Long cursorLikeCount,
@@ -178,9 +178,9 @@ public class CommentService {
       throw new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
     }
 
-    List<CommentActivityDto> comments = new ArrayList<>(
+    List<CommentDto> comments = new ArrayList<>(
         commentRepository.findCommentsByArticleWithCursor(
-            articleId, cursorId, cursorCreatedAt, cursorLikeCount, sort, size
+            articleId, currentUserId, cursorId, cursorCreatedAt, cursorLikeCount, sort, size + 1
         )
     );
 
@@ -193,7 +193,7 @@ public class CommentService {
     LocalDateTime nextAfter = null;
 
     if(!comments.isEmpty()) {
-      CommentActivityDto lastComment = comments.get(comments.size() - 1);
+      CommentDto lastComment = comments.get(comments.size() - 1);
       nextCursor = lastComment.id().toString();
       nextAfter = lastComment.createdAt();
     }

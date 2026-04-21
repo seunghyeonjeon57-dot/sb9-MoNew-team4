@@ -86,12 +86,19 @@ public class CommentController {
       @RequestParam String orderBy,
       @RequestParam String direction,
       @RequestParam(required = false) UUID cursor,
-      @RequestParam(required = false)LocalDateTime after,
+      @RequestParam(required = false) LocalDateTime after,
+      @RequestParam(required = false) Long cursorLikeCount,
       @RequestParam int limit,
-      @RequestHeader("Monew-Request-User-ID") UUID userId
+      @RequestHeader(value = "Monew-Request-User-ID", required = false) UUID userId
   ) {
     CursorPageResponseCommentDto request = commentService.getArticleComments(
-        articleId, cursor, after, null, orderBy, limit
+        articleId,
+        userId,
+        cursor,
+        after,
+        cursorLikeCount,
+        orderBy,
+        limit
     );
 
     return ResponseEntity.ok(request);

@@ -1,12 +1,18 @@
 package com.example.monew.domain.comment.repository;
 
+import static com.example.monew.domain.comment.entity.QCommentLikeEntity.commentLikeEntity;
+
 import com.example.monew.domain.article.entity.QArticleEntity;
 import com.example.monew.domain.comment.dto.CommentActivityDto;
+import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.entity.QCommentEntity;
 import com.example.monew.domain.user.entity.QUser;
 import com.example.monew.domain.user.entity.type.UserStatus;
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.querydsl.jpa.impl.JPAQuery;
 import jakarta.persistence.EntityManager;
@@ -21,6 +27,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
   private final JPAQueryFactory queryFactory;
   private final QCommentEntity comment = QCommentEntity.commentEntity;
   private final QArticleEntity article = QArticleEntity.articleEntity;
+  private final QUser user = QUser.user;
 
   public CommentRepositoryImpl(EntityManager em) {
     this.queryFactory = new JPAQueryFactory(em);
@@ -34,42 +41,46 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
   }
 
   @Override
-  public List<CommentActivityDto> findCommentsByArticleWithCursor(
-      UUID articleId, UUID cursorId, LocalDateTime cursorCreatedAt, Long cursorLikeCount, String sort, int size
+  public List<CommentDto> findCommentsByArticleWithCursor(
+      UUID articleId,
+      UUID currentUserId,
+      UUID cursorId,
+      LocalDateTime cursorCreatedAt,
+      Long cursorLikeCount,
+      String sort,
+      int size
   ) {
-    QCommentEntity comment = QCommentEntity.commentEntity;
-    QArticleEntity article = QArticleEntity.articleEntity;
-    QUser user = QUser.user;
 
-    JPAQuery<CommentActivityDto> query = queryFactory
-        .select(Projections.constructor(CommentActivityDto.class,
+    BooleanExpression isLikedByMe = currentUserId != null ?
+        JPAExpressions.selectOne()
+            .from(commentLikeEntity)
+            .where(commentLikeEntity.commentId.eq(comment.id)
+                .and(commentLikeEntity.userId.eq(currentUserId)))
+            .exists()
+        : Expressions.asBoolean(false);
+
+    return queryFactory
+        .select(Projections.constructor(CommentDto.class,
             comment.id,
-            article.id.as("articleId"),
-            article.title.as("articleTitle"),
-            user.id.as("userId"),
-            user.nickname.as("userNickname"),
+            comment.articleId,
+            user.id,
+            user.nickname,
             comment.content,
             comment.likeCount,
+            isLikedByMe,
             comment.createdAt
         ))
         .from(comment)
-        .join(article).on(comment.articleId.eq(article.id)
-            .and(isArticleNotDeleted()))
-        .join(user).on(comment.userId.eq(user.id)
-            .and(user.status.eq(UserStatus.ACTIVE)))
+        .join(user).on(comment.userId.eq(user.id))
+        .join(article).on(comment.articleId.eq(article.id))
         .where(
             comment.articleId.eq(articleId),
-            isNotDeleted(),
-            cursorCondition(sort, cursorId, cursorCreatedAt, cursorLikeCount)
+            isArticleNotDeleted(),
+            getCursorCondition(cursorId, cursorCreatedAt, cursorLikeCount, sort)
         )
-        .limit(size + 1);
-
-    if("LIKES".equalsIgnoreCase(sort)){
-      query.orderBy(comment.likeCount.desc(), comment.createdAt.desc(), comment.id.desc());
-    } else {
-      query.orderBy(comment.createdAt.desc(), comment.id.desc());
-    }
-    return query.fetch();
+        .orderBy(getSortOrder(sort))
+        .limit(size)
+        .fetch();
   }
 
 
@@ -89,21 +100,40 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
         .execute();
   }
 
-  private BooleanExpression cursorCondition(String sort, UUID cursorId, LocalDateTime cursorCreatedAt, Long cursorLikeCount) {
-    if(cursorId == null) {
+  private BooleanExpression getCursorCondition(UUID cursorId, LocalDateTime cursorCreatedAt, Long cursorLikeCount, String sort) {
+    if (cursorId == null) {
       return null;
     }
+    // 좋아요 순 정렬일 때의 커서 조건
+    if ("likeCount".equals(sort)) {
+      if (cursorLikeCount == null || cursorCreatedAt == null) return null;
 
-    QCommentEntity comment = QCommentEntity.commentEntity;
-
-    if("LIKES".equalsIgnoreCase(sort) && cursorLikeCount != null) {
       return comment.likeCount.lt(cursorLikeCount)
           .or(comment.likeCount.eq(cursorLikeCount).and(comment.createdAt.lt(cursorCreatedAt)))
           .or(comment.likeCount.eq(cursorLikeCount).and(comment.createdAt.eq(cursorCreatedAt)).and(comment.id.lt(cursorId)));
     }
 
+    // 기본 정렬(최신순)일 때의 커서 조건
+    if (cursorCreatedAt == null) return null;
+
     return comment.createdAt.lt(cursorCreatedAt)
         .or(comment.createdAt.eq(cursorCreatedAt).and(comment.id.lt(cursorId)));
+  }
+
+  private OrderSpecifier<?>[] getSortOrder(String sort) {
+    // 좋아요 순 정렬
+    if ("likeCount".equals(sort)) {
+      return new OrderSpecifier<?>[]{
+          comment.likeCount.desc(),
+          comment.createdAt.desc(),
+          comment.id.desc()
+      };
+    }
+    // 기본 정렬: 최신순
+    return new OrderSpecifier<?>[]{
+        comment.createdAt.desc(),
+        comment.id.desc()
+    };
   }
 }
 
