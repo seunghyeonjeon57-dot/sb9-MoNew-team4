@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.domain.user.entity.User;
@@ -76,6 +77,7 @@ class InterestApiIntegrationTest {
 
     mockMvc.perform(get("/api/interests")
             .header(USER_HEADER, userId.toString())
+            .param("keyword", "풀플로우관심사")
             .param("orderBy", "name")
             .param("direction", "ASC")
             .param("limit", "20"))
@@ -88,6 +90,7 @@ class InterestApiIntegrationTest {
 
     mockMvc.perform(get("/api/interests")
             .header(USER_HEADER, userId.toString())
+            .param("keyword", "풀플로우관심사")
             .param("orderBy", "name")
             .param("direction", "ASC")
             .param("limit", "20"))
@@ -198,6 +201,66 @@ class InterestApiIntegrationTest {
             .header(USER_HEADER, UUID.randomUUID().toString()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("INTEREST_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("커서 페이지네이션: 25건 시드 후 limit=10 으로 3페이지 이동 (10 + 10 + 5, hasNext 전이)")
+  void cursorPagination_movesAcrossPages() throws Exception {
+    UUID userId = UUID.randomUUID();
+    String prefix = "MON127paging_" + System.nanoTime() + "_";
+    // Repository 직접 저장 (컨트롤러 POST 경유 시 유사도 80% 차단에 걸려 시드 불가)
+    for (int i = 0; i < 25; i++) {
+      String name = prefix + String.format("%02d", i);
+      interestRepository.saveAndFlush(
+          Interest.builder().name(name).keywords(List.of("k" + i)).build());
+    }
+
+    MvcResult p1 = mockMvc.perform(get("/api/interests")
+            .header(USER_HEADER, userId.toString())
+            .param("keyword", prefix)
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "10"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(10))
+        .andExpect(jsonPath("$.totalElements").value(25))
+        .andExpect(jsonPath("$.hasNext").value(true))
+        .andExpect(jsonPath("$.content[0].name").value(prefix + "00"))
+        .andExpect(jsonPath("$.content[9].name").value(prefix + "09"))
+        .andReturn();
+    String cursor1 = objectMapper.readTree(p1.getResponse().getContentAsString())
+        .get("nextCursor").asText();
+
+    MvcResult p2 = mockMvc.perform(get("/api/interests")
+            .header(USER_HEADER, userId.toString())
+            .param("keyword", prefix)
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "10")
+            .param("cursor", cursor1))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(10))
+        .andExpect(jsonPath("$.totalElements").value(25))
+        .andExpect(jsonPath("$.hasNext").value(true))
+        .andExpect(jsonPath("$.content[0].name").value(prefix + "10"))
+        .andExpect(jsonPath("$.content[9].name").value(prefix + "19"))
+        .andReturn();
+    String cursor2 = objectMapper.readTree(p2.getResponse().getContentAsString())
+        .get("nextCursor").asText();
+
+    mockMvc.perform(get("/api/interests")
+            .header(USER_HEADER, userId.toString())
+            .param("keyword", prefix)
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "10")
+            .param("cursor", cursor2))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(5))
+        .andExpect(jsonPath("$.totalElements").value(25))
+        .andExpect(jsonPath("$.hasNext").value(false))
+        .andExpect(jsonPath("$.content[0].name").value(prefix + "20"))
+        .andExpect(jsonPath("$.content[4].name").value(prefix + "24"));
   }
 
   @Test
