@@ -12,12 +12,15 @@ import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.entity.Subscription;
 import com.example.monew.domain.interest.exception.DuplicateSubscriptionException;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
+import com.example.monew.domain.interest.exception.SubscriberNotFoundException;
 import com.example.monew.domain.interest.exception.SubscriptionNotFoundException;
 import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -68,17 +71,51 @@ class InterestSubscriptionServiceTest {
   }
 
   @Test
-  @DisplayName("subscribe: DB unique 위반 → DuplicateSubscriptionException 변환")
+  @DisplayName("subscribe: UNIQUE(uk_user_interest) 위반 → DuplicateSubscriptionException(409)")
   void subscribeDuplicate() {
     Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
     UUID userId = UUID.randomUUID();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
     when(subscriptionRepository.saveAndFlush(any(Subscription.class)))
-        .thenThrow(new DataIntegrityViolationException("uk_user_interest"));
+        .thenThrow(dataIntegrityViolation("uk_user_interest"));
 
     assertThatThrownBy(() -> service.subscribe(interest.getId(), userId))
         .isInstanceOf(DuplicateSubscriptionException.class);
+  }
+
+  @Test
+  @DisplayName("subscribe: FK(fk_sub_user) 위반 → SubscriberNotFoundException(404)")
+  void subscribeFkUserViolation() {
+    Interest interest = Interest.builder().name("경제").keywords(List.of("금리")).build();
+    UUID userId = UUID.randomUUID();
+    when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
+        .thenReturn(Optional.of(interest));
+    when(subscriptionRepository.saveAndFlush(any(Subscription.class)))
+        .thenThrow(dataIntegrityViolation("fk_sub_user"));
+
+    assertThatThrownBy(() -> service.subscribe(interest.getId(), userId))
+        .isInstanceOf(SubscriberNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("subscribe: FK(fk_sub_interest) 위반(race) → InterestNotFoundException(404)")
+  void subscribeFkInterestViolation() {
+    Interest interest = Interest.builder().name("스포츠").keywords(List.of("축구")).build();
+    UUID userId = UUID.randomUUID();
+    when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
+        .thenReturn(Optional.of(interest));
+    when(subscriptionRepository.saveAndFlush(any(Subscription.class)))
+        .thenThrow(dataIntegrityViolation("fk_sub_interest"));
+
+    assertThatThrownBy(() -> service.subscribe(interest.getId(), userId))
+        .isInstanceOf(InterestNotFoundException.class);
+  }
+
+  private static DataIntegrityViolationException dataIntegrityViolation(String constraintName) {
+    ConstraintViolationException cve = new ConstraintViolationException(
+        constraintName, new SQLException(), constraintName);
+    return new DataIntegrityViolationException("constraint violation", cve);
   }
 
   @Test
