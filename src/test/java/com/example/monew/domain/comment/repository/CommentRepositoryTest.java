@@ -220,7 +220,7 @@ public class CommentRepositoryTest {
         .articleId(article.getId())
         .userId(user.getId())
         .content("최신 댓글")
-        .likeCount(0L) // 초기값 명시
+        .likeCount(0L)
         .build();
     commentRepository.save(c1);
 

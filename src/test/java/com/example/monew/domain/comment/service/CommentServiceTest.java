@@ -1,6 +1,7 @@
 package com.example.monew.domain.comment.service;
 
 import com.example.monew.domain.article.entity.ArticleEntity;
+import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.comment.dto.CommentActivityDto;
 import com.example.monew.domain.comment.dto.CommentDto;
@@ -9,6 +10,9 @@ import com.example.monew.domain.comment.dto.CommentUpdateRequest;
 import com.example.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.comment.entity.CommentLikeEntity;
+import com.example.monew.domain.comment.exception.CommentAccessDenied;
+import com.example.monew.domain.comment.exception.CommentDuplicateLike;
+import com.example.monew.domain.comment.exception.CommentNotFoundException;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
@@ -61,6 +65,11 @@ public class CommentServiceTest {
 
     ArticleEntity article = ArticleEntity.builder().build();
     given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article));
+    given(commentRepository.save(any(CommentEntity.class)))
+        .willAnswer(invocation -> {
+          CommentEntity comment = invocation.getArgument(0);
+          return comment;
+        });
 
     CommentDto result = commentService.registerComment(request);
 
@@ -82,8 +91,8 @@ public class CommentServiceTest {
 
 
     assertThatThrownBy(() -> commentService.registerComment(request))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("존재하지 않는 기사입니다.");
+        .isInstanceOf(ArticleNotFoundException.class)
+        .hasMessage("해당 기사를 찾을 수 없습니다.");
   }
 
   @Test
@@ -100,8 +109,8 @@ public class CommentServiceTest {
 
 
     assertThatThrownBy(() -> commentService.updateComment(fakeCommentId, userId, request))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("존재하지 않는 댓글입니다.");
+        .isInstanceOf(CommentNotFoundException.class)
+        .hasMessage("해당 댓글을 찾을 수 없습니다.");
   }
 
   @Test
@@ -124,8 +133,8 @@ public class CommentServiceTest {
     given(commentRepository.findById(commentId)).willReturn(Optional.of(existingComment));
 
     assertThatThrownBy(() -> commentService.updateComment(commentId, requesterId, request))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("댓글 수정 권한이 없습니다.");
+        .isInstanceOf(CommentAccessDenied.class)
+        .hasMessage("댓글 작성자만 삭제할 수 있습니다.");
   }
 
   @Test
@@ -212,7 +221,7 @@ public class CommentServiceTest {
     given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(true);
 
     assertThatThrownBy(() -> commentService.addLike(commentId, userId))
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(CommentDuplicateLike.class)
         .hasMessage("이미 좋아요를 누른 댓글입니다.");
   }
 
@@ -220,6 +229,7 @@ public class CommentServiceTest {
   @DisplayName("뉴스 기사 별 댓글 조회 시 좋아요 순 정렬과 커서 페이징이 정상 동작한다.")
   void getArticleComments_LikesSort_Success() {
     UUID articleId = UUID.randomUUID();
+    given(articleRepository.existsById(any(UUID.class))).willReturn(true);
     CommentActivityDto comment1 = CommentActivityDto.builder()
         .id(UUID.randomUUID())
         .articleId(articleId)
@@ -258,6 +268,7 @@ public class CommentServiceTest {
   @DisplayName("뉴스 기사 별 댓글 조회 시 날짜 순 정렬과 커서 페이징이 정상 동작한다.")
   void getArticleComments_DateSort_Success() {
     UUID articleId = UUID.randomUUID();
+    given(articleRepository.existsById(any(UUID.class))).willReturn(true);
     CommentActivityDto comment = CommentActivityDto.builder()
         .id(UUID.randomUUID())
         .articleId(articleId)

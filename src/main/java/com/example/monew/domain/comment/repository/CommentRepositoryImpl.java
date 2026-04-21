@@ -4,6 +4,7 @@ import com.example.monew.domain.article.entity.QArticleEntity;
 import com.example.monew.domain.comment.dto.CommentActivityDto;
 import com.example.monew.domain.comment.entity.QCommentEntity;
 import com.example.monew.domain.user.entity.QUser;
+import com.example.monew.domain.user.entity.type.UserStatus;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -35,19 +36,19 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
     JPAQuery<CommentActivityDto> query = queryFactory
         .select(Projections.constructor(CommentActivityDto.class,
             comment.id,
-            article.id,
-            //Expressions.constant(articleId),
-            article.title,
-            //Expressions.asString(""),
-            user.id,
-            user.nickname,
+            article.id.as("articleId"),
+            article.title.as("articleTitle"),
+            user.id.as("userId"),
+            user.nickname.as("userNickname"),
             comment.content,
             comment.likeCount,
             comment.createdAt
         ))
         .from(comment)
-        .join(article).on(comment.articleId.eq(article.id))
-        .join(user).on(comment.userId.eq(user.id))
+        .join(article).on(comment.articleId.eq(article.id)
+            .and(article.deletedAt.isNull()))
+        .join(user).on(comment.userId.eq(user.id)
+            .and(user.status.eq(UserStatus.ACTIVE)))
         .where(
             comment.articleId.eq(articleId),
             cursorCondition(sort, cursorId, cursorCreatedAt, cursorLikeCount)
