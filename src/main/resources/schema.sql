@@ -8,6 +8,7 @@ CREATE TABLE users
     email      VARCHAR(255) UNIQUE NOT NULL,
     nickname   VARCHAR(20)         NOT NULL,
     password   VARCHAR(255)        NOT NULL,
+    status     VARCHAR(20)         NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITHOUT TIME ZONE
@@ -118,3 +119,5 @@ CREATE TABLE notifications
 
     CONSTRAINT fk_noti_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_users_status_deleted_at ON users (status, deleted_at);

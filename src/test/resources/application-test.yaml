@@ -1,15 +1,37 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=PostgreSQL
+    # 에러 유발 옵션 제거 및 예약어(COMMENT, LIKE) 충돌 방지 옵션 추가
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DATABASE_TO_UPPER=FALSE;NON_KEYWORDS=COMMENT,LIKE
     driver-class-name: org.h2.Driver
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/test_db
+    username: sa
+    password:
+
+  batch:
+    jdbc:
+      initialize-schema: always
+    job:
+      enabled: false
+
   sql:
     init:
       mode: never
 
-  # [핵심 추가] 테스트 환경에서 시큐리티 자동 설정을 제외하여 401 에러를 원천 차단합니다.
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        # H2 대소문자 문제 방지를 위해 false 유지
+        globally_quoted_identifiers: false
+        dialect: org.hibernate.dialect.H2Dialect
+        physical_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/test_db
+
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
@@ -25,15 +47,17 @@ cloud:
     s3:
       bucket: test-bucket
 
-# [추가] NewsCollector가 사용하는 API 키 가짜 설정
 naver:
   client-id: dummy-id
   client-secret: dummy-secret
 
-# [추가] NewsBatchScheduler가 사용하는 RSS URL 가짜 설정
 news:
   rss:
     hankyung: http://test-url.com
     chosun: http://test-url.com
     yonhap: http://test-url.com
 
+logging:
+  level:
+    org.springframework.batch: DEBUG
+    org.hibernate.SQL: DEBUG

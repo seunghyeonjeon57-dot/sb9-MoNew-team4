@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +23,7 @@ import com.example.monew.domain.interest.exception.SimilarInterestNameException;
 import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.InterestRepositoryCustom.CursorPage;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -85,16 +87,49 @@ class InterestServiceTest {
   }
 
   @Test
-  @DisplayName("updateKeywords: 존재하는 ID → 키워드 교체 후 응답")
+  @DisplayName("updateKeywords: 비구독자 userId → 키워드 교체 후 subscribedByMe=false 응답")
   void updateKeywordsSuccess() {
+    Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
+    UUID userId = UUID.randomUUID();
+    when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
+        .thenReturn(Optional.of(interest));
+    when(subscriptionRepository.existsByInterestIdAndUserId(interest.getId(), userId))
+        .thenReturn(false);
+
+    InterestResponse response = interestService.updateKeywords(
+        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")), userId);
+
+    assertThat(response.keywords()).containsExactly("ML", "DL");
+    assertThat(response.subscribedByMe()).isFalse();
+  }
+
+  @Test
+  @DisplayName("updateKeywords: 구독자 userId → 응답 subscribedByMe=true")
+  void updateKeywords_subscriber_returnsSubscribedByMeTrue() {
+    Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
+    UUID userId = UUID.randomUUID();
+    when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
+        .thenReturn(Optional.of(interest));
+    when(subscriptionRepository.existsByInterestIdAndUserId(interest.getId(), userId))
+        .thenReturn(true);
+
+    InterestResponse response = interestService.updateKeywords(
+        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")), userId);
+
+    assertThat(response.subscribedByMe()).isTrue();
+  }
+
+  @Test
+  @DisplayName("updateKeywords: userId=null → subscribedByMe=false (헤더 없는 호출 방어)")
+  void updateKeywords_nullUserId_returnsSubscribedByMeFalse() {
     Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
 
     InterestResponse response = interestService.updateKeywords(
-        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")));
+        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")), null);
 
-    assertThat(response.keywords()).containsExactly("ML", "DL");
+    assertThat(response.subscribedByMe()).isFalse();
   }
 
   @Test
@@ -102,7 +137,8 @@ class InterestServiceTest {
   void updateKeywordsNameImmutable() {
     UUID id = UUID.randomUUID();
     assertThatThrownBy(() ->
-        interestService.updateKeywords(id, new InterestUpdateRequest("바뀐이름", List.of("ML"))))
+        interestService.updateKeywords(
+            id, new InterestUpdateRequest("바뀐이름", List.of("ML")), UUID.randomUUID()))
         .isInstanceOf(InterestNameImmutableException.class);
   }
 
@@ -113,7 +149,8 @@ class InterestServiceTest {
     when(interestRepository.findByIdAndDeletedAtIsNull(id)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() ->
-        interestService.updateKeywords(id, new InterestUpdateRequest(null, List.of("ML"))))
+        interestService.updateKeywords(
+            id, new InterestUpdateRequest(null, List.of("ML")), UUID.randomUUID()))
         .isInstanceOf(InterestNotFoundException.class);
   }
 
@@ -123,7 +160,7 @@ class InterestServiceTest {
     Interest a = Interest.builder().name("A").keywords(List.of("a")).build();
     Interest b = Interest.builder().name("B").keywords(List.of("b")).build();
     UUID userId = UUID.randomUUID();
-    when(interestRepository.findByCursor(any(), eq("name"), eq("ASC"), any(), anyInt()))
+    when(interestRepository.findByCursor(any(), eq("name"), eq("ASC"), any(), any(), anyInt()))
         .thenReturn(new CursorPage(List.of(a, b), 2L, false));
     when(subscriptionRepository.findInterestIdsByUserIdAndInterestIdIn(
         eq(userId), anyCollection()))
@@ -161,7 +198,7 @@ class InterestServiceTest {
   @DisplayName("getInterests: hasNext=true → nextCursor/nextAfter 가 페이지 마지막 원소 값으로 세팅")
   void getInterests_hasNext_fillsCursor() {
     Interest a = Interest.builder().name("A").keywords(List.of("a")).build();
-    when(interestRepository.findByCursor(any(), anyString(), anyString(), any(), anyInt()))
+    when(interestRepository.findByCursor(any(), anyString(), anyString(), any(), any(), anyInt()))
         .thenReturn(new CursorPage(List.of(a), 5L, true));
 
     CursorPageResponse<InterestResponse> page =
@@ -173,10 +210,10 @@ class InterestServiceTest {
   }
 
   @Test
-  @DisplayName("getInterests: hasNext=false → nextCursor/nextAfter=null")
+  @DisplayName("getInterests: hasNext=false → nextCursor/nextAfter=null + size == content.size()")
   void getInterests_lastPage_noNext() {
     Interest a = Interest.builder().name("A").keywords(List.of("a")).build();
-    when(interestRepository.findByCursor(any(), anyString(), anyString(), any(), anyInt()))
+    when(interestRepository.findByCursor(any(), anyString(), anyString(), any(), any(), anyInt()))
         .thenReturn(new CursorPage(List.of(a), 1L, false));
 
     CursorPageResponse<InterestResponse> page =
@@ -186,29 +223,44 @@ class InterestServiceTest {
     assertThat(page.nextCursor()).isNull();
     assertThat(page.nextAfter()).isNull();
     assertThat(page.content()).hasSize(1);
+    assertThat(page.size()).isEqualTo(page.content().size());
   }
 
   @Test
-  @DisplayName("getInterests: cursor 가 유효한 UUID 면 그대로 findByCursor 에 전달")
+  @DisplayName("getInterests: cursor 가 유효한 UUID 면 그대로 findByCursor 에 전달 (after=null)")
   void getInterests_withCursor_passesUuidThrough() {
     UUID cursor = UUID.randomUUID();
-    when(interestRepository.findByCursor(any(), anyString(), anyString(), eq(cursor), anyInt()))
+    when(interestRepository.findByCursor(
+        any(), anyString(), anyString(), eq(cursor), isNull(), anyInt()))
         .thenReturn(new CursorPage(List.of(), 0L, false));
 
     interestService.getInterests(null, "name", "ASC", cursor.toString(), null, 10, null);
 
-    verify(interestRepository).findByCursor(any(), eq("name"), eq("ASC"), eq(cursor), eq(10));
+    verify(interestRepository).findByCursor(
+        any(), eq("name"), eq("ASC"), eq(cursor), isNull(), eq(10));
   }
 
   @Test
-  @DisplayName("getInterests: cursor 가 잘못된 문자열이면 null 로 취급(첫 페이지)")
-  void getInterests_invalidCursor_treatedAsNull() {
-    when(interestRepository.findByCursor(any(), anyString(), anyString(), eq((UUID) null), anyInt()))
+  @DisplayName("getInterests: after 파라미터가 findByCursor 에 그대로 전달")
+  void getInterests_passesAfterToRepository() {
+    UUID cursor = UUID.randomUUID();
+    LocalDateTime after = LocalDateTime.of(2026, 4, 20, 12, 0);
+    when(interestRepository.findByCursor(
+        any(), anyString(), anyString(), eq(cursor), eq(after), anyInt()))
         .thenReturn(new CursorPage(List.of(), 0L, false));
 
-    interestService.getInterests(null, "name", "ASC", "not-a-uuid", null, 10, null);
+    interestService.getInterests(null, "name", "ASC", cursor.toString(), after, 10, null);
 
-    verify(interestRepository).findByCursor(any(), eq("name"), eq("ASC"), eq((UUID) null), eq(10));
+    verify(interestRepository).findByCursor(
+        any(), eq("name"), eq("ASC"), eq(cursor), eq(after), eq(10));
+  }
+
+  @Test
+  @DisplayName("getInterests: cursor 가 잘못된 문자열이면 InvalidSortParameterException (400)")
+  void getInterests_invalidCursor_throwsInvalidSortParameter() {
+    assertThatThrownBy(() ->
+        interestService.getInterests(null, "name", "ASC", "not-a-uuid", null, 10, null))
+        .isInstanceOf(InvalidSortParameterException.class);
   }
 
   @Test

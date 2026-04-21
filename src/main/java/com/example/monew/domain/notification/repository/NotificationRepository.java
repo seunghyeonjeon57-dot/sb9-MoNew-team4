@@ -41,4 +41,8 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
       @Param("cursor") UUID cursor,
       Pageable pageable
   );
+
+  @Modifying(clearAutomatically = true) // 영속성 컨텍스트 초기화 필수
+  @Query("delete from Notification n where n.userId = :userId")
+  void deleteAllByUserId(@Param("userId") UUID userId);
 }

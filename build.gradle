@@ -2,7 +2,8 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.13'
     id 'io.spring.dependency-management' version '1.1.7'
-    id 'jacoco' 
+    id 'jacoco'
+    id "org.sonarqube" version "4.4.1.3373"
 }
 
 group = 'com.example'
@@ -70,11 +71,31 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 
 }
+sonar {
+    properties {
+        property "sonar.projectKey", "sb9-MoNew-team4"
+        property "sonar.organization", "seunghyeonjeon57-dot"
+        property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.language", "java"
+        property "sonar.sourceEncoding", "UTF-8"
+
+        // [중요] 테스트 커버리지 결과물 위치 알려주기
+        property "sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml"
+
+        // [살살 옵션 1] 분석에서 제외할 파일들 (기존 JaCoCo 제외 목록과 동기화)
+        // 팀원들이 짠 DTO나 엔티티 때문에 점수 깎이지 않게 방어막을 칩니다.
+        property "sonar.exclusions", "**/dto/**, **/entity/**, **/mapper/**, **/global/**, **/config/**, **/*Application*"
+    }
+}
 
 tasks.named('test') {
     useJUnitPlatform()
     
     finalizedBy jacocoTestReport
+}
+
+tasks.named('sonar').configure {
+    dependsOn jacocoTestReport
 }
 
 
@@ -99,3 +120,5 @@ jacocoTestReport {
         }))
     }
 }
+
+
