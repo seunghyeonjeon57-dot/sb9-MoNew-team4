@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -20,33 +21,36 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class ArticleNotificationListener {
 
-  private final InterestRepository interestRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final NotificationService notificationService;
+  private final InterestRepository interestRepository; // 의존성 주입
 
   @Async
-  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  @EventListener
   public void handleArticleRegisteredEvent(ArticleRegisteredEvent event) {
 
-    // 1. 이름으로 관심사 엔티티 조회
-    interestRepository.findByNameAndDeletedAtIsNull(event.interestName())
-        .ifPresent(interest -> {
+    // 1. 코드를 확인해서 찾은 정확한 메서드 사용
+    Interest interest = interestRepository.findByNameAndDeletedAtIsNull(event.interestName())
+        .orElseThrow(() -> new IllegalArgumentException("존재하지 않거나 삭제된 관심사입니다: " + event.interestName()));
 
-          // 2. 담당자 가이드에 따라 '벌크 IN 쿼리'로 구독자 조회 (대칭 메서드 사용)
-          List<UUID> subscriberIds = subscriptionRepository.findUserIdsByInterestIdIn(
-              List.of(interest.getId())
-          );
+    // 2. 관심사 ID를 이용해 구독자 ID 목록 조회
+    List<UUID> subscriberIds = subscriptionRepository.findUserIdsByInterestIdIn(List.of(interest.getId()));
 
-          // 3. 알림 생성 및 발송
-          for (UUID userId : subscriberIds) {
-            notificationService.createNotification(new NotificationRequest(
-                userId,
-                String.format("[%s] 관심 분야의 새 기사가 등록되었습니다: %s",
-                    interest.getName(), event.articleTitle()),
-                ResourceType.INTEREST,
-                event.articleId()
-            ));
-          }
-        });
+    if (subscriberIds.isEmpty()) {
+      return;
+    }
+
+    // 3. 다건 알림 리스트 생성
+    List<NotificationRequest> requests = subscriberIds.stream()
+        .map(userId -> new NotificationRequest(
+            userId,
+            String.format("[%s]와 관련된 기사가 등록되었습니다.", interest.getName()),
+            ResourceType.INTEREST,
+            event.articleId()
+        ))
+        .toList();
+
+    // 4. 단 한 번의 호출로 N건 저장
+    notificationService.createNotifications(requests);
   }
 }

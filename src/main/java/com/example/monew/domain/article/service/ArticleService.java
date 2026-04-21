@@ -51,17 +51,16 @@ public class ArticleService {
     if (!articleRepository.existsBySourceUrl(article.getSourceUrl())) {
       articleRepository.save(article);
       log.debug("개별 뉴스 저장 완료 - URL: {}", article.getSourceUrl());
+
+      if (article.getInterest() != null && !article.getInterest().isBlank()) {
+        eventPublisher.publishEvent(new ArticleRegisteredEvent(
+            article.getId(),
+            article.getTitle(),
+            article.getInterest()
+        ));
+      }
     } else {
       log.debug("중복 뉴스 스킵 - URL: {}", article.getSourceUrl());
-    }
-
-
-    if (article.getInterest() != null && !article.getInterest().isBlank()) {
-      eventPublisher.publishEvent(new ArticleRegisteredEvent(
-          article.getId(),
-          article.getTitle(),
-          article.getInterest()
-      ));
     }
   }
 

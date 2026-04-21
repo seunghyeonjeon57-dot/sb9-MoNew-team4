@@ -35,13 +35,34 @@ public class NotificationService {
     return notificationRepository.save(notification).getId();
   }
 
+  @Transactional
+  public void createNotifications(List<NotificationRequest> requests) {
+    List<Notification> notifications = requests.stream()
+        .map(req -> Notification.builder()
+            .userId(req.userId())
+            .content(req.content())
+            .resourceType(req.resourceType())
+            .resourceId(req.resourceId())
+            .build())
+        .toList();
+
+    // saveAll을 사용하여 한 번에 DB에 저장 (성능 최적화)
+    notificationRepository.saveAll(notifications);
+  }
+
   @Transactional(readOnly = true)
   public CursorPageResponseNotificationDto getNotifications(UUID userId, String cursor, LocalDateTime after, int limit) {
     Pageable pageable = PageRequest.of(0, limit + 1);
     List<Notification> notifications;
 
-    // String으로 넘어온 커서를 UUID로 변환하여 처리
-    UUID cursorUuid = (cursor != null) ? UUID.fromString(cursor) : null;
+    UUID cursorUuid = null;
+    if (cursor != null && !cursor.isBlank()) {
+      try {
+        cursorUuid = UUID.fromString(cursor);
+      } catch (IllegalArgumentException e) {
+        throw new NotificationException(ErrorCode.INVALID_REQUEST);
+      }
+    }
 
     if (cursorUuid == null || after == null) {
       notifications = notificationRepository.findFirstPageByUserId(userId, pageable);
@@ -66,7 +87,6 @@ public class NotificationService {
       nextAfter = lastItem.createdAt();
     }
 
-    // 리뷰 반영: 첫 페이지 조회 시에만 전체 개수 카운트 (성능 최적화)
     long totalElements = (cursorUuid == null) ? notificationRepository.countByUserIdAndDeletedAtIsNull(userId) : 0;
 
     return new CursorPageResponseNotificationDto(content, nextCursor, nextAfter, content.size(), totalElements, hasNext);
@@ -74,7 +94,6 @@ public class NotificationService {
 
   @Transactional
   public void confirmNotification(UUID notificationId, UUID userId) {
-    // 수정: 조회 시 userId를 함께 확인하여 타인의 알림 수정을 방지 (보안 검증)
     Notification notification = notificationRepository.findByIdAndUserIdAndDeletedAtIsNull(notificationId, userId)
         .orElseThrow(() -> new NotificationException(ErrorCode.NOTIFICATION_NOT_FOUND));
     notification.confirm();
@@ -82,7 +101,6 @@ public class NotificationService {
 
   @Transactional
   public void confirmAllNotifications(UUID userId) {
-    // 수정: 벌크 연산 메서드 호출로 성능 최적화
     notificationRepository.confirmAllByUserId(userId);
   }
 }

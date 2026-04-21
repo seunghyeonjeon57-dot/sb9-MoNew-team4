@@ -138,6 +138,14 @@ public class CommentService {
     commentLikeRepository.save(commentLike);
 
     log.info("좋아요 추가 완료: userId={}, commentId={}", userId, commentId);
+
+    if (!comment.getUserId().equals(userId)) {
+      eventPublisher.publishEvent(new CommentLikedEvent(
+          comment.getUserId(), // 알림을 받을 사람 (댓글 작성자)
+          comment.getId(),     // 알림이 발생한 리소스 (댓글 ID)
+          userId               // 좋아요를 누른 사람의 ID (UUID 전달)
+      ));
+    }
   }
 
   @Transactional
@@ -203,28 +211,5 @@ public class CommentService {
     return new CursorPageResponseCommentDto(
         comments, nextCursor, nextAfter, size, null, hasNext
     );
-  }
-
-  @Transactional
-  public void likeComment(UUID commentId, UUID likerId, String likerName) {
-    // 1. 좋아요가 눌린 댓글 조회
-    CommentEntity comment = commentRepository.findById(commentId)
-        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 댓글입니다."));
-
-    // 2. 좋아요 수 증가 (CommentEntity에 likeCount를 1 증가시키는 메서드가 필요합니다)
-    // 예: comment.incrementLikeCount();
-    // (만약 Like 정보를 별도의 테이블로 관리하신다면 해당 레포지토리에 save 하는 로직이 들어갑니다.)
-
-    // 3. 본인이 본인 댓글에 좋아요를 누른 경우 알림을 보내지 않음
-    if (comment.getUserId().equals(likerId)) {
-      return;
-    }
-
-    // 4. "[사용자]님이 나의 댓글을 좋아합니다." 문구를 완성
-    eventPublisher.publishEvent(new CommentLikedEvent(
-        comment.getUserId(), // 알림을 받을 사람 (댓글 작성자)
-        comment.getId(),     // 관련 리소스 정보 (댓글 ID)
-        likerName            // 좋아요를 누른 사람의 이름
-    ));
   }
 }
