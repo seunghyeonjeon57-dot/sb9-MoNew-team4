@@ -149,7 +149,7 @@ class InterestApiIntegrationTest {
   }
 
   @Test
-  @DisplayName("PATCH에 name 포함 → 400 INTEREST_NAME_IMMUTABLE")
+  @DisplayName("PATCH에 name 포함 → 400 INVALID_REQUEST (@Null Bean Validation)")
   void patchWithNameRejected() throws Exception {
     UUID userId = UUID.randomUUID();
     MvcResult created = mockMvc.perform(post("/api/interests")
@@ -171,7 +171,7 @@ class InterestApiIntegrationTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(body)))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("INTEREST_NAME_IMMUTABLE"));
+        .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
   }
 
   @Test

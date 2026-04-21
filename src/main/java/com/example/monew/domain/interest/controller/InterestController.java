@@ -92,7 +92,7 @@ public class InterestController {
       @RequestHeader("Monew-Request-User-ID") UUID userId,
       @PathVariable UUID id,
       @Valid @RequestBody InterestUpdateRequest request) {
-    return ResponseEntity.ok(interestService.updateKeywords(id, request));
+    return ResponseEntity.ok(interestService.updateKeywords(id, request, userId));
   }
 
   @Operation(summary = "관심사 물리 삭제", description = "관심사를 물리 삭제합니다. 구독 레코드도 함께 제거됩니다.")

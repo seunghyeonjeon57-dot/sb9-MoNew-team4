@@ -62,7 +62,7 @@ public class InterestService {
 
     UUID cursorId = parseCursorUuid(cursor);
     InterestRepositoryCustom.CursorPage page = interestRepository.findByCursor(
-        keyword, orderBy, direction, cursorId, limit);
+        keyword, orderBy, direction, cursorId, after, limit);
 
     Set<UUID> subscribedIds = subscribedIdsFor(userId, page.content());
     List<InterestResponse> content = page.content().stream()
@@ -74,7 +74,7 @@ public class InterestService {
     String nextCursor = page.hasNext() && tail != null ? tail.getId().toString() : null;
     LocalDateTime nextAfter = page.hasNext() && tail != null ? tail.getCreatedAt() : null;
 
-    return new CursorPageResponse<>(content, nextCursor, nextAfter, limit,
+    return new CursorPageResponse<>(content, nextCursor, nextAfter, content.size(),
         page.totalElements(), page.hasNext());
   }
 
@@ -85,7 +85,7 @@ public class InterestService {
     try {
       return UUID.fromString(cursor);
     } catch (IllegalArgumentException e) {
-      return null;
+      throw new InvalidSortParameterException(Map.of("cursor", cursor));
     }
   }
 
@@ -115,7 +115,8 @@ public class InterestService {
   }
 
   @Transactional
-  public InterestResponse updateKeywords(UUID interestId, InterestUpdateRequest request) {
+  public InterestResponse updateKeywords(
+      UUID interestId, InterestUpdateRequest request, UUID userId) {
     if (request.name() != null) {
       throw new InterestNameImmutableException(
           Map.of("interestId", interestId.toString(), "rejectedName", request.name()));
@@ -123,6 +124,8 @@ public class InterestService {
     Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
     interest.replaceKeywords(request.keywords());
-    return InterestResponse.from(interest, false);
+    boolean subscribedByMe = userId != null
+        && subscriptionRepository.existsByInterestIdAndUserId(interestId, userId);
+    return InterestResponse.from(interest, subscribedByMe);
   }
 }

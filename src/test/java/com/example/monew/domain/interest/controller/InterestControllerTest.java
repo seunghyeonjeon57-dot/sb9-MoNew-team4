@@ -16,7 +16,6 @@ import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
-import com.example.monew.domain.interest.exception.InterestNameImmutableException;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.InvalidSortParameterException;
 import com.example.monew.domain.interest.exception.SimilarInterestNameException;
@@ -88,28 +87,32 @@ class InterestControllerTest {
   }
 
   @Test
-  @DisplayName("PATCH /api/interests/{id}: 키워드 수정 → 200 + 응답")
+  @DisplayName("PATCH /api/interests/{id}: 키워드 수정 → 200 + 응답 + userId 서비스 전달")
   void patch200() throws Exception {
     UUID id = UUID.randomUUID();
-    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class)))
-        .thenReturn(new InterestResponse(id, "인공지능", List.of("ML", "DL"), 0L, false));
+    UUID userId = UUID.randomUUID();
+    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class), eq(userId)))
+        .thenReturn(new InterestResponse(id, "인공지능", List.of("ML", "DL"), 0L, true));
 
     String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML", "DL")));
 
     mockMvc.perform(patch("/api/interests/" + id)
-            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
+            .header("Monew-Request-User-ID", userId.toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.keywords[0]").value("ML"))
-        .andExpect(jsonPath("$.keywords[1]").value("DL"));
+        .andExpect(jsonPath("$.keywords[1]").value("DL"))
+        .andExpect(jsonPath("$.subscribedByMe").value(true));
+
+    verify(interestService).updateKeywords(eq(id), any(InterestUpdateRequest.class), eq(userId));
   }
 
   @Test
   @DisplayName("PATCH /api/interests/{id}: 미존재 → 404 INTEREST_NOT_FOUND")
   void patch404() throws Exception {
     UUID id = UUID.randomUUID();
-    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class)))
+    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class), any(UUID.class)))
         .thenThrow(new InterestNotFoundException(Map.of("interestId", id.toString())));
 
     String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML")));
@@ -123,12 +126,9 @@ class InterestControllerTest {
   }
 
   @Test
-  @DisplayName("PATCH /api/interests/{id}: name 포함 → 400 INTEREST_NAME_IMMUTABLE")
+  @DisplayName("PATCH /api/interests/{id}: name 포함 → 400 INVALID_REQUEST (Bean Validation @Null 위반)")
   void patchNameImmutable400() throws Exception {
     UUID id = UUID.randomUUID();
-    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class)))
-        .thenThrow(new InterestNameImmutableException(
-            Map.of("interestId", id.toString(), "rejectedName", "바뀐이름")));
 
     Map<String, Object> requestBody = new HashMap<>();
     requestBody.put("name", "바뀐이름");
@@ -140,7 +140,7 @@ class InterestControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("INTEREST_NAME_IMMUTABLE"));
+        .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
   }
 
   @Test
@@ -221,6 +221,23 @@ class InterestControllerTest {
             .header("Monew-Request-User-ID", UUID.randomUUID().toString())
             .param("orderBy", "foo")
             .param("direction", "ASC")
+            .param("limit", "20"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_SORT_PARAMETER"));
+  }
+
+  @Test
+  @DisplayName("GET /api/interests?cursor=not-a-uuid → 400 INVALID_SORT_PARAMETER (silent null 제거)")
+  void listInvalidCursor400() throws Exception {
+    when(interestService.getInterests(
+        any(), any(), any(), eq("not-a-uuid"), any(), any(Integer.class), any()))
+        .thenThrow(new InvalidSortParameterException(Map.of("cursor", "not-a-uuid")));
+
+    mockMvc.perform(get("/api/interests")
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("cursor", "not-a-uuid")
             .param("limit", "20"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("INVALID_SORT_PARAMETER"));
