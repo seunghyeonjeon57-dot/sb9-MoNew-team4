@@ -1,6 +1,4 @@
 package com.example.monew.batch;
-import java.time.Duration;
-import static org.mockito.ArgumentMatchers.any;
 import com.example.monew.domain.article.batch.NewsCollector;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import org.junit.jupiter.api.BeforeEach;
