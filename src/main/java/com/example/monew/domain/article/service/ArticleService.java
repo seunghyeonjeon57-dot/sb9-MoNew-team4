@@ -5,9 +5,11 @@ import com.example.monew.domain.article.dto.ArticleRestoreResultDto;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
+import com.example.monew.domain.notification.event.ArticleRegisteredEvent;
 import com.example.monew.global.exception.ErrorCode;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,7 @@ public class ArticleService {
 
   private final ArticleRepository articleRepository;
   private final ArticleMapper articleMapper;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   public ArticleDto getArticleDetail(UUID id) {
@@ -38,6 +41,14 @@ public class ArticleService {
   public void saveArticle(ArticleEntity article) {
     if (!articleRepository.existsBySourceUrl(article.getSourceUrl())) {
       articleRepository.save(article);
+    }
+
+    if (article.getInterest() != null && !article.getInterest().isBlank()) {
+      eventPublisher.publishEvent(new ArticleRegisteredEvent(
+          article.getId(),
+          article.getTitle(),
+          article.getInterest()
+      ));
     }
   }
 

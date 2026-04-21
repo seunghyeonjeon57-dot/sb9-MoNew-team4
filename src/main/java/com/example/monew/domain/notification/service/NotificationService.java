@@ -7,16 +7,14 @@ import com.example.monew.domain.notification.entity.Notification;
 import com.example.monew.domain.notification.exception.NotificationException;
 import com.example.monew.domain.notification.repository.NotificationRepository;
 import com.example.monew.global.exception.ErrorCode;
-import com.example.monew.global.exception.MonewException;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -34,7 +32,6 @@ public class NotificationService {
         .resourceType(request.resourceType())
         .resourceId(request.resourceId())
         .build();
-
     return notificationRepository.save(notification).getId();
   }
 
@@ -43,10 +40,13 @@ public class NotificationService {
     Pageable pageable = PageRequest.of(0, limit + 1);
     List<Notification> notifications;
 
-    if (cursor == null || after == null) {
+    // String으로 넘어온 커서를 UUID로 변환하여 처리
+    UUID cursorUuid = (cursor != null) ? UUID.fromString(cursor) : null;
+
+    if (cursorUuid == null || after == null) {
       notifications = notificationRepository.findFirstPageByUserId(userId, pageable);
     } else {
-      notifications = notificationRepository.findNextPageByUserId(userId, after, cursor, pageable);
+      notifications = notificationRepository.findNextPageByUserId(userId, after, cursorUuid, pageable);
     }
 
     boolean hasNext = notifications.size() > limit;
@@ -66,30 +66,23 @@ public class NotificationService {
       nextAfter = lastItem.createdAt();
     }
 
-    long totalElements = notificationRepository.countByUserIdAndDeletedAtIsNull(userId);
+    // 리뷰 반영: 첫 페이지 조회 시에만 전체 개수 카운트 (성능 최적화)
+    long totalElements = (cursorUuid == null) ? notificationRepository.countByUserIdAndDeletedAtIsNull(userId) : 0;
 
-    return new CursorPageResponseNotificationDto(
-        content,
-        nextCursor,
-        nextAfter,
-        content.size(),
-        totalElements,
-        hasNext
-    );
+    return new CursorPageResponseNotificationDto(content, nextCursor, nextAfter, content.size(), totalElements, hasNext);
   }
 
   @Transactional
-  public void readNotification(UUID notificationId) {
-    Notification notification = notificationRepository.findByIdAndDeletedAtIsNull(notificationId)
+  public void confirmNotification(UUID notificationId, UUID userId) {
+    // 수정: 조회 시 userId를 함께 확인하여 타인의 알림 수정을 방지 (보안 검증)
+    Notification notification = notificationRepository.findByIdAndUserIdAndDeletedAtIsNull(notificationId, userId)
         .orElseThrow(() -> new NotificationException(ErrorCode.NOTIFICATION_NOT_FOUND));
-
     notification.confirm();
   }
 
   @Transactional
   public void confirmAllNotifications(UUID userId) {
-    // 삭제되지 않고 아직 확인되지 않은 모든 알림을 찾아서 확인 처리
-    List<Notification> notifications = notificationRepository.findAllByUserIdAndConfirmedFalseAndDeletedAtIsNull(userId);
-    notifications.forEach(Notification::confirm);
+    // 수정: 벌크 연산 메서드 호출로 성능 최적화
+    notificationRepository.confirmAllByUserId(userId);
   }
 }

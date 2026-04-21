@@ -91,15 +91,18 @@ class NotificationServiceTest {
   void readNotification_success() {
     // given
     UUID notificationId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
     Notification mockNotification = mock(Notification.class);
 
-    when(notificationRepository.findByIdAndDeletedAtIsNull(notificationId))
+    when(notificationRepository.findByIdAndUserIdAndDeletedAtIsNull(notificationId, userId))
         .thenReturn(Optional.of(mockNotification));
 
     // when
-    notificationService.readNotification(notificationId);
+    notificationService.confirmNotification(notificationId, userId);
 
     // then
     verify(mockNotification, times(1)).confirm();
+    verify(notificationRepository, times(1))
+        .findByIdAndUserIdAndDeletedAtIsNull(notificationId, userId);
   }
 }
