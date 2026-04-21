@@ -6,6 +6,7 @@ import com.example.monew.config.JpaAuditConfig;
 import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.repository.InterestRepositoryCustom.CursorPage;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -154,5 +155,46 @@ class InterestRepositoryImplTest {
         .containsExactly("첫번째", "두번째");
     assertThat(second.content()).extracting(Interest::getName)
         .containsExactly("세번째");
+  }
+
+  @Test
+  @DisplayName("findByCursor: anchor row 삭제 후 (cursorId, after) 조합으로 다음 페이지 안정 반환")
+  void findByCursor_anchorDeleted_afterFallbackKeepsPagination() {
+    Interest first = seed("가경제", List.of("a"));
+    Interest second = seed("나스포츠", List.of("b"));
+    Interest third = seed("다문화", List.of("c"));
+    em.flush();
+    LocalDateTime anchorCreatedAt = first.getCreatedAt();
+    java.util.UUID anchorId = first.getId();
+
+    interestRepository.delete(first);
+    em.flush();
+    em.clear();
+
+    CursorPage page = interestRepository.findByCursor(
+        null, "name", "ASC", anchorId, anchorCreatedAt, 10);
+
+    assertThat(page.content()).extracting(Interest::getName)
+        .containsExactly("나스포츠", "다문화");
+    assertThat(page.hasNext()).isFalse();
+    assertThat(page.totalElements()).isEqualTo(2L);
+  }
+
+  @Test
+  @DisplayName("findByCursor: after 만 전달해도 createdAt 기준 keyset 적용 (cursorId null)")
+  void findByCursor_afterOnly_appliesKeyset() {
+    Interest first = seed("가경제", List.of("a"));
+    seed("나스포츠", List.of("b"));
+    seed("다문화", List.of("c"));
+    em.flush();
+    LocalDateTime after = first.getCreatedAt();
+    em.clear();
+
+    CursorPage page = interestRepository.findByCursor(
+        null, "name", "ASC", null, after, 10);
+
+    assertThat(page.content()).extracting(Interest::getName)
+        .containsExactly("나스포츠", "다문화");
+    assertThat(page.hasNext()).isFalse();
   }
 }
