@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -13,7 +14,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "subscriptions")
+@Table(
+    name = "subscriptions",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_user_interest",
+        columnNames = {"user_id", "interest_id"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Subscription extends BaseEntity {
@@ -22,10 +27,10 @@ public class Subscription extends BaseEntity {
   @Column(columnDefinition = "uuid")
   private UUID id = UUID.randomUUID();
 
-  @Column(nullable = false)
+  @Column(name = "interest_id", nullable = false)
   private UUID interestId;
 
-  @Column(nullable = false)
+  @Column(name = "user_id", nullable = false)
   private UUID userId;
 
   @Builder
