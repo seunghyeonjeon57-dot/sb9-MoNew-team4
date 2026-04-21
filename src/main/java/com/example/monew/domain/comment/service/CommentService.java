@@ -103,13 +103,16 @@ public class CommentService {
   @Transactional
   public void softDeleteAllByUserId(UUID userId){
     log.info("사용자 댓글 일괄 논리 삭제 시도: userID={}", userId);
-    commentRepository.softDeleteAllByUserId(userId, LocalDateTime.now());
+    long updatedCount = commentRepository.softDeleteAllByUserId(userId);
+
+    log.info("사용자 댓글 {}개 일괄 논리 삭제 완료", updatedCount);
   }
 
   @Transactional
-  public void hardDeleteAllByUserId(UUID userId){
+  public void deleteAllByUserId(UUID userId){
     log.info("사용자 댓글 일괄 물리 삭제 시도: userId={}", userId);
-    commentRepository.deleteAllByUserId(userId);
+    long deletedCount =commentRepository.deleteAllByUserId(userId);
+    log.info("사용자 댓글 {}개 일괄 물리 삭제 완료", deletedCount);
   }
 
   @Transactional

@@ -127,8 +127,7 @@ public class CommentRepositoryTest {
     entityManager.clear();
 
 
-    LocalDateTime now = LocalDateTime.now();
-    commentRepository.softDeleteAllByUserId(targetUserId, now);
+    commentRepository.softDeleteAllByUserId(targetUserId);
 
     List<CommentEntity> allComments = commentRepository.findAll();
 

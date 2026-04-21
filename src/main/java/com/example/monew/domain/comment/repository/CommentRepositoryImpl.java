@@ -20,9 +20,17 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
 
   private final JPAQueryFactory queryFactory;
   private final QCommentEntity comment = QCommentEntity.commentEntity;
+  private final QArticleEntity article = QArticleEntity.articleEntity;
 
   public CommentRepositoryImpl(EntityManager em) {
     this.queryFactory = new JPAQueryFactory(em);
+  }
+
+  private BooleanExpression isNotDeleted() {
+    return comment.deletedAt.isNull();
+  }
+  private BooleanExpression isArticleNotDeleted() {
+    return article.deletedAt.isNull();
   }
 
   @Override
@@ -46,11 +54,12 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
         ))
         .from(comment)
         .join(article).on(comment.articleId.eq(article.id)
-            .and(article.deletedAt.isNull()))
+            .and(isArticleNotDeleted()))
         .join(user).on(comment.userId.eq(user.id)
             .and(user.status.eq(UserStatus.ACTIVE)))
         .where(
             comment.articleId.eq(articleId),
+            isNotDeleted(),
             cursorCondition(sort, cursorId, cursorCreatedAt, cursorLikeCount)
         )
         .limit(size + 1);
@@ -61,6 +70,23 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
       query.orderBy(comment.createdAt.desc(), comment.id.desc());
     }
     return query.fetch();
+  }
+
+
+  @Override
+  public long softDeleteAllByUserId(UUID userId) {
+    return queryFactory.update(comment)
+        .set(comment.deletedAt, LocalDateTime.now())
+        .where(comment.userId.eq(userId), isNotDeleted())
+
+        .execute();
+  }
+
+  @Override
+  public long deleteAllByUserId(UUID userId) {
+    return queryFactory.delete(comment)
+        .where(comment.userId.eq(userId))
+        .execute();
   }
 
   private BooleanExpression cursorCondition(String sort, UUID cursorId, LocalDateTime cursorCreatedAt, Long cursorLikeCount) {

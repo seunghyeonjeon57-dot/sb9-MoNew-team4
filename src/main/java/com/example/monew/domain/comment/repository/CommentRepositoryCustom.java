@@ -15,4 +15,6 @@ public interface CommentRepositoryCustom {
       String sort,
       int size
   );
+  long softDeleteAllByUserId(UUID userId);
+  long deleteAllByUserId(UUID userId);
 }

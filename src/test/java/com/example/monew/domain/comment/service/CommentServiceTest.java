@@ -139,8 +139,9 @@ public class CommentServiceTest {
     UUID userId = UUID.randomUUID();
 
     CommentEntity comment = CommentEntity.builder()
+        .id(commentId)
         .articleId(UUID.randomUUID())
-        .userId(userId)
+        .userId(UUID.randomUUID())
         .content("삭제될 댓글")
         .likeCount(0L)
         .build();
@@ -161,8 +162,7 @@ public class CommentServiceTest {
 
     commentService.softDeleteAllByUserId(userId);
 
-    verify(commentRepository, times(1))
-        .softDeleteAllByUserId(eq(userId), any(LocalDateTime.class));
+    verify(commentRepository, times(1)).softDeleteAllByUserId(userId);
   }
 
   @Test
@@ -170,10 +170,9 @@ public class CommentServiceTest {
   void hardDeleteAllByUserId() {
     UUID userId = UUID.randomUUID();
 
-    commentService.hardDeleteAllByUserId(userId);
+    commentService.deleteAllByUserId(userId);
 
-    verify(commentRepository, times(1))
-        .deleteAllByUserId(userId);
+    verify(commentRepository, times(1)).deleteAllByUserId(userId);
   }
 
   @Test
