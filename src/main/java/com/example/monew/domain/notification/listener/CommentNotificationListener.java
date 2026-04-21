@@ -23,7 +23,7 @@ public class CommentNotificationListener {
     notificationService.createNotification(new NotificationRequest(
         event.receiverId(),
         // 요구사항: [사용자]님이 나의 댓글을 좋아합니다.
-        String.format("[%s]님이 나의 댓글을 좋아합니다.", event.likerName()),
+        String.format("[%s]님이 나의 댓글을 좋아합니다.", event.likerId().toString()),
         ResourceType.COMMENT, // 관련 리소스 정보: 댓글
         event.commentId()
     ));
