@@ -32,14 +32,17 @@ public class User extends BaseEntity {
   private String email;
   @Column(nullable = false)
   private String password;
+
   @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
   private UserStatus status = UserStatus.ACTIVE;
 
   @Builder
-  public User(String nickname,String email,String password){
+  public User(String nickname,String email,String password,UserStatus status){
     this.nickname=nickname;
     this.email=email;
     this.password=password;
+    this.status = (status != null) ? status : UserStatus.ACTIVE;
   }
 
   public void updateNickname(String nickname){
