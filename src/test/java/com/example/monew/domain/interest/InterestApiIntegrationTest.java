@@ -251,4 +251,112 @@ class InterestApiIntegrationTest {
     assertThat(interestRepository.findByIdAndDeletedAtIsNull(interestB).orElseThrow()
         .getSubscriberCount()).isZero();
   }
+
+  @Test
+  @DisplayName("유저 물리 삭제 → 이후 관심사 목록 조회에서 subscribedByMe=false (MON-101 cascade)")
+  void userHardDelete_subscribedByMeResetToFalse() throws Exception {
+    User user = userRepository.save(
+        User.builder()
+            .nickname("subByMeReset")
+            .email("subByMeReset_" + UUID.randomUUID() + "@monew.com")
+            .password("pw123!")
+            .build());
+    UUID userId = user.getId();
+
+    String name = "subByMeReset관심사" + System.nanoTime();
+    MvcResult created = mockMvc.perform(post("/api/interests")
+            .header(USER_HEADER, userId.toString())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(
+                Map.of("name", name, "keywords", List.of("x")))))
+        .andExpect(status().isCreated())
+        .andReturn();
+    UUID interestId = UUID.fromString(
+        objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText());
+
+    mockMvc.perform(post("/api/interests/" + interestId + "/subscriptions")
+            .header(USER_HEADER, userId.toString()))
+        .andExpect(status().isOk());
+
+    mockMvc.perform(get("/api/interests")
+            .header(USER_HEADER, userId.toString())
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "100"))
+        .andExpect(jsonPath("$.content[?(@.id=='" + interestId + "')].subscribedByMe")
+            .value(true));
+
+    userService.hardDeleteUser(userId);
+
+    mockMvc.perform(get("/api/interests")
+            .header(USER_HEADER, userId.toString())
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "100"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + interestId + "')].subscribedByMe")
+            .value(false));
+  }
+
+  @Test
+  @DisplayName("유저 A 물리 삭제 → A 구독만 삭제, 유저 B 구독은 유지 + 관심사 subscriberCount=1 (다중 유저 격리)")
+  void userHardDelete_keepsOtherSubscribers() throws Exception {
+    User userA = userRepository.save(
+        User.builder()
+            .nickname("isolationA")
+            .email("isolationA_" + UUID.randomUUID() + "@monew.com")
+            .password("pw123!")
+            .build());
+    User userB = userRepository.save(
+        User.builder()
+            .nickname("isolationB")
+            .email("isolationB_" + UUID.randomUUID() + "@monew.com")
+            .password("pw123!")
+            .build());
+    UUID userAId = userA.getId();
+    UUID userBId = userB.getId();
+
+    String sharedName = "격리검증관심사" + System.nanoTime();
+    MvcResult created = mockMvc.perform(post("/api/interests")
+            .header(USER_HEADER, userAId.toString())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(
+                Map.of("name", sharedName, "keywords", List.of("shared")))))
+        .andExpect(status().isCreated())
+        .andReturn();
+    UUID sharedInterestId = UUID.fromString(
+        objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText());
+
+    mockMvc.perform(post("/api/interests/" + sharedInterestId + "/subscriptions")
+            .header(USER_HEADER, userAId.toString()))
+        .andExpect(status().isOk());
+    mockMvc.perform(post("/api/interests/" + sharedInterestId + "/subscriptions")
+            .header(USER_HEADER, userBId.toString()))
+        .andExpect(status().isOk());
+
+    assertThat(subscriptionRepository.findAllByUserId(userAId)).hasSize(1);
+    assertThat(subscriptionRepository.findAllByUserId(userBId)).hasSize(1);
+    assertThat(interestRepository.findByIdAndDeletedAtIsNull(sharedInterestId).orElseThrow()
+        .getSubscriberCount()).isEqualTo(2L);
+
+    userService.hardDeleteUser(userAId);
+
+    assertThat(subscriptionRepository.findAllByUserId(userAId)).isEmpty();
+    assertThat(subscriptionRepository.findAllByUserId(userBId))
+        .as("유저 B 의 구독은 유지되어야 함")
+        .hasSize(1);
+    assertThat(interestRepository.findByIdAndDeletedAtIsNull(sharedInterestId).orElseThrow()
+        .getSubscriberCount())
+        .as("공동 구독 관심사의 subscriberCount 는 유저 A 탈퇴 후에도 1 로 남아야 함")
+        .isEqualTo(1L);
+
+    mockMvc.perform(get("/api/interests")
+            .header(USER_HEADER, userBId.toString())
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "100"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + sharedInterestId + "')].subscribedByMe")
+            .value(true));
+  }
 }
