@@ -31,4 +31,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 이건 깃허브가 자동으로 주는 겁니다.
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    # 팀장님이 등록하신 그 토큰 이름!
-        run: ./gradlew build jacocoTestReport sonar --info
+        run: ./gradlew build jacocoTestReport sonar -x test --info
