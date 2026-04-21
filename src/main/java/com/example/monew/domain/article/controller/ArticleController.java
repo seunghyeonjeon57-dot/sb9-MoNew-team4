@@ -4,8 +4,11 @@ import com.example.monew.domain.article.batch.BackupBatch;
 import com.example.monew.domain.article.batch.service.BackupService;
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
+import com.example.monew.domain.article.exception.InvalidCursorException;
+import com.example.monew.domain.article.exception.InvalidRestoreDateException;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.article.service.ArticleViewService;
+import com.example.monew.global.exception.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -40,15 +43,14 @@ public class ArticleController {
   })
   @GetMapping
   public ResponseEntity<CursorPageResponseArticleDto> getArticleList(
-
       @RequestParam(required = false) UUID cursor,
-
       @RequestParam(required = false)
-      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-      LocalDateTime after,
-
+      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
       @RequestParam(defaultValue = "10") int size
   ) {
+    if (size > 100) {
+      throw new InvalidCursorException(ErrorCode.INVALID_INPUT_VALUE);
+    }
     return ResponseEntity.ok(articleService.getArticles(cursor, after, size));
   }
 
@@ -118,12 +120,12 @@ public class ArticleController {
   public ResponseEntity<String> restoreFromS3(
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate date
   ) {
-    try {
-      backupService.restoreNews(date);
-      return ResponseEntity.ok(date + " 자 데이터 S3 복구 프로세스 완료");
-    } catch (Exception e) {
-      return ResponseEntity.internalServerError().body("복구 중 오류 발생: " + e.getMessage());
+    if (date.isAfter(java.time.LocalDate.now())) {
+      throw new InvalidRestoreDateException(ErrorCode.INVALID_INPUT_VALUE);
     }
+
+    backupService.restoreNews(date);
+    return ResponseEntity.ok(date + " 자 데이터 S3 복구 프로세스 완료");
   }
 
 

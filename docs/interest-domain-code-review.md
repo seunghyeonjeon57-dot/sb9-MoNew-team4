@@ -121,7 +121,7 @@ return InterestResponse.from(interest, false);
 // InterestController.updateKeywords() — userId 서비스로 전달
 @PatchMapping("/{id}")
 public ResponseEntity<InterestResponse> updateKeywords(
-    @RequestHeader("MoNew-Request-User-ID") UUID userId,
+    @RequestHeader("Monew-Request-User-ID") UUID userId,
     @PathVariable UUID id,
     @Valid @RequestBody InterestUpdateRequest request) {
   return ResponseEntity.ok(interestService.updateKeywords(id, request, userId)); // userId 추가
@@ -170,7 +170,7 @@ public ResponseEntity<CursorPageResponse<InterestResponse>> list(
     @Parameter(description = "페이지 크기 (기본: 20)")
     @RequestParam(defaultValue = "20") int size,
     @Parameter(description = "요청자 ID (선택 — 없으면 subscribedByMe 항상 false)")
-    @RequestHeader(value = "MoNew-Request-User-ID", required = false) UUID userId) {
+    @RequestHeader(value = "Monew-Request-User-ID", required = false) UUID userId) {
   ...
 }
 ```

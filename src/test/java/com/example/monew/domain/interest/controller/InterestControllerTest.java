@@ -61,7 +61,7 @@ class InterestControllerTest {
         Map.of("name", "인공지능", "keywords", List.of("AI", "ML")));
 
     mockMvc.perform(post("/api/interests")
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isCreated())
@@ -79,7 +79,7 @@ class InterestControllerTest {
         Map.of("name", "인공지능A", "keywords", List.of("AI")));
 
     mockMvc.perform(post("/api/interests")
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isConflict())
@@ -97,7 +97,7 @@ class InterestControllerTest {
     String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML", "DL")));
 
     mockMvc.perform(patch("/api/interests/" + id)
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isOk())
@@ -115,7 +115,7 @@ class InterestControllerTest {
     String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML")));
 
     mockMvc.perform(patch("/api/interests/" + id)
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isNotFound())
@@ -136,7 +136,7 @@ class InterestControllerTest {
     String body = objectMapper.writeValueAsString(requestBody);
 
     mockMvc.perform(patch("/api/interests/" + id)
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isBadRequest())
@@ -149,7 +149,7 @@ class InterestControllerTest {
     UUID id = UUID.randomUUID();
 
     mockMvc.perform(delete("/api/interests/" + id)
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString()))
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString()))
         .andExpect(status().isNoContent());
 
     verify(interestService).delete(id);
@@ -163,7 +163,7 @@ class InterestControllerTest {
         .when(interestService).delete(id);
 
     mockMvc.perform(delete("/api/interests/" + id)
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString()))
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("INTEREST_NOT_FOUND"));
   }
@@ -180,7 +180,7 @@ class InterestControllerTest {
         .thenReturn(pageResponse);
 
     mockMvc.perform(get("/api/interests")
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
             .param("orderBy", "name")
             .param("direction", "ASC")
             .param("limit", "20"))
@@ -201,7 +201,7 @@ class InterestControllerTest {
         .thenReturn(pageResponse);
 
     mockMvc.perform(get("/api/interests")
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
             .param("keyword", "AI")
             .param("orderBy", "name")
             .param("direction", "ASC")
@@ -218,7 +218,7 @@ class InterestControllerTest {
         .thenThrow(new InvalidSortParameterException(Map.of("orderBy", "foo")));
 
     mockMvc.perform(get("/api/interests")
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
             .param("orderBy", "foo")
             .param("direction", "ASC")
             .param("limit", "20"))
@@ -239,7 +239,7 @@ class InterestControllerTest {
         .thenReturn(pageResponse);
 
     mockMvc.perform(get("/api/interests")
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
             .param("orderBy", "name")
             .param("direction", "ASC")
             .param("cursor", "")
@@ -254,7 +254,7 @@ class InterestControllerTest {
   @DisplayName("GET /api/interests: required 파라미터 누락 → 400")
   void listMissingRequiredParam400() throws Exception {
     mockMvc.perform(get("/api/interests")
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
             .param("orderBy", "name"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
@@ -269,7 +269,7 @@ class InterestControllerTest {
             .param("limit", "20"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("MISSING_REQUEST_HEADER"))
-        .andExpect(jsonPath("$.details.header").value("MoNew-Request-User-ID"));
+        .andExpect(jsonPath("$.details.header").value("Monew-Request-User-ID"));
   }
 
   @Test
@@ -279,7 +279,7 @@ class InterestControllerTest {
         Map.of("name", "", "keywords", List.of("AI")));
 
     mockMvc.perform(post("/api/interests")
-            .header("MoNew-Request-User-ID", UUID.randomUUID().toString())
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isBadRequest())
@@ -297,7 +297,7 @@ class InterestControllerTest {
             .content(body))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("MISSING_REQUEST_HEADER"))
-        .andExpect(jsonPath("$.details.header").value("MoNew-Request-User-ID"));
+        .andExpect(jsonPath("$.details.header").value("Monew-Request-User-ID"));
   }
 
   @Test
@@ -310,7 +310,7 @@ class InterestControllerTest {
             .content(body))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("MISSING_REQUEST_HEADER"))
-        .andExpect(jsonPath("$.details.header").value("MoNew-Request-User-ID"));
+        .andExpect(jsonPath("$.details.header").value("Monew-Request-User-ID"));
   }
 
   @Test
@@ -319,6 +319,6 @@ class InterestControllerTest {
     mockMvc.perform(delete("/api/interests/" + UUID.randomUUID()))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("MISSING_REQUEST_HEADER"))
-        .andExpect(jsonPath("$.details.header").value("MoNew-Request-User-ID"));
+        .andExpect(jsonPath("$.details.header").value("Monew-Request-User-ID"));
   }
 }

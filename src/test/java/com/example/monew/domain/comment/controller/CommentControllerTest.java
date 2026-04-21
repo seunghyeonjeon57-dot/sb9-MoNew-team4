@@ -56,7 +56,7 @@ class CommentControllerTest {
     String jsonRequest = objectMapper.writeValueAsString(request);
 
     mockMvc.perform(patch("/api/comments/{commentId}", commentId)
-            .header("MoNew-Request-User-ID", userId.toString()) // 요구사항 헤더 추가
+            .header("Monew-Request-User-ID", userId.toString()) // 요구사항 헤더 추가
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
         .andExpect(status().isOk());
@@ -69,7 +69,7 @@ class CommentControllerTest {
     UUID userId = UUID.randomUUID();
 
     mockMvc.perform(delete("/api/comments/{commentId}", commentId)
-            .header("MoNew-Request-User-ID", userId.toString()))
+            .header("Monew-Request-User-ID", userId.toString()))
         .andExpect(status().isNoContent());
   }
 
@@ -80,7 +80,7 @@ class CommentControllerTest {
     UUID userId = UUID.randomUUID();
 
     mockMvc.perform(post("/api/comments/{commentId}/comment-likes", commentId)
-        .header("MoNew-Request-User-ID", userId.toString()))
+        .header("Monew-Request-User-ID", userId.toString()))
         .andExpect(status().isOk());
   }
 
@@ -91,7 +91,7 @@ class CommentControllerTest {
     UUID userId = UUID.randomUUID();
 
     mockMvc.perform(delete("/api/comments/{commentId}/comment-likes", commentId)
-            .header("MoNew-Request-User-ID", userId.toString()))
+            .header("Monew-Request-User-ID", userId.toString()))
         .andExpect(status().isOk());
   }
 

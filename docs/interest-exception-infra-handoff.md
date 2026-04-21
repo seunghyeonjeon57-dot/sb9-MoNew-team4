@@ -227,14 +227,14 @@ Interest ─── 1:N (cascade=ALL, orphanRemoval) ──▶ InterestKeyword
 
 | Method | Path | 필수 헤더 | 응답 | 주요 예외 → Status |
 |---|---|---|---|---|
-| POST | `/api/interests` | `MoNew-Request-User-ID` | 201 | SIMILAR_INTEREST_NAME → 409, INVALID_REQUEST(@Valid) → 400, MISSING_REQUEST_HEADER → 400 |
+| POST | `/api/interests` | `Monew-Request-User-ID` | 201 | SIMILAR_INTEREST_NAME → 409, INVALID_REQUEST(@Valid) → 400, MISSING_REQUEST_HEADER → 400 |
 | GET | `/api/interests` | (선택, 있으면 subscribedByMe 채움) | 200 | INVALID_SORT_PARAMETER → 400 |
-| PATCH | `/api/interests/{id}` | `MoNew-Request-User-ID` | 200 | INTEREST_NOT_FOUND → 404, INVALID_REQUEST → 400 |
-| DELETE | `/api/interests/{id}` | `MoNew-Request-User-ID` | 204 | INTEREST_NOT_FOUND → 404 |
-| POST | `/api/interests/{id}/subscriptions` | `MoNew-Request-User-ID` | 201 | INTEREST_NOT_FOUND → 404, DUPLICATE_SUBSCRIPTION → 409 |
-| DELETE | `/api/interests/{id}/subscriptions` | `MoNew-Request-User-ID` | 204 | SUBSCRIPTION_NOT_FOUND → 404 |
+| PATCH | `/api/interests/{id}` | `Monew-Request-User-ID` | 200 | INTEREST_NOT_FOUND → 404, INVALID_REQUEST → 400 |
+| DELETE | `/api/interests/{id}` | `Monew-Request-User-ID` | 204 | INTEREST_NOT_FOUND → 404 |
+| POST | `/api/interests/{id}/subscriptions` | `Monew-Request-User-ID` | 201 | INTEREST_NOT_FOUND → 404, DUPLICATE_SUBSCRIPTION → 409 |
+| DELETE | `/api/interests/{id}/subscriptions` | `Monew-Request-User-ID` | 204 | SUBSCRIPTION_NOT_FOUND → 404 |
 
-GET 이외 모든 엔드포인트는 `@RequestHeader("MoNew-Request-User-ID") UUID userId` 가 필수. 누락 시 `MissingRequestHeaderException` → 400 `MISSING_REQUEST_HEADER`.
+GET 이외 모든 엔드포인트는 `@RequestHeader("Monew-Request-User-ID") UUID userId` 가 필수. 누락 시 `MissingRequestHeaderException` → 400 `MISSING_REQUEST_HEADER`.
 
 ### 3-7. 도메인 예외 6종
 
@@ -429,7 +429,7 @@ class InterestApiIntegrationTest { ... }
 
 ### 9-2. 헤더 / MDC 스펙
 
-- 요청 헤더 `MoNew-Request-User-ID` (UUID) — GET `/api/interests` 를 제외한 모든 Interest 엔드포인트에서 필수
+- 요청 헤더 `Monew-Request-User-ID` (UUID) — GET `/api/interests` 를 제외한 모든 Interest 엔드포인트에서 필수
 - MDC 키: `request_id`, `client_ip` — `application.yaml:25-27` 로그 패턴에서 읽음
 - `ErrorResponse.traceId` 는 `MDC.get("request_id")` 로 주입 (라인 29, 39, 55, 67)
 

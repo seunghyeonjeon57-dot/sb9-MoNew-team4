@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.domain.user.entity.User;
@@ -33,7 +34,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class InterestApiIntegrationTest {
 
-  private static final String USER_HEADER = "MoNew-Request-User-ID";
+  private static final String USER_HEADER = "Monew-Request-User-ID";
 
   @Autowired
   private MockMvc mockMvc;
@@ -76,6 +77,7 @@ class InterestApiIntegrationTest {
 
     mockMvc.perform(get("/api/interests")
             .header(USER_HEADER, userId.toString())
+            .param("keyword", "풀플로우관심사")
             .param("orderBy", "name")
             .param("direction", "ASC")
             .param("limit", "20"))
@@ -88,6 +90,7 @@ class InterestApiIntegrationTest {
 
     mockMvc.perform(get("/api/interests")
             .header(USER_HEADER, userId.toString())
+            .param("keyword", "풀플로우관심사")
             .param("orderBy", "name")
             .param("direction", "ASC")
             .param("limit", "20"))
@@ -201,6 +204,66 @@ class InterestApiIntegrationTest {
   }
 
   @Test
+  @DisplayName("커서 페이지네이션: 25건 시드 후 limit=10 으로 3페이지 이동 (10 + 10 + 5, hasNext 전이)")
+  void cursorPagination_movesAcrossPages() throws Exception {
+    UUID userId = UUID.randomUUID();
+    String prefix = "MON127paging_" + System.nanoTime() + "_";
+    // Repository 직접 저장 (컨트롤러 POST 경유 시 유사도 80% 차단에 걸려 시드 불가)
+    for (int i = 0; i < 25; i++) {
+      String name = prefix + String.format("%02d", i);
+      interestRepository.saveAndFlush(
+          Interest.builder().name(name).keywords(List.of("k" + i)).build());
+    }
+
+    MvcResult p1 = mockMvc.perform(get("/api/interests")
+            .header(USER_HEADER, userId.toString())
+            .param("keyword", prefix)
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "10"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(10))
+        .andExpect(jsonPath("$.totalElements").value(25))
+        .andExpect(jsonPath("$.hasNext").value(true))
+        .andExpect(jsonPath("$.content[0].name").value(prefix + "00"))
+        .andExpect(jsonPath("$.content[9].name").value(prefix + "09"))
+        .andReturn();
+    String cursor1 = objectMapper.readTree(p1.getResponse().getContentAsString())
+        .get("nextCursor").asText();
+
+    MvcResult p2 = mockMvc.perform(get("/api/interests")
+            .header(USER_HEADER, userId.toString())
+            .param("keyword", prefix)
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "10")
+            .param("cursor", cursor1))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(10))
+        .andExpect(jsonPath("$.totalElements").value(25))
+        .andExpect(jsonPath("$.hasNext").value(true))
+        .andExpect(jsonPath("$.content[0].name").value(prefix + "10"))
+        .andExpect(jsonPath("$.content[9].name").value(prefix + "19"))
+        .andReturn();
+    String cursor2 = objectMapper.readTree(p2.getResponse().getContentAsString())
+        .get("nextCursor").asText();
+
+    mockMvc.perform(get("/api/interests")
+            .header(USER_HEADER, userId.toString())
+            .param("keyword", prefix)
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "10")
+            .param("cursor", cursor2))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(5))
+        .andExpect(jsonPath("$.totalElements").value(25))
+        .andExpect(jsonPath("$.hasNext").value(false))
+        .andExpect(jsonPath("$.content[0].name").value(prefix + "20"))
+        .andExpect(jsonPath("$.content[4].name").value(prefix + "24"));
+  }
+
+  @Test
   @DisplayName("유저 물리 삭제 → 해당 유저 구독 전량 정리 (MON-101 cascade)")
   void userHardDelete_cleansSubscriptions() throws Exception {
     User user = userRepository.save(
@@ -250,5 +313,113 @@ class InterestApiIntegrationTest {
         .getSubscriberCount()).isZero();
     assertThat(interestRepository.findByIdAndDeletedAtIsNull(interestB).orElseThrow()
         .getSubscriberCount()).isZero();
+  }
+
+  @Test
+  @DisplayName("유저 물리 삭제 → 이후 관심사 목록 조회에서 subscribedByMe=false (MON-101 cascade)")
+  void userHardDelete_subscribedByMeResetToFalse() throws Exception {
+    User user = userRepository.save(
+        User.builder()
+            .nickname("subByMeReset")
+            .email("subByMeReset_" + UUID.randomUUID() + "@monew.com")
+            .password("pw123!")
+            .build());
+    UUID userId = user.getId();
+
+    String name = "subByMeReset관심사" + System.nanoTime();
+    MvcResult created = mockMvc.perform(post("/api/interests")
+            .header(USER_HEADER, userId.toString())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(
+                Map.of("name", name, "keywords", List.of("x")))))
+        .andExpect(status().isCreated())
+        .andReturn();
+    UUID interestId = UUID.fromString(
+        objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText());
+
+    mockMvc.perform(post("/api/interests/" + interestId + "/subscriptions")
+            .header(USER_HEADER, userId.toString()))
+        .andExpect(status().isOk());
+
+    mockMvc.perform(get("/api/interests")
+            .header(USER_HEADER, userId.toString())
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "100"))
+        .andExpect(jsonPath("$.content[?(@.id=='" + interestId + "')].subscribedByMe")
+            .value(true));
+
+    userService.hardDeleteUser(userId);
+
+    mockMvc.perform(get("/api/interests")
+            .header(USER_HEADER, userId.toString())
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "100"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + interestId + "')].subscribedByMe")
+            .value(false));
+  }
+
+  @Test
+  @DisplayName("유저 A 물리 삭제 → A 구독만 삭제, 유저 B 구독은 유지 + 관심사 subscriberCount=1 (다중 유저 격리)")
+  void userHardDelete_keepsOtherSubscribers() throws Exception {
+    User userA = userRepository.save(
+        User.builder()
+            .nickname("isolationA")
+            .email("isolationA_" + UUID.randomUUID() + "@monew.com")
+            .password("pw123!")
+            .build());
+    User userB = userRepository.save(
+        User.builder()
+            .nickname("isolationB")
+            .email("isolationB_" + UUID.randomUUID() + "@monew.com")
+            .password("pw123!")
+            .build());
+    UUID userAId = userA.getId();
+    UUID userBId = userB.getId();
+
+    String sharedName = "격리검증관심사" + System.nanoTime();
+    MvcResult created = mockMvc.perform(post("/api/interests")
+            .header(USER_HEADER, userAId.toString())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(
+                Map.of("name", sharedName, "keywords", List.of("shared")))))
+        .andExpect(status().isCreated())
+        .andReturn();
+    UUID sharedInterestId = UUID.fromString(
+        objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText());
+
+    mockMvc.perform(post("/api/interests/" + sharedInterestId + "/subscriptions")
+            .header(USER_HEADER, userAId.toString()))
+        .andExpect(status().isOk());
+    mockMvc.perform(post("/api/interests/" + sharedInterestId + "/subscriptions")
+            .header(USER_HEADER, userBId.toString()))
+        .andExpect(status().isOk());
+
+    assertThat(subscriptionRepository.findAllByUserId(userAId)).hasSize(1);
+    assertThat(subscriptionRepository.findAllByUserId(userBId)).hasSize(1);
+    assertThat(interestRepository.findByIdAndDeletedAtIsNull(sharedInterestId).orElseThrow()
+        .getSubscriberCount()).isEqualTo(2L);
+
+    userService.hardDeleteUser(userAId);
+
+    assertThat(subscriptionRepository.findAllByUserId(userAId)).isEmpty();
+    assertThat(subscriptionRepository.findAllByUserId(userBId))
+        .as("유저 B 의 구독은 유지되어야 함")
+        .hasSize(1);
+    assertThat(interestRepository.findByIdAndDeletedAtIsNull(sharedInterestId).orElseThrow()
+        .getSubscriberCount())
+        .as("공동 구독 관심사의 subscriberCount 는 유저 A 탈퇴 후에도 1 로 남아야 함")
+        .isEqualTo(1L);
+
+    mockMvc.perform(get("/api/interests")
+            .header(USER_HEADER, userBId.toString())
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "100"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + sharedInterestId + "')].subscribedByMe")
+            .value(true));
   }
 }

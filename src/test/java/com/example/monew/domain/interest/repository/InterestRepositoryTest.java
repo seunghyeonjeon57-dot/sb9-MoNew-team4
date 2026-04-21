@@ -65,6 +65,20 @@ class InterestRepositoryTest {
   }
 
   @Test
+  @DisplayName("incrementSubscriberCount: 호출 직후 findById가 +1 반영된 값을 반환 (1차 캐시 stale 방지)")
+  void incrementSubscriberCount_reflectsInNextFetch() {
+    Interest a = interestRepository.saveAndFlush(
+        Interest.builder().name("카운터증가검증").keywords(List.of("k")).build());
+
+    interestRepository.incrementSubscriberCount(a.getId());
+
+    Interest refreshed = interestRepository.findById(a.getId()).orElseThrow();
+    assertThat(refreshed.getSubscriberCount())
+        .as("increment 후 같은 영속성 컨텍스트에서 재조회 시 DB의 +1 값이 반영되어야 함")
+        .isEqualTo(1L);
+  }
+
+  @Test
   @DisplayName("decrementSubscriberCountAll: 주어진 ID 집합의 subscriberCount를 한 방 UPDATE로 1씩 감소")
   void decrementSubscriberCountAll_bulk() {
     Interest a = interestRepository.save(

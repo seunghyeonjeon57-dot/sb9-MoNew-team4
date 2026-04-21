@@ -26,8 +26,8 @@ import java.util.*;
 @Component
 public class NewsCollector {
 
-  @Value("${naver.client-id}") private String clientId;
-  @Value("${naver.client-secret}") private String clientSecret;
+  @Value("${news.api.naver.client-id}") private String clientId;
+  @Value("${news.api.naver.client-secret}") private String clientSecret;
 
   private final RestTemplate restTemplate;
 
