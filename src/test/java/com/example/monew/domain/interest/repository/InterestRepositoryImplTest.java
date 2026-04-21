@@ -40,7 +40,7 @@ class InterestRepositoryImplTest {
     em.flush();
     em.clear();
 
-    CursorPage page = interestRepository.findByCursor(null, "name", "ASC", null, 3);
+    CursorPage page = interestRepository.findByCursor(null, "name", "ASC", null, null, 3);
 
     assertThat(page.content()).extracting(Interest::getName)
         .containsExactly("가경제", "나스포츠", "다문화");
@@ -59,7 +59,7 @@ class InterestRepositoryImplTest {
     em.flush();
     em.clear();
 
-    CursorPage page = interestRepository.findByCursor(null, "name", "ASC", c.getId(), 10);
+    CursorPage page = interestRepository.findByCursor(null, "name", "ASC", c.getId(), null, 10);
 
     assertThat(page.content()).extracting(Interest::getName)
         .containsExactly("라과학", "마여행");
@@ -84,7 +84,7 @@ class InterestRepositoryImplTest {
     em.clear();
 
     CursorPage page = interestRepository.findByCursor(
-        null, "subscriberCount", "DESC", null, 10);
+        null, "subscriberCount", "DESC", null, null, 10);
 
     assertThat(page.content()).extracting(Interest::getName)
         .containsExactly("높은구독", "중간구독", "낮은구독");
@@ -101,7 +101,7 @@ class InterestRepositoryImplTest {
     em.clear();
 
     CursorPage page = interestRepository.findByCursor(
-        "경제", "name", "ASC", null, 10);
+        "경제", "name", "ASC", null, null, 10);
 
     assertThat(page.content()).extracting(Interest::getName)
         .containsExactlyInAnyOrder("경제뉴스", "경제분석");
@@ -118,7 +118,7 @@ class InterestRepositoryImplTest {
     em.clear();
 
     CursorPage page = interestRepository.findByCursor(
-        "머신", "name", "ASC", null, 10);
+        "머신", "name", "ASC", null, null, 10);
 
     assertThat(page.content()).extracting(Interest::getName)
         .containsExactly("도메인X");
@@ -139,10 +139,10 @@ class InterestRepositoryImplTest {
     em.clear();
 
     CursorPage first = interestRepository.findByCursor(
-        null, "subscriberCount", "ASC", null, 2);
+        null, "subscriberCount", "ASC", null, null, 2);
     CursorPage second = interestRepository.findByCursor(
         null, "subscriberCount", "ASC",
-        first.content().get(first.content().size() - 1).getId(), 2);
+        first.content().get(first.content().size() - 1).getId(), null, 2);
 
     assertThat(first.content()).hasSize(2);
     assertThat(first.hasNext()).isTrue();

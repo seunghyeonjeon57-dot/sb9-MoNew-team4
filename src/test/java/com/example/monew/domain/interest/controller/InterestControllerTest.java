@@ -91,7 +91,7 @@ class InterestControllerTest {
   @DisplayName("PATCH /api/interests/{id}: 키워드 수정 → 200 + 응답")
   void patch200() throws Exception {
     UUID id = UUID.randomUUID();
-    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class)))
+    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class), any(UUID.class)))
         .thenReturn(new InterestResponse(id, "인공지능", List.of("ML", "DL"), 0L, false));
 
     String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML", "DL")));
@@ -109,7 +109,7 @@ class InterestControllerTest {
   @DisplayName("PATCH /api/interests/{id}: 미존재 → 404 INTEREST_NOT_FOUND")
   void patch404() throws Exception {
     UUID id = UUID.randomUUID();
-    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class)))
+    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class), any(UUID.class)))
         .thenThrow(new InterestNotFoundException(Map.of("interestId", id.toString())));
 
     String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML")));
@@ -126,7 +126,7 @@ class InterestControllerTest {
   @DisplayName("PATCH /api/interests/{id}: name 포함 → 400 INTEREST_NAME_IMMUTABLE")
   void patchNameImmutable400() throws Exception {
     UUID id = UUID.randomUUID();
-    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class)))
+    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class), any(UUID.class)))
         .thenThrow(new InterestNameImmutableException(
             Map.of("interestId", id.toString(), "rejectedName", "바뀐이름")));
 

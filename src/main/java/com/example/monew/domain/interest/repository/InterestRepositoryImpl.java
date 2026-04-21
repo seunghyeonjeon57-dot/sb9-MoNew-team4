@@ -27,7 +27,8 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
 
   @Override
   public CursorPage findByCursor(
-      String keywordArg, String orderBy, String direction, UUID cursorId, int limit) {
+      String keywordArg, String orderBy, String direction,
+      UUID cursorId, LocalDateTime after, int limit) {
 
     BooleanBuilder base = new BooleanBuilder();
     base.and(interest.deletedAt.isNull());
@@ -37,12 +38,9 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
     }
 
     BooleanBuilder pageWhere = new BooleanBuilder().and(base);
-    Interest anchor = cursorId == null ? null
-        : queryFactory.selectFrom(interest)
-            .where(interest.id.eq(cursorId).and(interest.deletedAt.isNull()))
-            .fetchOne();
-    if (anchor != null) {
-      pageWhere.and(cursorCondition(orderBy, direction, anchor));
+    BooleanExpression cursorWhere = buildCursorWhere(orderBy, direction, cursorId, after);
+    if (cursorWhere != null) {
+      pageWhere.and(cursorWhere);
     }
 
     List<Interest> rows = queryFactory.selectFrom(interest)
@@ -74,7 +72,27 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
             .exists());
   }
 
-  private BooleanExpression cursorCondition(String orderBy, String direction, Interest anchor) {
+  private BooleanExpression buildCursorWhere(
+      String orderBy, String direction, UUID cursorId, LocalDateTime after) {
+    if (cursorId == null && after == null) {
+      return null;
+    }
+    if (cursorId != null) {
+      Interest anchor = queryFactory.selectFrom(interest)
+          .where(interest.id.eq(cursorId).and(interest.deletedAt.isNull()))
+          .fetchOne();
+      if (anchor != null) {
+        return fullKeyset(orderBy, direction, anchor);
+      }
+      if (after != null) {
+        return timestampKeyset(after, cursorId);
+      }
+      return null;
+    }
+    return interest.createdAt.gt(after);
+  }
+
+  private BooleanExpression fullKeyset(String orderBy, String direction, Interest anchor) {
     LocalDateTime ac = anchor.getCreatedAt();
     UUID aid = anchor.getId();
     boolean desc = "DESC".equals(direction);
@@ -94,6 +112,11 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
     return primary
         .or(interest.name.eq(an).and(interest.createdAt.gt(ac)))
         .or(interest.name.eq(an).and(interest.createdAt.eq(ac)).and(interest.id.gt(aid)));
+  }
+
+  private BooleanExpression timestampKeyset(LocalDateTime after, UUID cursorId) {
+    return interest.createdAt.gt(after)
+        .or(interest.createdAt.eq(after).and(interest.id.gt(cursorId)));
   }
 
   private OrderSpecifier<?>[] buildOrder(String orderBy, String direction) {
