@@ -1,35 +1,32 @@
 spring:
   datasource:
-    # 1. 불필요한 옵션 제거 및 PostgreSQL 모드 최적화
-    # DATABASE_TO_UPPER=FALSE로 대소문자 문제 방어
-    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DATABASE_TO_UPPER=FALSE;NON_KEYWORDS=COMMENT
+    # 에러 유발 옵션 제거 및 예약어(COMMENT, LIKE) 충돌 방지 옵션 추가
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DATABASE_TO_UPPER=FALSE;NON_KEYWORDS=COMMENT,LIKE
     driver-class-name: org.h2.Driver
     username: sa
     password:
 
   batch:
     jdbc:
-      # 2. 테스트마다 배치 테이블은 무조건 생성 (일반적이고 권장되는 설정)
       initialize-schema: always
     job:
       enabled: false
 
   sql:
     init:
-      # 3. schema.sql의 PostgreSQL 전용 문법 에러 회피
       mode: never
 
   jpa:
     hibernate:
-      # 4. 테스트 시작 시 엔티티를 기반으로 테이블 생성
       ddl-auto: create-drop
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        # 5. [중요] 예약어 충돌 및 대소문자 구분을 위해 따옴표 사용 강제
-        globally_quoted_identifiers: true
+        # H2 대소문자 문제 방지를 위해 false 유지
+        globally_quoted_identifiers: false
         dialect: org.hibernate.dialect.H2Dialect
+        physical_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
 
   data:
     mongodb:

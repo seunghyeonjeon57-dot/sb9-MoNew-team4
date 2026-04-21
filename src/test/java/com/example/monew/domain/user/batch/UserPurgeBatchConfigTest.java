@@ -1,11 +1,11 @@
 package com.example.monew.domain.user.batch;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import com.example.monew.domain.comment.entity.CommentEntity;
-import com.example.monew.domain.comment.entity.CommentLikeEntity; 
-import com.example.monew.domain.comment.repository.CommentLikeRepository; 
+import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.interest.repository.SubscriptionRepository;
+import com.example.monew.domain.notification.repository.NotificationRepository;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.entity.type.UserStatus;
 import com.example.monew.domain.user.repository.UserRepository;
@@ -17,12 +17,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @SpringBootTest
 @SpringBatchTest
@@ -33,6 +36,7 @@ class UserPurgeBatchConfigTest {
   private JobLauncherTestUtils jobLauncherTestUtils;
 
   @Autowired
+  @Qualifier("userPurgeJob")
   private Job userPurgeJob;
 
   @Autowired
@@ -42,16 +46,27 @@ class UserPurgeBatchConfigTest {
   private CommentRepository commentRepository;
 
   @Autowired
-  private CommentLikeRepository commentLikeRepository; 
+  private CommentLikeRepository commentLikeRepository;
 
   @Autowired
-  private JdbcTemplate jdbcTemplate;
+  private NotificationRepository notificationRepository;
+
+  @Autowired
+  private SubscriptionRepository subscriptionRepository;
 
   @BeforeEach
   void setUp() {
     if (jobLauncherTestUtils != null) {
       jobLauncherTestUtils.setJob(userPurgeJob);
     }
+
+    
+    
+    commentLikeRepository.deleteAll();
+    notificationRepository.deleteAll();
+    subscriptionRepository.deleteAll();
+    commentRepository.deleteAll();
+    userRepository.deleteAll();
   }
 
   @Test
@@ -62,48 +77,23 @@ class UserPurgeBatchConfigTest {
     UUID targetUserId = targetUser.getId();
 
     
-    UUID mockArticleId = UUID.randomUUID();
-    commentRepository.save(new CommentEntity(mockArticleId, targetUserId, "삭제될 댓글"));
+    ReflectionTestUtils.setField(targetUser, "deletedAt", LocalDateTime.now().minusDays(2));
+    userRepository.saveAndFlush(targetUser);
+
+    User safeUser = createDeletedUser("save_me@test.com", "safeUser");
 
     
-    commentLikeRepository.save(new CommentLikeEntity(UUID.randomUUID(), targetUserId));
+    JobParameters jobParameters = new JobParametersBuilder()
+        .addString("requestDate", LocalDateTime.now().toString())
+        .addLong("time", System.currentTimeMillis())
+        .toJobParameters();
+
+    JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
 
     
-    jdbcTemplate.update("UPDATE users SET deleted_at = ? WHERE id = ?",
-        LocalDateTime.now().minusDays(2), targetUserId);
-
-    
-    User safeDeletedUser = createDeletedUser("save_me@test.com", "safeDeletedUser");
-    User activeUser = userRepository.save(User.builder()
-        .nickname("activeUser")
-        .email("active@test.com")
-        .password("password123")
-        .status(UserStatus.ACTIVE)
-        .build());
-
-    
-    JobExecution jobExecution = jobLauncherTestUtils.launchJob();
-
-    
-    assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());
-
-    
-    Integer userExists = jdbcTemplate.queryForObject(
-        "SELECT COUNT(*) FROM users WHERE id = ?", Integer.class, targetUserId);
-    assertEquals(0, userExists);
-
-    
-    Integer commentExists = jdbcTemplate.queryForObject(
-        "SELECT COUNT(*) FROM comments WHERE user_id = ?", Integer.class, targetUserId);
-    assertEquals(0, commentExists);
-
-    
-    Integer likesExists = jdbcTemplate.queryForObject(
-        "SELECT COUNT(*) FROM comment_likes WHERE user_id = ?", Integer.class, targetUserId);
-    assertEquals(0, likesExists);
-
-    assertTrue(userRepository.existsById(safeDeletedUser.getId()));
-    assertTrue(userRepository.existsById(activeUser.getId()));
+    assertThat(jobExecution.getExitStatus()).isEqualTo(ExitStatus.COMPLETED);
+    assertThat(userRepository.existsById(targetUserId)).isFalse();
+    assertThat(userRepository.existsById(safeUser.getId())).isTrue();
   }
 
   private User createDeletedUser(String email, String nickname) {

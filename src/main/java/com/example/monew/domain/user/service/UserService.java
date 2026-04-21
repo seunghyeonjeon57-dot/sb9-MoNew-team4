@@ -2,6 +2,7 @@ package com.example.monew.domain.user.service;
 
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.interest.repository.SubscriptionRepository;
 import com.example.monew.domain.notification.repository.NotificationRepository;
 import com.example.monew.domain.user.dto.UserDto;
@@ -14,6 +15,7 @@ import com.example.monew.domain.user.exception.LoginFailedException;
 import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.mapper.UserMapper;
 import com.example.monew.domain.user.repository.UserRepository;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,8 +35,9 @@ public class UserService {
   private final CommentRepository commentRepository;
   private final CommentLikeRepository commentLikeRepository;
   private final NotificationRepository notificationRepository;
+  private final InterestRepository interestRepository;
 
-  
+
   @Transactional
   public void create(UserRegisterRequest request) {
     if (userRepository.existsByEmail(request.email())) {
@@ -48,10 +51,10 @@ public class UserService {
     log.info("새로운 유저 가입 완료: ID={}, Email={}", user.getId(), user.getEmail());
   }
 
-  
+
   @Transactional(readOnly = true)
   public UserDto login(UserLoginRequest request) {
-    
+
     User user = userRepository.findActiveByEmail(request.email())
         .orElseThrow(() -> {
           log.warn("로그인 실패: 존재하지 않거나 탈퇴한 이메일 -> {}", request.email());
@@ -70,7 +73,7 @@ public class UserService {
 
   @Transactional
   public UserDto updateUser(UUID id, UserUpdateRequest request) {
-    
+
     User user = userRepository.findActiveById(id).orElseThrow(() -> {
       log.error("유저 수정 실패: 존재하지 않거나 유효하지 않은 ID -> {}", id);
       return new UserNotFoundException("해당 유저를 찾을 수 없습니다.");
@@ -86,11 +89,11 @@ public class UserService {
 
   @Transactional
   public void softDeleteUser(UUID id) {
-    
+
     User user = userRepository.findActiveById(id)
         .orElseThrow(() -> new UserNotFoundException("이미 탈퇴했거나 존재하지 않는 유저입니다."));
 
-    user.withdraw(); 
+    user.withdraw();
     log.info("유저 논리 삭제 완료 (ID={}): 탈퇴 시점={}", id, user.getDeletedAt());
   }
 
@@ -99,19 +102,29 @@ public class UserService {
   public void hardDeleteUser(UUID userId) {
     
     if (!userRepository.existsById(userId)) {
-      log.error("물리 삭제 실패: 존재하지 않는 유저 ID -> {}", userId);
       throw new UserNotFoundException("삭제하려는 유저가 존재하지 않습니다.");
     }
 
-    log.info("유저 하드 삭제 시작: ID={}", userId);
+    
+    
+    List<UUID> interestIds = subscriptionRepository.findInterestIdsByUserId(userId);
+
+    log.info("유저 하드 삭제 시작: ID={}, 관련 관심사 개수={}", userId, interestIds.size());
 
     
     commentLikeRepository.deleteAllByUserId(userId);
     notificationRepository.deleteAllByUserId(userId);
+
+    
+    if (!interestIds.isEmpty()) {
+      interestRepository.decrementSubscriberCountAll(interestIds);
+    }
+
+    
     subscriptionRepository.deleteAllByUserId(userId);
     commentRepository.deleteAllByUserId(userId);
-
     userRepository.deleteById(userId);
+
     log.info("유저 및 연관 데이터 전체 물리 삭제 완료: ID={}", userId);
   }
 }

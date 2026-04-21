@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -23,6 +24,7 @@ import com.example.monew.domain.user.exception.LoginFailedException;
 import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.mapper.UserMapper;
 import com.example.monew.domain.user.repository.UserRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -87,7 +89,6 @@ class UserServiceTest {
       User user = User.builder().email("test@test.com").password("encoded_pw").build();
       UUID id = UUID.randomUUID();
 
-      
       when(userRepository.findActiveByEmail(request.email())).thenReturn(Optional.of(user));
       when(passwordEncoder.matches(request.password(), user.getPassword())).thenReturn(true);
       when(userMapper.toDto(any())).thenReturn(new UserDto(id, "test@test.com", "테스트유저", null));
@@ -102,7 +103,6 @@ class UserServiceTest {
     @DisplayName("탈퇴한 유저 혹은 없는 이메일 로그인 실패")
     void login_fail_notFound() {
       UserLoginRequest request = new UserLoginRequest("wrong@test.com", "password123");
-      
       when(userRepository.findActiveByEmail(anyString())).thenReturn(Optional.empty());
 
       assertThatThrownBy(() -> userService.login(request))
@@ -120,7 +120,6 @@ class UserServiceTest {
       User user = User.builder().nickname("기존").email("test@test.com").build();
       UserUpdateRequest request = new UserUpdateRequest("새닉네임");
 
-      
       when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
       when(userMapper.toDto(user)).thenReturn(new UserDto(userId, "test@test.com", "새닉네임", null));
 
@@ -140,7 +139,6 @@ class UserServiceTest {
       UUID userId = UUID.randomUUID();
       User user = User.builder().status(UserStatus.ACTIVE).build();
 
-      
       when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
 
       userService.softDeleteUser(userId);
@@ -161,14 +159,46 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("하드 삭제 성공")
-    void success_hard_delete() {
+    @DisplayName("하드 삭제 성공 - 구독자 수 감소 포함 (MON-113 복구)")
+    void success_hard_delete_decrementsSubscriberCount() {
+      
       UUID userId = UUID.randomUUID();
-      when(userRepository.existsById(userId)).thenReturn(true);
+      List<UUID> interestIds = List.of(UUID.randomUUID(), UUID.randomUUID());
 
+      when(userRepository.existsById(userId)).thenReturn(true);
+      when(subscriptionRepository.findInterestIdsByUserId(userId)).thenReturn(interestIds);
+
+      
       userService.hardDeleteUser(userId);
 
+      
+      
+      verify(interestRepository).decrementSubscriberCountAll(interestIds);
+
+      
       verify(commentLikeRepository).deleteAllByUserId(userId);
+      verify(notificationRepository).deleteAllByUserId(userId);
+      verify(subscriptionRepository).deleteAllByUserId(userId);
+      verify(commentRepository).deleteAllByUserId(userId);
+
+      
+      verify(userRepository).deleteById(userId);
+    }
+
+    @Test
+    @DisplayName("하드 삭제 성공 - 구독 중인 관심사가 없는 경우")
+    void success_hard_delete_no_interests() {
+      
+      UUID userId = UUID.randomUUID();
+      when(userRepository.existsById(userId)).thenReturn(true);
+      when(subscriptionRepository.findInterestIdsByUserId(userId)).thenReturn(List.of());
+
+      
+      userService.hardDeleteUser(userId);
+
+      
+      
+      verify(interestRepository, never()).decrementSubscriberCountAll(any());
       verify(userRepository).deleteById(userId);
     }
   }

@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
-import static com.example.monew.domain.user.entity.QUser.user;
+
 
 @RequiredArgsConstructor
 public class UserRepositoryImpl implements UserRepositoryCustom {

@@ -25,13 +25,13 @@ public class CommentLikeEntity  extends BaseEntity {
 
   @Id
   @GeneratedValue
-  @Column(name = "commentLike_id", columnDefinition = "UUID")
+  @Column(name = "comment_like_id", columnDefinition = "UUID")
   private UUID id;
 
   @Column(name = "comment_id", nullable = false)
   private UUID commentId;
 
-  @Column(name = "user_Id", nullable = false)
+  @Column(name = "user_id", nullable = false)
   private UUID userId;
 
   public CommentLikeEntity(UUID commentId, UUID userId) {
