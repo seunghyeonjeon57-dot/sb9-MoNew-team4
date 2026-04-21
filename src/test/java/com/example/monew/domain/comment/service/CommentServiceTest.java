@@ -64,7 +64,7 @@ public class CommentServiceTest {
         .build();
 
     ArticleEntity article = ArticleEntity.builder().build();
-    given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article));
+    given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article)); // 이후에 변경
     given(commentRepository.save(any(CommentEntity.class)))
         .willAnswer(invocation -> {
           CommentEntity comment = invocation.getArgument(0);
@@ -87,7 +87,7 @@ public class CommentServiceTest {
         .content("기사가 없는 유령 댓글")
         .build();
 
-    given(articleRepository.findById(articleId)).willReturn(Optional.empty());
+    given(articleRepository.findById(articleId)).willReturn(Optional.empty()); // 이후에 변경
 
 
     assertThatThrownBy(() -> commentService.registerComment(request))
