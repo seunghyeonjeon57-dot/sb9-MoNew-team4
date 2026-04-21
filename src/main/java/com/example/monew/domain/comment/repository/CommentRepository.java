@@ -11,12 +11,22 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface CommentRepository extends JpaRepository<CommentEntity, UUID> , CommentRepositoryCustom{
-  void deleteAllByUserId(UUID userId);
+  @Modifying(clearAutomatically = true)
+  @Query(
+      value = "DELETE FROM comments "
+          + "WHERE user_id = :userId",
+      nativeQuery = true
+  )
+  void deleteAllByUserId(@Param("userId") UUID userId);
+
 
   @Modifying(clearAutomatically = true)
-  @Query("UPDATE CommentEntity c "
-      + "SET c.deletedAt = :now "
-      + "WHERE c.userId = :userId "
-      + "AND c.deletedAt IS NULL")
+  @Query(
+      value = "UPDATE comments "
+          + "SET deleted_at = :now "
+          + "WHERE user_id = :userId "
+          + "AND deleted_at IS NULL",
+      nativeQuery = true
+  )
   void softDeleteAllByUserId(@Param("userId")UUID userId, @Param("now") LocalDateTime now);
 }
