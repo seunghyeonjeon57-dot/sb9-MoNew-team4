@@ -31,7 +31,7 @@ public class CommentLikeEntity  extends BaseEntity {
   @Column(name = "comment_id", nullable = false)
   private UUID commentId;
 
-  @Column(name = "user_Id", nullable = false)
+  @Column(name = "user_id", nullable = false)
   private UUID userId;
 
   public CommentLikeEntity(UUID commentId, UUID userId) {
