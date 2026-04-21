@@ -27,7 +27,7 @@ public class InterestSubscriptionController {
 
   private static final String USER_HEADER = "Monew-Request-User-ID";
 
-  private final InterestSubscriptionService service;
+  private final InterestSubscriptionService interestSubscriptionService;
 
   @Operation(summary = "관심사 구독",
       description = "요청자(Monew-Request-User-ID)가 해당 관심사를 구독합니다. 중복 구독은 409를 반환합니다.")
@@ -44,7 +44,7 @@ public class InterestSubscriptionController {
   public ResponseEntity<SubscriptionResponse> subscribe(
       @PathVariable UUID interestId,
       @RequestHeader(USER_HEADER) UUID userId) {
-    return ResponseEntity.ok(service.subscribe(interestId, userId));
+    return ResponseEntity.ok(interestSubscriptionService.subscribe(interestId, userId));
   }
 
   @Operation(summary = "관심사 구독 취소",
@@ -60,7 +60,7 @@ public class InterestSubscriptionController {
   public ResponseEntity<Void> unsubscribe(
       @PathVariable UUID interestId,
       @RequestHeader(USER_HEADER) UUID userId) {
-    service.unsubscribe(interestId, userId);
+    interestSubscriptionService.unsubscribe(interestId, userId);
     return ResponseEntity.ok().build();
   }
 }
