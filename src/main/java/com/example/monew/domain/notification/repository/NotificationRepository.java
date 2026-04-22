@@ -16,23 +16,26 @@ import java.util.UUID;
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
 
-  // 수정: 본인 소유의 알림인지 확인하며 조회 (보안 강화)
   Optional<Notification> findByIdAndUserIdAndDeletedAtIsNull(UUID id, UUID userId);
 
-  long countByUserIdAndDeletedAtIsNull(UUID userId);
+  long countByUserIdAndConfirmedFalseAndDeletedAtIsNull(UUID userId);
 
-  // 수정: 벌크 연산 최적화 및 명칭 변경
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("UPDATE Notification n SET n.confirmed = true " +
       "WHERE n.userId = :userId AND n.confirmed = false AND n.deletedAt IS NULL")
   int confirmAllByUserId(@Param("userId") UUID userId);
 
-  @Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.deletedAt IS NULL " +
+  @Query("SELECT n FROM Notification n " +
+      "WHERE n.userId = :userId " +
+      "AND n.confirmed = false " +
+      "AND n.deletedAt IS NULL " +
       "ORDER BY n.createdAt DESC, n.id DESC")
   List<Notification> findFirstPageByUserId(@Param("userId") UUID userId, Pageable pageable);
 
-  // 수정: CAST 제거 및 cursor 타입을 UUID로 변경 (성능 및 타입 안정성)
-  @Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.deletedAt IS NULL " +
+  @Query("SELECT n FROM Notification n " +
+      "WHERE n.userId = :userId " +
+      "AND n.confirmed = false " +
+      "AND n.deletedAt IS NULL " +
       "AND (n.createdAt < :after OR (n.createdAt = :after AND n.id < :cursor)) " +
       "ORDER BY n.createdAt DESC, n.id DESC")
   List<Notification> findNextPageByUserId(
@@ -42,7 +45,7 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
       Pageable pageable
   );
 
-  @Modifying(clearAutomatically = true) // 영속성 컨텍스트 초기화 필수
+  @Modifying(clearAutomatically = true)
   @Query("delete from Notification n where n.userId = :userId")
   void deleteAllByUserId(@Param("userId") UUID userId);
 }

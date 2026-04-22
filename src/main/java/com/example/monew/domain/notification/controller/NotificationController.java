@@ -38,7 +38,6 @@ public class NotificationController {
       @PathVariable UUID notificationId,
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
-    // 수정: 서비스 호출 시 userId 추가 전달 (보안)
     notificationService.confirmNotification(notificationId, userId);
     return ResponseEntity.ok().build();
   }
@@ -48,7 +47,6 @@ public class NotificationController {
   public ResponseEntity<Void> confirmAllNotifications(
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
-    // 수정: 주석 해제 및 서비스 호출
     notificationService.confirmAllNotifications(userId);
     return ResponseEntity.ok().build();
   }

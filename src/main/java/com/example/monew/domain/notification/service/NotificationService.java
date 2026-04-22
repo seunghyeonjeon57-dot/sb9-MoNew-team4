@@ -87,7 +87,7 @@ public class NotificationService {
       nextAfter = lastItem.createdAt();
     }
 
-    long totalElements = (cursorUuid == null) ? notificationRepository.countByUserIdAndDeletedAtIsNull(userId) : 0;
+    long totalElements = (cursorUuid == null) ? notificationRepository.countByUserIdAndConfirmedFalseAndDeletedAtIsNull(userId) : 0;
 
     return new CursorPageResponseNotificationDto(content, nextCursor, nextAfter, content.size(), totalElements, hasNext);
   }
