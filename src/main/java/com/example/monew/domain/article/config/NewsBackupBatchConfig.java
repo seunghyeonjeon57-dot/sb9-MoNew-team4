@@ -1,4 +1,4 @@
-package com.example.monew.config;
+package com.example.monew.domain.article.config;
 import com.example.monew.domain.article.batch.service.S3Service;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;

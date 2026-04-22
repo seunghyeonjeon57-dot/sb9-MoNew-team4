@@ -185,4 +185,14 @@ public class ArticleService {
     log.info("조회수 로그 기록 - Article: {}, User: {}, IP: {}", articleId, viewedBy, clientIp);
     articleViewService.logView(articleId, viewedBy, clientIp);
   }
+
+  @Transactional
+  public void saveIfUnique(List<ArticleEntity> articles) {
+    for (ArticleEntity article : articles) {
+      if (!articleRepository.existsBySourceUrl(article.getSourceUrl())) {
+        articleRepository.saveAndFlush(article); // save 대신 saveAndFlush 시도
+        log.info(">>> [진짜 DB 전송] {}", article.getTitle());
+      }
+    }
+  }
 }

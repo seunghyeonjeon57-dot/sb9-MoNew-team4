@@ -1,17 +1,14 @@
 package com.example.monew.batch;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import com.example.monew.config.NewsBackupBatchConfig;
 import com.example.monew.domain.article.batch.service.BackupService;
 import com.example.monew.domain.article.batch.service.S3Service;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.article.repository.ArticleViewRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;

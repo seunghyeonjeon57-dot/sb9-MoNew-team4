@@ -1,4 +1,4 @@
-package com.example.monew.config;
+package com.example.monew.domain.article.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

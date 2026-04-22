@@ -10,6 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesBindin
 
 @ConfigurationProperties(prefix = "news") // 'news' 레벨에서 시작
 @ConfigurationPropertiesBinding
+
 @RequiredArgsConstructor
 @Getter
 public class NewsRss {
