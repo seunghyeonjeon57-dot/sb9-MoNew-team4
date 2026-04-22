@@ -109,7 +109,6 @@ class CommentControllerTest {
     UUID articleId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
 
-    // 💡 1. cursor 타입을 UUID에서 String(복합 커서 형태)으로 변경!
     String cursor = "15_2026-04-22T10:00:00_" + UUID.randomUUID().toString();
 
     CursorPageResponseCommentDto mockResponse = new CursorPageResponseCommentDto(
@@ -121,14 +120,13 @@ class CommentControllerTest {
         false
     );
 
-    // 💡 2. 가짜 객체(Mock) 세팅: isNull() 두 개를 날리고 파라미터 6개로 깔끔하게 축소!
     given(commentService.getArticleComments(
-        eq(articleId),
-        eq(userId),
-        eq(cursor),
-        eq("likeCount"),
-        eq("DESC"),
-        eq(50)
+        articleId,
+        userId,
+        cursor,
+        "likeCount",
+        "DESC",
+        50
     )).willReturn(mockResponse);
 
     mockMvc.perform(get("/api/comments")

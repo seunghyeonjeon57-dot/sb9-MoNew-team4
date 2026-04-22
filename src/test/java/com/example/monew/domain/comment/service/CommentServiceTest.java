@@ -68,8 +68,7 @@ public class CommentServiceTest {
     given(commentRepository.save(any(CommentEntity.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
-    CommentDto result = commentService.registerComment(request);
-
+    commentService.registerComment(request);
     verify(commentRepository, times(1)).save(any(CommentEntity.class));
   }
 
