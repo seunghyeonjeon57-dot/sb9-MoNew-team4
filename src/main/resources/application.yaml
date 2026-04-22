@@ -26,6 +26,24 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [%X{request_id}] [%X{client_ip}] %msg%n"
 
+management:
+  endpoints:
+    web:
+      exposure:
+        # metrics: 커스텀 지표 확인용
+        # prometheus: 데이터 수집기(Prometheus)가 읽어가는 경로
+        include: "health,info,metrics,prometheus"
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+  metrics:
+    tags:
+      # 모든 메트릭에 'application: MoNew'라는 태그를 기본으로 붙입니다.
+      application: ${spring.application.name:MoNew}
+
+
 # 뉴스 소스는 모든 환경 공통이므로 여기에 둡니다.
 news:
     api:
