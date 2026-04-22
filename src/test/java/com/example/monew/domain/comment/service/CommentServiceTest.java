@@ -260,7 +260,8 @@ public class CommentServiceTest {
         isNull(),
         isNull(),
         isNull(),
-        eq("LIKES"),
+        eq("likeCount"),
+        eq("DESC"),
         eq(2)
     )).willReturn(mockResult);
 
@@ -270,11 +271,14 @@ public class CommentServiceTest {
         null,
         null,
         null,
-        "LIKES",
+        "likeCount",
+        "DESC",
         1
     );
+
     assertThat(response.content()).hasSize(1);
     assertThat(response.hasNext()).isTrue();
+
     assertThat(response.nextCursor()).isEqualTo(comment1.id().toString());
   }
 
@@ -305,7 +309,8 @@ public class CommentServiceTest {
         isNull(),
         isNull(),
         isNull(),
-        eq("DATE"),
+        eq("createdAt"),
+        eq("DESC"),
         eq(11)
     )).willReturn(mockResult);
 
@@ -315,7 +320,8 @@ public class CommentServiceTest {
         null,
         null,
         null,
-        "DATE",
+        "createdAt",
+        "DESC",
         10
     );
 

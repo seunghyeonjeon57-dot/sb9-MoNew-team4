@@ -14,7 +14,8 @@ public interface CommentRepositoryCustom {
       UUID cursorId,
       LocalDateTime cursorCreatedAt,
       Long cursorLikeCount,
-      String sort,
+      String orderBy,
+      String direction,
       int size
   );
   long softDeleteAllByUserId(UUID userId);

@@ -16,6 +16,7 @@ import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import com.querydsl.core.types.Order;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -44,7 +45,8 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
       UUID cursorId,
       LocalDateTime cursorCreatedAt,
       Long cursorLikeCount,
-      String sort,
+      String orderBy,
+      String direction,
       int size
   ) {
 
@@ -73,9 +75,9 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
         .where(
             comment.articleId.eq(articleId),
             isArticleNotDeleted(),
-            getCursorCondition(cursorId, cursorCreatedAt, cursorLikeCount, sort)
+            getCursorCondition(cursorId, cursorCreatedAt, cursorLikeCount, orderBy, direction)
         )
-        .orderBy(getSortOrder(sort))
+        .orderBy(getSortOrder(orderBy, direction))
         .limit(size)
         .fetch();
   }
@@ -97,39 +99,49 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
         .execute();
   }
 
-  private BooleanExpression getCursorCondition(UUID cursorId, LocalDateTime cursorCreatedAt, Long cursorLikeCount, String sort) {
+  private BooleanExpression getCursorCondition(UUID cursorId, LocalDateTime cursorCreatedAt, Long cursorLikeCount, String orderBy, String direction) {
     if (cursorId == null) {
       return null;
     }
-    // 좋아요 순 정렬일 때의 커서 조건
-    if ("likeCount".equals(sort)) {
-      if (cursorLikeCount == null || cursorCreatedAt == null) return null;
 
-      return comment.likeCount.lt(cursorLikeCount)
-          .or(comment.likeCount.eq(cursorLikeCount).and(comment.createdAt.lt(cursorCreatedAt)))
-          .or(comment.likeCount.eq(cursorLikeCount).and(comment.createdAt.eq(cursorCreatedAt)).and(comment.id.lt(cursorId)));
+    boolean isAsc = "ASC".equalsIgnoreCase(direction);
+
+    if ("likeCount".equals(orderBy)) {
+      if (cursorLikeCount == null) return null;
+
+      if (isAsc) {
+        return comment.likeCount.gt(cursorLikeCount)
+            .or(comment.likeCount.eq(cursorLikeCount).and(comment.id.gt(cursorId)));
+      } else {
+        return comment.likeCount.lt(cursorLikeCount)
+            .or(comment.likeCount.eq(cursorLikeCount).and(comment.id.lt(cursorId)));
+      }
     }
 
-    // 기본 정렬(최신순)일 때의 커서 조건
     if (cursorCreatedAt == null) return null;
 
-    return comment.createdAt.lt(cursorCreatedAt)
-        .or(comment.createdAt.eq(cursorCreatedAt).and(comment.id.lt(cursorId)));
+    if (isAsc) {
+      return comment.createdAt.gt(cursorCreatedAt)
+          .or(comment.createdAt.eq(cursorCreatedAt).and(comment.id.gt(cursorId)));
+    } else {
+      return comment.createdAt.lt(cursorCreatedAt)
+          .or(comment.createdAt.eq(cursorCreatedAt).and(comment.id.lt(cursorId)));
+    }
   }
 
-  private OrderSpecifier<?>[] getSortOrder(String sort) {
-    // 좋아요 순 정렬
-    if ("likeCount".equals(sort)) {
+  private OrderSpecifier<?>[] getSortOrder(String orderBy, String direction) {
+    Order order = "ASC".equalsIgnoreCase(direction) ? Order.ASC : Order.DESC;
+
+    if ("likeCount".equals(orderBy)) {
       return new OrderSpecifier<?>[]{
-          comment.likeCount.desc(),
-          comment.createdAt.desc(),
-          comment.id.desc()
+          new OrderSpecifier<>(order, comment.likeCount),
+          new OrderSpecifier<>(order, comment.id)
       };
     }
-    // 기본 정렬: 최신순
+
     return new OrderSpecifier<?>[]{
-        comment.createdAt.desc(),
-        comment.id.desc()
+        new OrderSpecifier<>(order, comment.createdAt),
+        new OrderSpecifier<>(order, comment.id)
     };
   }
 }

@@ -95,22 +95,23 @@ public class CommentController {
       @RequestParam UUID articleId,
       @RequestParam String orderBy,
       @RequestParam String direction,
-      @RequestParam(required = false) UUID cursor,
-      @RequestParam(required = false) LocalDateTime after,
-      @RequestParam(required = false) Long cursorLikeCount,
+      @RequestParam(required = false) UUID cursor, // 요구사항 유지 (UUID)
+      @RequestParam(required = false) LocalDateTime after, // 요구사항 유지
+      @RequestParam(required = false) Long cursorLikeCount, // 요구사항 유지
       @RequestParam int limit,
       @RequestHeader(value = "Monew-Request-User-ID", required = false) UUID userId
   ) {
-    CursorPageResponseCommentDto request = commentService.getArticleComments(
+    CursorPageResponseCommentDto response = commentService.getArticleComments(
         articleId,
         userId,
         cursor,
         after,
         cursorLikeCount,
         orderBy,
+        direction,
         limit
     );
 
-    return ResponseEntity.ok(request);
+    return ResponseEntity.ok(response);
   }
 }

@@ -192,7 +192,8 @@ public class CommentRepositoryTest {
         null,
         null,
         null,
-        "LIKES",
+        "likeCount",
+        "DESC",
         10
     );
 
@@ -230,7 +231,6 @@ public class CommentRepositoryTest {
         .build();
     commentRepository.save(c1);
 
-
     CommentEntity c2 = CommentEntity.builder()
         .articleId(article.getId())
         .userId(user.getId())
@@ -238,7 +238,6 @@ public class CommentRepositoryTest {
         .likeCount(0L)
         .build();
     commentRepository.save(c2);
-
 
     CommentEntity c3 = CommentEntity.builder()
         .articleId(article.getId())
@@ -257,7 +256,8 @@ public class CommentRepositoryTest {
         null,
         null,
         null,
-        "DATE",
+        "createdAt",
+        "DESC",
         10
     );
 
@@ -268,5 +268,4 @@ public class CommentRepositoryTest {
 
     assertThat(result).isSortedAccordingTo((a, b) -> b.createdAt().compareTo(a.createdAt()));
   }
-
 }

@@ -117,6 +117,7 @@ class CommentControllerTest {
         false
     );
 
+    // 💡 가짜 객체(Mock) 세팅: 파라미터 8개로 정확하게 맞춤!
     given(commentService.getArticleComments(
         eq(articleId),
         eq(userId),
@@ -124,6 +125,7 @@ class CommentControllerTest {
         isNull(),
         isNull(),
         eq("likeCount"),
+        eq("DESC"),
         eq(50)
     )).willReturn(mockResponse);
 

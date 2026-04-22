@@ -168,19 +168,20 @@ public class CommentService {
       UUID cursorId,
       LocalDateTime cursorCreatedAt,
       Long cursorLikeCount,
-      String sort,
+      String orderBy,
+      String direction,
       int size
   ) {
-    log.info("댓글 목록 조회 요청: articleId={}, sort={}, size={}", articleId, sort, size);
+    log.info("댓글 목록 조회 요청: articleId={}, orderBy={}, direction={}, size={}", articleId, orderBy, direction, size);
 
     if (!articleRepository.existsById(articleId)) {
-      log.warn("댓글 목록 조회 실패: 존재하지 않는 기사 articleId={}", articleId);
       throw new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
     }
 
+    // 💡 리포지토리 호출 (direction 전달)
     List<CommentDto> comments = new ArrayList<>(
         commentRepository.findCommentsByArticleWithCursor(
-            articleId, currentUserId, cursorId, cursorCreatedAt, cursorLikeCount, sort, size + 1
+            articleId, currentUserId, cursorId, cursorCreatedAt, cursorLikeCount, orderBy, direction, size + 1
         )
     );
 
@@ -192,16 +193,15 @@ public class CommentService {
     String nextCursor = null;
     LocalDateTime nextAfter = null;
 
+    // 💡 DTO 요구사항에 맞게 nextCursor와 nextAfter 분리해서 세팅
     if(!comments.isEmpty()) {
       CommentDto lastComment = comments.get(comments.size() - 1);
       nextCursor = lastComment.id().toString();
       nextAfter = lastComment.createdAt();
     }
 
-    log.info("댓글 목록 조회 완료: 조회된 건수={}, hasNext={}", comments.size(), hasNext);
-
     return new CursorPageResponseCommentDto(
         comments, nextCursor, nextAfter, size, null, hasNext
     );
-  }
+    }
 }
