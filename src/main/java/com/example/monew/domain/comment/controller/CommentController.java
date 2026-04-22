@@ -69,7 +69,7 @@ public class CommentController {
     return ResponseEntity.noContent().build();
   }
 
-  @Operation(summary = "관심사 댓글 좋아요", description = "댓글 좋아요를 등록합니다.")
+  @Operation(summary = "댓글 좋아요", description = "댓글 좋아요를 등록합니다.")
   @PostMapping("/{commentId}/comment-likes")
   public ResponseEntity<Void> addCommentLike(
       @PathVariable UUID commentId,
