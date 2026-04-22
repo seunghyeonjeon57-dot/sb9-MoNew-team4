@@ -190,8 +190,6 @@ public class CommentRepositoryTest {
         article.getId(),
         null,
         null,
-        null,
-        null,
         "likeCount",
         "DESC",
         10
@@ -252,8 +250,6 @@ public class CommentRepositoryTest {
 
     List<CommentDto> result = commentRepository.findCommentsByArticleWithCursor(
         article.getId(),
-        null,
-        null,
         null,
         null,
         "createdAt",

@@ -17,7 +17,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -109,7 +108,9 @@ class CommentControllerTest {
   void getArticleComments_Success() throws Exception {
     UUID articleId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    UUID cursor = UUID.randomUUID();
+
+    // 💡 1. cursor 타입을 UUID에서 String(복합 커서 형태)으로 변경!
+    String cursor = "15_2026-04-22T10:00:00_" + UUID.randomUUID().toString();
 
     CursorPageResponseCommentDto mockResponse = new CursorPageResponseCommentDto(
         List.of(),
@@ -120,13 +121,11 @@ class CommentControllerTest {
         false
     );
 
-    // 💡 가짜 객체(Mock) 세팅: 파라미터 8개로 정확하게 맞춤!
+    // 💡 2. 가짜 객체(Mock) 세팅: isNull() 두 개를 날리고 파라미터 6개로 깔끔하게 축소!
     given(commentService.getArticleComments(
         eq(articleId),
         eq(userId),
         eq(cursor),
-        isNull(),
-        isNull(),
         eq("likeCount"),
         eq("DESC"),
         eq(50)
@@ -135,7 +134,7 @@ class CommentControllerTest {
     mockMvc.perform(get("/api/comments")
             .header("Monew-Request-User-ID", userId.toString())
             .param("articleId", articleId.toString())
-            .param("cursor", cursor.toString())
+            .param("cursor", cursor) // 💡 3. String 커서 그대로 전달
             .param("orderBy", "likeCount")
             .param("direction", "DESC")
             .param("limit", "50"))

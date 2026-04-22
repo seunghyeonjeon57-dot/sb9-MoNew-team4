@@ -11,9 +11,7 @@ public interface CommentRepositoryCustom {
   List<CommentDto> findCommentsByArticleWithCursor(
       UUID articleId,
       UUID currentUserId,
-      UUID cursorId,
-      LocalDateTime cursorCreatedAt,
-      Long cursorLikeCount,
+      String cursor,
       String orderBy,
       String direction,
       int size

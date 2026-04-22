@@ -42,19 +42,39 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
   public List<CommentDto> findCommentsByArticleWithCursor(
       UUID articleId,
       UUID currentUserId,
-      UUID cursorId,
-      LocalDateTime cursorCreatedAt,
-      Long cursorLikeCount,
+      String cursor,
       String orderBy,
       String direction,
       int size
   ) {
+    UUID parsedCursorId = null;
+    LocalDateTime parsedCreatedAt = null;
+    Long parsedLikeCount = null;
 
-    BooleanExpression isLikedByMe = JPAExpressions.selectOne()
-        .from(commentLikeEntity)
-        .where(commentLikeEntity.commentId.eq(comment.id)
-            .and(commentLikeEntity.userId.eq(currentUserId)))
-        .exists();
+    if (cursor != null && !cursor.isBlank()) {
+      String[] parts = cursor.split("_");
+
+      if ("likeCount".equals(orderBy) && parts.length >= 3) {
+        parsedLikeCount = Long.parseLong(parts[0]);
+        parsedCreatedAt = LocalDateTime.parse(parts[1]);
+        parsedCursorId = UUID.fromString(parts[2]);
+      } else if (parts.length >= 2) {
+        parsedCreatedAt = LocalDateTime.parse(parts[0]);
+        parsedCursorId = UUID.fromString(parts[1]);
+      }
+    }
+
+    BooleanExpression isLikedByMe;
+
+    if (currentUserId == null) {
+      isLikedByMe = Expressions.asBoolean(false);
+    } else {
+      isLikedByMe = JPAExpressions.selectOne()
+          .from(commentLikeEntity)
+          .where(commentLikeEntity.commentId.eq(comment.id)
+              .and(commentLikeEntity.userId.eq(currentUserId)))
+          .exists();
+    }
 
     return queryFactory
         .select(Projections.constructor(CommentDto.class,
@@ -73,7 +93,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
         .where(
             comment.articleId.eq(articleId),
             isArticleNotDeleted(),
-            getCursorCondition(cursorId, cursorCreatedAt, cursorLikeCount, orderBy, direction)
+            getCursorCondition(parsedCursorId, parsedCreatedAt, parsedLikeCount, orderBy, direction)
         )
         .orderBy(getSortOrder(orderBy, direction))
         .limit(size)
