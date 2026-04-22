@@ -1,5 +1,6 @@
 package com.example.monew.global.infra.s3.log;
 
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,12 +19,12 @@ public class LogBackupScheduler {
 
   private final LogS3Service logS3Service;
 
-  @Scheduled(cron = "0 0 9 * * *")
+  @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Seoul")
   public void executeLogBackup() {
     log.info(">>> [Log Backup Start]");
 
 
-    LocalDate targetDate = LocalDate.now().minusDays(1);
+    LocalDate targetDate = LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1);
 
 
     Path logFilePath = Paths.get("./logs/app-" + targetDate + ".log");
