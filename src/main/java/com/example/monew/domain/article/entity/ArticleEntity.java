@@ -27,7 +27,7 @@ public class ArticleEntity extends BaseEntity {
 
   @Id
   @GeneratedValue(generator = "UUID")
-  @Column(name = "id", updatable = false, nullable = false)
+  @Column(name = "article_id", updatable = false, nullable = false)
   private UUID id;
 
   @Column(nullable = false, length = 100)

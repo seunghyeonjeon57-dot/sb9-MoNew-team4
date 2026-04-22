@@ -41,6 +41,8 @@ public enum ErrorCode {
   DUPLICATE_LIKE(HttpStatus.CONFLICT, "이미 좋아요를 누른 댓글입니다."),
   LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "좋아요를 누르지 않은 댓글입니다.");
 
+
+
   private final HttpStatus status;
   private final String message;
 

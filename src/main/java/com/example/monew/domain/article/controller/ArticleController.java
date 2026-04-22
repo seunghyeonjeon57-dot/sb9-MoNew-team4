@@ -41,17 +41,17 @@ public class ArticleController {
       @ApiResponse(responseCode = "400", description = "잘못된 요청 (정렬 기준 오류, 페이지네이션 파라미터 오류 등)"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
+
   @GetMapping
-  public ResponseEntity<CursorPageResponseArticleDto> getArticleList(
+  public CursorPageResponseArticleDto getArticles(
       @RequestParam(required = false) UUID cursor,
       @RequestParam(required = false)
-      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
+      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+      LocalDateTime after,
+
       @RequestParam(defaultValue = "10") int size
   ) {
-    if (size > 100) {
-      throw new InvalidCursorException(ErrorCode.INVALID_INPUT_VALUE);
-    }
-    return ResponseEntity.ok(articleService.getArticles(cursor, after, size));
+    return articleService.getArticles(cursor, after, size);
   }
 
   @Operation(summary = "뉴스 기사 단건 조회", description = "뉴스 기사 ID로 뉴스 기사 단건을 조회합니다.")
@@ -74,6 +74,7 @@ public class ArticleController {
       @ApiResponse(responseCode = "200", description = "기사 뷰 등록 성공"),
       @ApiResponse(responseCode = "404", description = "기사 정보 없음")
   })
+
   @PostMapping("/{articleId}/article-views")
   public ResponseEntity<Void> incrementArticleView(
       @PathVariable UUID articleId,

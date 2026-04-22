@@ -46,7 +46,7 @@ class ArticleControllerPagingTest {
 
     given(articleService.getArticles(any(), any(), anyInt())).willReturn(mockResponse);
 
-    CursorPageResponseArticleDto result = articleController.getArticleList(null, null, 2).getBody();
+    CursorPageResponseArticleDto result = articleController.getArticles(null, null, 2);
 
     assertThat(result).isNotNull();
     assertThat(result.content()).hasSize(2);
