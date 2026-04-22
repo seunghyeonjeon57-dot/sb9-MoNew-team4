@@ -230,7 +230,6 @@ public class CommentRepositoryTest {
         .build();
     commentRepository.save(c1);
 
-    Thread.sleep(10);
 
     CommentEntity c2 = CommentEntity.builder()
         .articleId(article.getId())
@@ -240,7 +239,6 @@ public class CommentRepositoryTest {
         .build();
     commentRepository.save(c2);
 
-    Thread.sleep(10);
 
     CommentEntity c3 = CommentEntity.builder()
         .articleId(article.getId())

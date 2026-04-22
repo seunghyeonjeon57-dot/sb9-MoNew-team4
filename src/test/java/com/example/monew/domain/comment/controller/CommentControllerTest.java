@@ -136,6 +136,6 @@ class CommentControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.size").value(50))
         .andExpect(jsonPath("$.hasNext").value(false))
-        .andDo(print());;
+        .andDo(print());
   }
 }
