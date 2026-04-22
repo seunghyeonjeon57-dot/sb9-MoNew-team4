@@ -204,7 +204,7 @@ public class CommentRepositoryTest {
 
   @Test
   @DisplayName("특정 기사의 댓글 목록을 최신순으로 커서 페이징 조회한다")
-  void findCommentsByArticleId_OrderByDate() throws InterruptedException{
+  void findCommentsByArticleId_OrderByDate() {
     User user = User.builder()
         .nickname("테스트닉네임2")
         .email("test2@test.com")
