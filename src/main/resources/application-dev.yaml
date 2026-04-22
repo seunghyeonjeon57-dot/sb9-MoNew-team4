@@ -24,6 +24,14 @@ cloud:
     stack:
       auto: false
 
+    log:
+      credentials:
+        access-key: ${AWS_LOG_ACCESS_KEY}
+        secret-key: ${AWS_LOG_SECRET_KEY}
+      region:
+        static: ${AWS_LOG_REGION}
+      bucket: ${AWS_LOG_BUCKET_NAME}
+
 #news:
 #  api:
 #    naver:

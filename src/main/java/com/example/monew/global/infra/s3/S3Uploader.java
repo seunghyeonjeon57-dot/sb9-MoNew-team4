@@ -1,4 +1,4 @@
-package com.example.monew.global.infra;
+package com.example.monew.global.infra.s3;
 
 import org.springframework.stereotype.Component;
 
