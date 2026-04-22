@@ -8,7 +8,6 @@ import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.comment.entity.CommentLikeEntity;
 import com.example.monew.domain.comment.exception.CommentAccessDenied;
 import com.example.monew.domain.comment.exception.CommentDuplicateLike;
-import com.example.monew.domain.comment.exception.CommentLikeNotFound;
 import com.example.monew.domain.comment.exception.CommentNotFoundException;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
@@ -84,11 +83,12 @@ public class CommentServiceTest {
   @DisplayName("존재하지 않는 댓글을 수정하려고 하면 예외가 발생한다.")
   void updateComment_NotFound() {
     UUID fakeCommentId = UUID.randomUUID();
+    UUID randomUserId = UUID.randomUUID();
     CommentUpdateRequest request = new CommentUpdateRequest("수정");
 
     given(commentRepository.findById(fakeCommentId)).willReturn(Optional.empty());
 
-    assertThatThrownBy(() -> commentService.updateComment(fakeCommentId, UUID.randomUUID(), request))
+    assertThatThrownBy(() -> commentService.updateComment(fakeCommentId, randomUserId, request))
         .isInstanceOf(CommentNotFoundException.class);
   }
 
