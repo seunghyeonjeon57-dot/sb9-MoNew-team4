@@ -1,6 +1,6 @@
 package com.example.monew.domain.article.batch.service;
 
-import com.amazonaws.SdkClientException;
+
 import com.example.monew.domain.article.batch.exception.S3DownloadException;
 import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
 import java.io.File;
