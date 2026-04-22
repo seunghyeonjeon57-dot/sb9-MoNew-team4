@@ -197,10 +197,9 @@ public class CommentRepositoryTest {
     );
 
     assertThat(result).hasSize(3);
-    assertThat(result).hasSize(3);
     assertThat(result.get(0).likeCount()).isEqualTo(10L);
     assertThat(result.get(1).likeCount()).isEqualTo(5L);
-    assertThat(result.get(2).likeCount()).isEqualTo(0L);
+    assertThat(result.get(2).likeCount()).isZero();
   }
 
   @Test

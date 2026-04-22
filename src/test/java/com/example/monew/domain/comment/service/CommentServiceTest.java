@@ -66,10 +66,7 @@ public class CommentServiceTest {
     ArticleEntity article = ArticleEntity.builder().build();
     given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article)); // 이후에 변경
     given(commentRepository.save(any(CommentEntity.class)))
-        .willAnswer(invocation -> {
-          CommentEntity comment = invocation.getArgument(0);
-          return comment;
-        });
+        .willAnswer(invocation -> invocation.getArgument(0));
 
     CommentDto result = commentService.registerComment(request);
 

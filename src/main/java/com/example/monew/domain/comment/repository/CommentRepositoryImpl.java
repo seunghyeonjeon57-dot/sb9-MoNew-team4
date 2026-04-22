@@ -3,18 +3,15 @@ package com.example.monew.domain.comment.repository;
 import static com.example.monew.domain.comment.entity.QCommentLikeEntity.commentLikeEntity;
 
 import com.example.monew.domain.article.entity.QArticleEntity;
-import com.example.monew.domain.comment.dto.CommentActivityDto;
 import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.entity.QCommentEntity;
 import com.example.monew.domain.user.entity.QUser;
-import com.example.monew.domain.user.entity.type.UserStatus;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.querydsl.jpa.impl.JPAQuery;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,9 +22,9 @@ import org.springframework.stereotype.Repository;
 public class CommentRepositoryImpl implements CommentRepositoryCustom{
 
   private final JPAQueryFactory queryFactory;
-  private final QCommentEntity comment = QCommentEntity.commentEntity;
-  private final QArticleEntity article = QArticleEntity.articleEntity;
-  private final QUser user = QUser.user;
+  private static final QCommentEntity comment = QCommentEntity.commentEntity;
+  private static final QArticleEntity article = QArticleEntity.articleEntity;
+  private static final QUser user = QUser.user;
 
   public CommentRepositoryImpl(EntityManager em) {
     this.queryFactory = new JPAQueryFactory(em);
