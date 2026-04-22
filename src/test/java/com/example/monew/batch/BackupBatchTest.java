@@ -3,55 +3,58 @@ package com.example.monew.batch;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.example.monew.config.NewsBackupBatchConfig;
 import com.example.monew.domain.article.batch.service.BackupService;
 import com.example.monew.domain.article.batch.service.S3Service;
 import com.example.monew.domain.article.repository.ArticleRepository;
+import com.example.monew.domain.article.repository.ArticleViewRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
 import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.launch.JobLauncher;
 
-@SpringBootTest
-@ActiveProfiles("test")
+@ExtendWith(MockitoExtension.class)
 class BackupBatchTest {
 
-  @MockitoBean private ArticleRepository articleRepository;
-  @MockitoBean private S3Service s3Service;
+  @Mock private ArticleRepository articleRepository;
+  @Mock private ArticleViewRepository articleViewRepository;
+  @Mock private S3Service s3Service;
+  @Mock private JobLauncher jobLauncher;
+  @Mock private Job newsBackupJob;
 
-  //JobLauncher만 Mock으로
-  // Job은 진짜 빈 사용
-  @MockitoBean private org.springframework.batch.core.launch.JobLauncher jobLauncher;
-
-  @Autowired private BackupService backupService;
-  @Autowired private ObjectMapper objectMapper;
+  @InjectMocks
+  private BackupService backupService;
 
   @Test
-  @DisplayName("백업 테스트- JobLauncher 실행 확인")
-  void backupDailyNewsTest() throws Exception {
+  @DisplayName("백업 테스트: 서비스 호출 시 JobLauncher가 돌아가는지 확인")
+  void backupTest() throws Exception {
     backupService.backupDailyNews();
 
-    verify(jobLauncher).run(any(), any());
+    verify(jobLauncher, times(1)).run(any(), any());
   }
 
   @Test
-  @DisplayName("복구테스트 - S3 다운로드 후 배치")
-  void restoreNewsTest() throws Exception {
-    LocalDate targetDate = LocalDate.now().minusDays(1);
-    // String X -> File 리턴
-    java.io.File tempFile = java.io.File.createTempFile("test", ".json");
-    given(s3Service.download(anyString())).willReturn(tempFile);
+  @DisplayName("복구 테스트: S3 다운로드 후 JobLauncher가 실행되는지 확인")
+  void restoreTest() throws Exception {
+    LocalDate targetDate = LocalDate.of(2026, 4, 21);
+    File mockFile = File.createTempFile("restore-test", ".json");
+    given(s3Service.download(any())).willReturn(mockFile);
 
     backupService.restoreNews(targetDate);
 
-    verify(s3Service).download(anyString());
+    verify(s3Service).download(any());
     verify(jobLauncher).run(any(), any());
 
-    tempFile.delete(); // 테스트용 파일 삭제
+    mockFile.delete();
   }
 }
