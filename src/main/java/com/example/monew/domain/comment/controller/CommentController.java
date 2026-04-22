@@ -45,7 +45,7 @@ public class CommentController {
   public ResponseEntity<CommentDto> updateComment(
       @PathVariable UUID commentId,
       @RequestHeader("Monew-Request-User-ID") UUID userId,
-      @RequestBody CommentUpdateRequest request
+      @Valid @RequestBody CommentUpdateRequest request
   ){
     CommentDto comment = commentService.updateComment(commentId, userId, request);
     return ResponseEntity.ok(comment);
@@ -95,9 +95,9 @@ public class CommentController {
       @RequestParam UUID articleId,
       @RequestParam String orderBy,
       @RequestParam String direction,
-      @RequestParam(required = false) UUID cursor, // 요구사항 유지 (UUID)
-      @RequestParam(required = false) LocalDateTime after, // 요구사항 유지
-      @RequestParam(required = false) Long cursorLikeCount, // 요구사항 유지
+      @RequestParam(required = true) UUID cursor,
+      @RequestParam(required = false) LocalDateTime after,
+      @RequestParam(required = false) Long cursorLikeCount,
       @RequestParam int limit,
       @RequestHeader(value = "Monew-Request-User-ID", required = false) UUID userId
   ) {

@@ -50,13 +50,11 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
       int size
   ) {
 
-    BooleanExpression isLikedByMe = currentUserId != null ?
-        JPAExpressions.selectOne()
-            .from(commentLikeEntity)
-            .where(commentLikeEntity.commentId.eq(comment.id)
-                .and(commentLikeEntity.userId.eq(currentUserId)))
-            .exists()
-        : Expressions.asBoolean(false);
+    BooleanExpression isLikedByMe = JPAExpressions.selectOne()
+        .from(commentLikeEntity)
+        .where(commentLikeEntity.commentId.eq(comment.id)
+            .and(commentLikeEntity.userId.eq(currentUserId)))
+        .exists();
 
     return queryFactory
         .select(Projections.constructor(CommentDto.class,

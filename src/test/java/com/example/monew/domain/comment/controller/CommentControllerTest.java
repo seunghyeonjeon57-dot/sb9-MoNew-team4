@@ -38,15 +38,17 @@ class CommentControllerTest {
   @Test
   @DisplayName("올바른 데이터로 댓글 등록 요청 시 200 OK를 반환한다.")
   void registerComment_HttpOk() throws Exception {
+    UUID userId = UUID.randomUUID();
     CommentRegisterRequest request = CommentRegisterRequest.builder()
         .articleId(UUID.randomUUID())
-        .userId(UUID.randomUUID())
+        .userId(userId)
         .content("컨트롤러 테스트 댓글")
         .build();
     String jsonRequest = objectMapper.writeValueAsString(request);
 
     // 매핑이 없다면 404 Not Found 로 실패합니다.
     mockMvc.perform(post("/api/comments")
+            .header("Monew-Request-User-ID", userId.toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
         .andExpect(status().isCreated());
@@ -63,7 +65,7 @@ class CommentControllerTest {
     String jsonRequest = objectMapper.writeValueAsString(request);
 
     mockMvc.perform(patch("/api/comments/{commentId}", commentId)
-            .header("Monew-Request-User-ID", userId.toString()) // 요구사항 헤더 추가
+            .header("Monew-Request-User-ID", userId.toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
         .andExpect(status().isOk());
@@ -107,6 +109,7 @@ class CommentControllerTest {
   void getArticleComments_Success() throws Exception {
     UUID articleId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
+    UUID cursor = UUID.randomUUID();
 
     CursorPageResponseCommentDto mockResponse = new CursorPageResponseCommentDto(
         List.of(),
@@ -121,7 +124,7 @@ class CommentControllerTest {
     given(commentService.getArticleComments(
         eq(articleId),
         eq(userId),
-        isNull(),
+        eq(cursor),
         isNull(),
         isNull(),
         eq("likeCount"),
@@ -132,6 +135,7 @@ class CommentControllerTest {
     mockMvc.perform(get("/api/comments")
             .header("Monew-Request-User-ID", userId.toString())
             .param("articleId", articleId.toString())
+            .param("cursor", cursor.toString())
             .param("orderBy", "likeCount")
             .param("direction", "DESC")
             .param("limit", "50"))
