@@ -26,6 +26,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
   private static final QCommentEntity comment = QCommentEntity.commentEntity;
   private static final QArticleEntity article = QArticleEntity.articleEntity;
   private static final QUser user = QUser.user;
+  private static final String ORDER_BY_LIKE_COUNT = "likeCount";
 
   public CommentRepositoryImpl(EntityManager em) {
     this.queryFactory = new JPAQueryFactory(em);
@@ -54,7 +55,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
     if (cursor != null && !cursor.isBlank()) {
       String[] parts = cursor.split("_");
 
-      if ("likeCount".equals(orderBy) && parts.length >= 3) {
+      if (ORDER_BY_LIKE_COUNT.equals(orderBy) && parts.length >= 3) {
         parsedLikeCount = Long.parseLong(parts[0]);
         parsedCreatedAt = LocalDateTime.parse(parts[1]);
         parsedCursorId = UUID.fromString(parts[2]);
@@ -124,7 +125,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
 
     boolean isAsc = "ASC".equalsIgnoreCase(direction);
 
-    if ("likeCount".equals(orderBy)) {
+    if (ORDER_BY_LIKE_COUNT.equals(orderBy)) {
       if (cursorLikeCount == null) return null;
 
       if (isAsc) {
@@ -150,7 +151,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
   private OrderSpecifier<?>[] getSortOrder(String orderBy, String direction) {
     Order order = "ASC".equalsIgnoreCase(direction) ? Order.ASC : Order.DESC;
 
-    if ("likeCount".equals(orderBy)) {
+    if (ORDER_BY_LIKE_COUNT.equals(orderBy)) {
       return new OrderSpecifier<?>[]{
           new OrderSpecifier<>(order, comment.likeCount),
           new OrderSpecifier<>(order, comment.id)
