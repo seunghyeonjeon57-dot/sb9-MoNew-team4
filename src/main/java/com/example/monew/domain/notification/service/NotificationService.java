@@ -100,7 +100,7 @@ public class NotificationService {
   }
 
   @Transactional
-  public void confirmAllNotifications(UUID userId) {
-    notificationRepository.confirmAllByUserId(userId);
+  public int confirmAllNotifications(UUID userId) { // 🚀 반환 타입을 int로 변경
+    return notificationRepository.confirmAllByUserId(userId);
   }
 }

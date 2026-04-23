@@ -4,9 +4,7 @@ import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
-import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.article.repository.ArticleRepository;
-import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,10 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,6 +33,9 @@ class ArticleServiceTest {
 
   @Mock
   private ArticleMapper articleMapper;
+
+  @Mock
+  private jakarta.persistence.EntityManager entityManager;
 
   @Nested
   @DisplayName("기사 상세 조회")
@@ -109,15 +106,18 @@ class ArticleServiceTest {
   class isDeleted {
 
     @Test
-    @DisplayName("성공: 존재하는 기사면 repository.delete()를 호출한다.")
+    @DisplayName("기사 논리삭제 호출")
     void success() {
       UUID id = UUID.randomUUID();
-      ArticleEntity article = ArticleEntity.builder().build();
+      ArticleEntity article = ArticleEntity.builder().id(id).build();
+
       given(articleRepository.findById(id)).willReturn(Optional.of(article));
 
       articleService.isDeleted(id);
 
-      verify(articleRepository).delete(article);
+      verify(articleRepository).softDelete(id);
+
+      verify(entityManager).flush();
     }
 
     @Test
@@ -132,17 +132,19 @@ class ArticleServiceTest {
   }
 
   @Nested
-  @DisplayName("기사 복구 테스트 (restore)")
+  @DisplayName("기사 복구 테스트")
   class RestoreArticle {
 
     @Test
-    @DisplayName("성공: 복구 메서드 호출 시 레포지토리의 restoreById가 실행된다")
+    @DisplayName("복구 메서드 호출 후 메서드 확인")
     void success() {
       UUID id = UUID.randomUUID();
 
       articleService.restore(id);
 
       verify(articleRepository, times(1)).restoreById(id);
+
+      verify(entityManager).flush();
     }
   }
 

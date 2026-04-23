@@ -8,5 +8,9 @@ import java.util.UUID;
 
 public interface ArticleRepositoryCustom {
 
+  long softDelete(UUID id);
+
+  List<ArticleEntity> findAllActive();
+
   List<ArticleEntity> findByCursor(UUID cursor, LocalDateTime after, int size);
 }

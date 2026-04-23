@@ -37,6 +37,19 @@ spring:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
 cloud:
   aws:
     credentials:
@@ -46,6 +59,13 @@ cloud:
       static: us-east-1
     s3:
       bucket: test-bucket
+    log:
+      credentials:
+        access-key: ${AWS_LOG_ACCESS_KEY}
+        secret-key: ${AWS_LOG_SECRET_KEY}
+      region:
+        static: ${AWS_LOG_REGION}
+      bucket: ${AWS_LOG_BUCKET_NAME}
 
 naver:
   client-id: dummy-id

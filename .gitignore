@@ -50,3 +50,7 @@ application-*.properties
 
 # env 파일
 .env
+
+#로그폴더
+logs/
+*.log

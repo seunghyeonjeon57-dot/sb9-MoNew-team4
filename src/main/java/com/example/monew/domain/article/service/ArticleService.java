@@ -31,15 +31,15 @@ public class ArticleService {
   private final ArticleMapper articleMapper;
   private final ArticleViewService articleViewService;
   private final ApplicationEventPublisher eventPublisher;
+  private final jakarta.persistence.EntityManager entityManager; // 추가
 
   @Transactional
   public ArticleDto getArticleDetail(UUID id) {
     log.info("뉴스 상세 조회 요청 - ID: {}", id);
     ArticleEntity article = articleRepository.findById(id)
+        .filter(a -> !a.isDeleted())
         .orElseThrow(() -> {
-          log.warn("뉴스 조회 실패 - 존재하지 않는 ID: {}", id);
-          new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
-
+          log.warn("뉴스 조회 실패 - 존재하지 않거나 삭제된 ID: {}", id);
           return new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
         });
 
@@ -67,13 +67,19 @@ public class ArticleService {
   @Transactional
   public void isDeleted(UUID id) {
     log.info("뉴스 논리 삭제 요청 - ID: {}", id);
+
     ArticleEntity article = articleRepository.findById(id)
+        .filter(a -> !a.isDeleted())
         .orElseThrow(() -> {
-          log.warn("[DeleteArticle] 삭제 실패 - 존재하지 않는 ID: {}", id);
+          log.warn("[DeleteArticle] 삭제 실패 - 존재하지 않거나 이미 삭제된 ID: {}", id);
           return new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
         });
 
-    articleRepository.delete(article);
+    articleRepository.softDelete(id);
+    entityManager.flush();
+    entityManager.clear();
+
+
     log.info("뉴스 논리 삭제 완료 - ID: {}", id);
   }
 
@@ -86,6 +92,9 @@ public class ArticleService {
   public ArticleRestoreResultDto restore(UUID id) {
     log.info("뉴스 복구 요청 - ID: {}", id);
     articleRepository.restoreById(id);
+
+    entityManager.flush();
+    entityManager.clear();
 
     return new ArticleRestoreResultDto(
         LocalDateTime.now(),

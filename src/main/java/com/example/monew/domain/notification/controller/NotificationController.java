@@ -44,10 +44,11 @@ public class NotificationController {
 
   @Operation(summary = "전체 알림 확인", description = "사용자의 모든 알림을 한번에 확인 처리합니다.")
   @PatchMapping
-  public ResponseEntity<Void> confirmAllNotifications(
+  public ResponseEntity<ConfirmAllNotificationsResponse> confirmAllNotifications(
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
-    notificationService.confirmAllNotifications(userId);
-    return ResponseEntity.ok().build();
+    int updatedCount = notificationService.confirmAllNotifications(userId);
+    return ResponseEntity.ok(new ConfirmAllNotificationsResponse(updatedCount));
   }
+  public record ConfirmAllNotificationsResponse(int updated) {}
 }
