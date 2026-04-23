@@ -53,7 +53,6 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
       int size
   ) {
     UUID parsedCursorId = null;
-    LocalDateTime parsedCreatedAt = null;
     Long parsedLikeCount = null;
 
     if (cursor != null && !cursor.isBlank()) {
@@ -97,7 +96,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
         .where(
             comment.articleId.eq(articleId),
             isArticleNotDeleted(),
-            getCursorCondition(parsedCursorId, parsedCreatedAt, parsedLikeCount, orderBy, direction)
+            getCursorCondition(parsedCursorId, after, parsedLikeCount, orderBy, direction)
         )
         .orderBy(getSortOrder(orderBy, direction))
         .limit(size)

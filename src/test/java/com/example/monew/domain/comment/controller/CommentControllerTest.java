@@ -26,7 +26,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-// RED 원인: CommentController 클래스가 없어서 컴파일 에러 발생
 @WebMvcTest(CommentController.class)
 class CommentControllerTest {
 
@@ -45,7 +44,6 @@ class CommentControllerTest {
         .build();
     String jsonRequest = objectMapper.writeValueAsString(request);
 
-    // 매핑이 없다면 404 Not Found 로 실패합니다.
     mockMvc.perform(post("/api/comments")
             .header("Monew-Request-User-ID", userId.toString())
             .contentType(MediaType.APPLICATION_JSON)

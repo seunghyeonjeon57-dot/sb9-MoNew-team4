@@ -24,7 +24,6 @@ import org.springframework.context.annotation.Import;
 @DataJpaTest
 @Import({QueryDslTestConfig.class, JpaAuditConfig.class})
 public class CommentRepositoryTest {
-  // RED 원인: CommentRepository 인터페이스를 아직 만들지 않아서 컴파일 에러 발생
   @Autowired
   private CommentRepository commentRepository;
   @Autowired

@@ -203,6 +203,6 @@ public class  CommentService {
     }
 
     log.info("댓글 목록 조회 완료: 조회된 건수={}, hasNext={}", comments.size(), hasNext);
-    return new CursorPageResponseCommentDto(comments, nextCursor, nextAfter, limit, null, hasNext);
+    return new CursorPageResponseCommentDto(comments, nextCursor, nextAfter, comments.size(), null, hasNext);
   }
 }

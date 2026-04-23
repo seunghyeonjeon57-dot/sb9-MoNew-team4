@@ -12,11 +12,8 @@ import com.example.monew.domain.comment.entity.CommentLikeEntity;
 import com.example.monew.domain.comment.exception.CommentAccessDenied;
 import com.example.monew.domain.comment.exception.CommentDuplicateLike;
 import com.example.monew.domain.comment.exception.CommentNotFoundException;
-import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
-import com.example.monew.domain.user.repository.UserRepository;
-import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -42,17 +39,11 @@ public class CommentServiceTest {
   @Mock
   private CommentRepository commentRepository;
   @Mock
-  private CommentMapper commentMapper;
-  @Mock
   private ArticleRepository articleRepository;
   @InjectMocks
   private CommentService commentService;
   @Mock
   private CommentLikeRepository commentLikeRepository;
-  @Mock
-  private UserRepository userRepository;
-  @Mock
-  private EntityManager em;
 
   @Test
   @DisplayName("요청 DTO를 받아 댓글을 성공적으로 등록한다.")
