@@ -1,6 +1,7 @@
 package com.example.monew.domain.interest.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.domain.interest.entity.Interest;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @DataJpaTest
 @Import(QueryDslTestConfig.class)
@@ -115,5 +117,26 @@ class InterestRepositoryTest {
     assertThat(updated).isZero();
     Interest refreshed = interestRepository.findById(a.getId()).orElseThrow();
     assertThat(refreshed.getSubscriberCount()).isZero();
+  }
+
+  @Test
+  @DisplayName("name 길이 제약: 50자까지는 허용")
+  void name_length_allowedAtLimit() {
+    String exact50 = "가".repeat(50);
+    Interest interest = Interest.builder().name(exact50).keywords(List.of("k")).build();
+
+    Interest saved = interestRepository.saveAndFlush(interest);
+
+    assertThat(saved.getName()).hasSize(50);
+  }
+
+  @Test
+  @DisplayName("name 길이 제약: 51자 이상 저장 시 DataIntegrityViolationException")
+  void name_length_rejectedOverLimit() {
+    String tooLong51 = "가".repeat(51);
+    Interest interest = Interest.builder().name(tooLong51).keywords(List.of("k")).build();
+
+    assertThatThrownBy(() -> interestRepository.saveAndFlush(interest))
+        .isInstanceOf(DataIntegrityViolationException.class);
   }
 }

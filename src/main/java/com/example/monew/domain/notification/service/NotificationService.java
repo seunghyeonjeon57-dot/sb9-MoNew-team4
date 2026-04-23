@@ -87,7 +87,7 @@ public class NotificationService {
       nextAfter = lastItem.createdAt();
     }
 
-    long totalElements = (cursorUuid == null) ? notificationRepository.countByUserIdAndDeletedAtIsNull(userId) : 0;
+    long totalElements = (cursorUuid == null) ? notificationRepository.countByUserIdAndConfirmedFalseAndDeletedAtIsNull(userId) : 0;
 
     return new CursorPageResponseNotificationDto(content, nextCursor, nextAfter, content.size(), totalElements, hasNext);
   }
@@ -100,7 +100,7 @@ public class NotificationService {
   }
 
   @Transactional
-  public void confirmAllNotifications(UUID userId) {
-    notificationRepository.confirmAllByUserId(userId);
+  public int confirmAllNotifications(UUID userId) { // 🚀 반환 타입을 int로 변경
+    return notificationRepository.confirmAllByUserId(userId);
   }
 }

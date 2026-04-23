@@ -73,7 +73,7 @@ class NotificationServiceTest {
         .thenReturn(List.of(mockNotification));
 
     // 전체 개수 카운트 메서드도 모킹
-    when(notificationRepository.countByUserIdAndDeletedAtIsNull(userId))
+    when(notificationRepository.countByUserIdAndConfirmedFalseAndDeletedAtIsNull(userId))
         .thenReturn(1L);
 
     // when

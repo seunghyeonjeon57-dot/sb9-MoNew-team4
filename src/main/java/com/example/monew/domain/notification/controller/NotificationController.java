@@ -38,18 +38,17 @@ public class NotificationController {
       @PathVariable UUID notificationId,
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
-    // 수정: 서비스 호출 시 userId 추가 전달 (보안)
     notificationService.confirmNotification(notificationId, userId);
     return ResponseEntity.ok().build();
   }
 
   @Operation(summary = "전체 알림 확인", description = "사용자의 모든 알림을 한번에 확인 처리합니다.")
   @PatchMapping
-  public ResponseEntity<Void> confirmAllNotifications(
+  public ResponseEntity<ConfirmAllNotificationsResponse> confirmAllNotifications(
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
-    // 수정: 주석 해제 및 서비스 호출
-    notificationService.confirmAllNotifications(userId);
-    return ResponseEntity.ok().build();
+    int updatedCount = notificationService.confirmAllNotifications(userId);
+    return ResponseEntity.ok(new ConfirmAllNotificationsResponse(updatedCount));
   }
+  public record ConfirmAllNotificationsResponse(int updated) {}
 }

@@ -23,15 +23,11 @@ import org.hibernate.annotations.Where;
 @Getter
 @Table(name = "articles")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLDelete(sql = "UPDATE articles SET is_deleted = true WHERE article_id = ?")
-@Where(clause = "is_deleted = false")
-//@Where(clause = "deleted_at IS NULL")
-//@SQLDelete(sql = "UPDATE articles SET deleted_at = CURRENT_TIMESTAMP WHERE article_id = ?") 선우님한테 말해서 이걸로 대체 가능한지
 public class ArticleEntity extends BaseEntity {
 
   @Id
-  @GeneratedValue
-  @Column(name = "article_id", columnDefinition = "UUID")
+  @GeneratedValue(generator = "UUID")
+  @Column(name = "id", updatable = false, nullable = false)
   private UUID id;
 
   @Column(nullable = false, length = 100)

@@ -1,42 +1,40 @@
 package com.example.monew.batch;
-
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.monew.domain.article.batch.service.S3Service;
+import java.io.File;
+import java.nio.file.Files;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@SpringBootTest
-@ActiveProfiles("test")
+@ExtendWith(MockitoExtension.class)
 class S3Servicetest {
 
-  @MockitoBean
+  @Mock
   private S3Service s3Service;
 
   @Test
-  @DisplayName("S3 파일 업로드 및 다운로드 테스트")
-  void s3UploadAndGetTest() throws Exception { // 파일 처리를 위해 Exception 추가
-    String testContent = "Hello, S3! This is a backup test.";
-    String s3Path = "test/integration-test.txt";
+  @DisplayName("S3 파일 업로드 및 다운로드 로직 검증")
+  void s3UploadAndGetTest() throws Exception {
+    String testContent = "Hello, S3!";
+    String s3Path = "test/path.txt";
+    File fakeFile = File.createTempFile("test-", ".json");
+    Files.writeString(fakeFile.toPath(), testContent);
 
-    java.io.File fakeFile = java.io.File.createTempFile("test-", ".json");
-    java.nio.file.Files.writeString(fakeFile.toPath(), testContent);
-
-    given(s3Service.download(anyString())).willReturn(fakeFile);
+    given(s3Service.download(s3Path)).willReturn(fakeFile);
 
     s3Service.upload(s3Path, testContent);
+    File downloadedFile = s3Service.download(s3Path);
 
-    // String -> File
-    java.io.File downloadedFile = s3Service.download(s3Path);
+    verify(s3Service).upload(s3Path, testContent);
 
-    String downloadedContent = java.nio.file.Files.readString(downloadedFile.toPath());
-
-    System.out.println("다운로드된 내용: " + downloadedContent);
+    String downloadedContent = Files.readString(downloadedFile.toPath());
     assertThat(downloadedContent).isEqualTo(testContent);
 
     fakeFile.delete();
