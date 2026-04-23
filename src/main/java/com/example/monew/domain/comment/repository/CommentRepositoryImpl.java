@@ -27,9 +27,12 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
   private static final QArticleEntity article = QArticleEntity.articleEntity;
   private static final QUser user = QUser.user;
   private static final String ORDER_BY_LIKE_COUNT = "likeCount";
+  private final EntityManager em;
+
 
   public CommentRepositoryImpl(EntityManager em) {
     this.queryFactory = new JPAQueryFactory(em);
+    this.em = em;
   }
 
   private BooleanExpression isNotDeleted() {
@@ -104,18 +107,24 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
 
   @Override
   public long softDeleteAllByUserId(UUID userId) {
-    return queryFactory.update(comment)
+    long softDelete = queryFactory.update(comment)
         .set(comment.deletedAt, LocalDateTime.now())
         .where(comment.userId.eq(userId), isNotDeleted())
-
         .execute();
+
+    em.flush();
+    em.clear();
+   return softDelete;
   }
 
   @Override
   public long deleteAllByUserId(UUID userId) {
-    return queryFactory.delete(comment)
+    long delete = queryFactory.delete(comment)
         .where(comment.userId.eq(userId))
         .execute();
+    em.flush();
+    em.clear();
+    return delete;
   }
 
   private BooleanExpression getCursorCondition(UUID cursorId, LocalDateTime cursorCreatedAt, Long cursorLikeCount, String orderBy, String direction) {

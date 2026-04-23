@@ -16,7 +16,6 @@ import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.global.exception.ErrorCode;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -28,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CommentService {
+public class  CommentService {
 
   private final CommentRepository commentRepository;
   private final CommentMapper commentMapper;
@@ -202,6 +201,7 @@ public class CommentService {
       }
     }
 
+    log.info("댓글 목록 조회 완료: 조회된 건수={}, hasNext={}", comments.size(), hasNext);
     return new CursorPageResponseCommentDto(comments, nextCursor, null, limit, null, hasNext);
   }
 }

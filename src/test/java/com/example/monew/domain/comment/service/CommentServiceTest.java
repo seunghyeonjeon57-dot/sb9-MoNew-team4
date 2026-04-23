@@ -138,7 +138,6 @@ public class CommentServiceTest {
   @DisplayName("댓글 삭제 시 논리 삭제(Soft Delete) 처리가 되어야 한다.")
   void deleteComment_SoftDelete() {
     UUID commentId = UUID.randomUUID();
-    UUID userId = UUID.randomUUID();
 
     CommentEntity comment = CommentEntity.builder()
         .id(commentId)
