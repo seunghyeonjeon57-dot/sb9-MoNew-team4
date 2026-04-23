@@ -1,17 +1,21 @@
 package com.example.monew.domain.activityManagement.service;
 
 
-import static org.awaitility.Awaitility.given;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.example.monew.domain.activityManagement.dto.CommentActivityDto;
+import com.example.monew.domain.activityManagement.dto.CommentLikeActivityDto;
 import com.example.monew.domain.activityManagement.dto.UserActivityDto;
+import com.example.monew.domain.article.dto.ArticleViewDto;
+import com.example.monew.domain.interest.dto.SubscriptionResponse;
+import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -20,6 +24,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.ArgumentCaptor;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.mongodb.core.query.UpdateDefinition;
+import org.bson.Document;
 
 import com.example.monew.domain.activityManagement.document.UserActivityDocument;
 import com.example.monew.domain.activityManagement.repository.UserActivityRepository;
@@ -32,6 +42,8 @@ public class ActivityServiceTest {
   private UserActivityRepository userActivityRepository;
   @Mock
   private UserRepository userRepository;
+  @Mock
+  private MongoTemplate mongoTemplate;
 
   @InjectMocks
   ActivityService activityService;
@@ -41,7 +53,7 @@ public class ActivityServiceTest {
   void getUserActivity_ReturnEmptyDto_WhenNoDataExists() {
     UUID userId = UUID.randomUUID();
     String expectedEmail = "test@example.com";
-    String expectedNickname = "뱀띠개발자";
+    String expectedNickname = "test";
     LocalDateTime expectedCreatedAt = LocalDateTime.now();
 
     User mockUser = mock(User.class);
@@ -101,4 +113,137 @@ public class ActivityServiceTest {
     verify(userActivityRepository).findById(userId);
   }
 
+
+  @Test
+  @DisplayName("최근 댓글 추가 시 MongoTemplate의 push와 slice 로직이 정상적으로 호출된다.")
+  void updateRecentComments_CallsUpsertWithPushAndSlice() {
+    UUID userId = UUID.randomUUID();
+    CommentActivityDto mockDto = mock(CommentActivityDto.class);
+
+    activityService.updateRecentComments(userId, mockDto);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
+
+    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    Query capturedQuery = queryCaptor.getValue();
+    Update capturedUpdate = (Update) updateCaptor.getValue();
+
+    Document queryObject = capturedQuery.getQueryObject();
+    assertThat(queryObject.get("_id")).isEqualTo(userId);
+
+    Document updateObject = capturedUpdate.getUpdateObject();
+    assertThat(updateObject.containsKey("$push")).isTrue();
+
+    Document pushObject = (Document) updateObject.get("$push");
+    assertThat(pushObject.containsKey("recentComments")).isTrue();
+  }
+
+  @Test
+  @DisplayName("최근 좋아요 누른 댓글 추가 시 MongoTemplate의 push와 slice 로직이 정상적으로 호출된다.")
+  void updateRecentLikedComments_CallsUpsertWithPushAndSlice() {
+    UUID userId = UUID.randomUUID();
+    CommentLikeActivityDto mockDto = mock(CommentLikeActivityDto.class);
+
+    activityService.updateRecentLikedComments(userId, mockDto);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
+
+    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    Query capturedQuery = queryCaptor.getValue();
+    Update capturedUpdate = (Update) updateCaptor.getValue();
+
+    Document queryObject = capturedQuery.getQueryObject();
+    assertThat(queryObject.get("_id")).isEqualTo(userId);
+
+    Document updateObject = capturedUpdate.getUpdateObject();
+    assertThat(updateObject.containsKey("$push")).isTrue();
+
+    Document pushObject = (Document) updateObject.get("$push");
+    assertThat(pushObject.containsKey("recentLikedComments")).isTrue();
+  }
+
+
+  @Test
+  @DisplayName("최근 읽은 기사 추가 시 MongoTemplate의 push와 slice 로직이 정상적으로 호출된다.")
+  void updateRecentViewedArticles_CallsUpsertWithPushAndSlice() {
+    UUID userId = UUID.randomUUID();
+    ArticleViewDto mockDto = mock(ArticleViewDto.class);
+
+    activityService.updateRecentViewedArticles(userId, mockDto);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
+
+    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    Query capturedQuery = queryCaptor.getValue();
+    Update capturedUpdate = (Update) updateCaptor.getValue();
+
+    Document queryObject = capturedQuery.getQueryObject();
+    assertThat(queryObject.get("userId")).isEqualTo(userId);
+
+    Document updateObject = capturedUpdate.getUpdateObject();
+    assertThat(updateObject.containsKey("$push")).isTrue();
+
+    Document pushObject = (Document) updateObject.get("$push");
+    assertThat(pushObject.containsKey("recentViewedArticles")).isTrue();
+  }
+
+  @Test
+  @DisplayName("사용자 프로필 업데이트 시 MongoTemplate의 set 로직이 정상적으로 호출된다.")
+  void updateUser_CallsUpsertWithSet() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UserDto mockUserDto = mock(UserDto.class);
+
+    activityService.updateUser(userId, mockUserDto);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
+
+    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    Query capturedQuery = queryCaptor.getValue();
+    Update capturedUpdate = (Update) updateCaptor.getValue();
+
+    Document queryObject = capturedQuery.getQueryObject();
+    assertThat(queryObject.get("userId")).isEqualTo(userId);
+
+    Document updateObject = capturedUpdate.getUpdateObject();
+    assertThat(updateObject.containsKey("$set")).isTrue();
+
+    Document setObject = (Document) updateObject.get("$set");
+    assertThat(setObject.containsKey("userProfile")).isTrue();
+  }
+
+  @Test
+  @DisplayName("구독 정보 업데이트 시 MongoTemplate의 set 로직이 정상적으로 호출된다.")
+  void updateSubscriptionResponse_CallsUpsertWithSet() {
+    // given
+    UUID userId = UUID.randomUUID();
+    SubscriptionResponse mockDto = mock(SubscriptionResponse.class);
+
+    activityService.updateSubscriptionResponse(userId, mockDto);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
+
+    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    Query capturedQuery = queryCaptor.getValue();
+    Update capturedUpdate = (Update) updateCaptor.getValue();
+
+    Document queryObject = capturedQuery.getQueryObject();
+    assertThat(queryObject.get("userId")).isEqualTo(userId);
+
+    Document updateObject = capturedUpdate.getUpdateObject();
+    assertThat(updateObject.containsKey("$set")).isTrue();
+
+    Document setObject = (Document) updateObject.get("$set");
+    assertThat(setObject.containsKey("subscribedInterests")).isTrue();
+  }
 }

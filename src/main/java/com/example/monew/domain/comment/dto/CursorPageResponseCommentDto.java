@@ -1,5 +1,6 @@
 package com.example.monew.domain.comment.dto;
 
+import com.example.monew.domain.activityManagement.dto.CommentActivityDto;
 import java.time.LocalDateTime;
 import java.util.List;
 

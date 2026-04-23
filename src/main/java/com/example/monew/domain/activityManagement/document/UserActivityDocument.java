@@ -2,9 +2,11 @@ package com.example.monew.domain.activityManagement.document;
 
 
 import com.example.monew.domain.article.dto.ArticleViewDto;
-import com.example.monew.domain.comment.dto.CommentActivityDto;
-import com.example.monew.domain.comment.dto.CommentLikeActivityDto;
+import com.example.monew.domain.activityManagement.dto.CommentActivityDto;
+import com.example.monew.domain.activityManagement.dto.CommentLikeActivityDto;
 import com.example.monew.domain.interest.dto.InterestResponse;
+import com.example.monew.domain.interest.dto.SubscriptionResponse;
+import com.example.monew.domain.user.dto.UserDto;
 import jakarta.persistence.Id;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -14,7 +16,6 @@ import lombok.Builder;
 import lombok.Getter;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
-import org.springframework.data.mongodb.core.mapping.FieldType;
 
 @Document(collection = "user_activities")
 @Getter
@@ -24,8 +25,10 @@ public class UserActivityDocument {
   @Field("_id")
   private UUID userId;
 
+  private UserDto userProfile;
+
   @Builder.Default
-  private List<InterestResponse> subscribedInterests = new ArrayList<>();
+  private List<SubscriptionResponse> subscribedInterests = new ArrayList<>();
   @Builder.Default
   private List<CommentActivityDto> recentComments = new ArrayList<>();
   @Builder.Default

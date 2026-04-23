@@ -1,6 +1,6 @@
 package com.example.monew.domain.comment.repository;
 
-import com.example.monew.domain.comment.dto.CommentActivityDto;
+import com.example.monew.domain.activityManagement.dto.CommentActivityDto;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;

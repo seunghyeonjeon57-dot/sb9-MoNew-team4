@@ -1,5 +1,6 @@
 package com.example.monew.domain.user.service;
 
+import com.example.monew.domain.activityManagement.service.ActivityService;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.domain.interest.repository.InterestRepository;
@@ -36,6 +37,7 @@ public class UserService {
   private final CommentLikeRepository commentLikeRepository;
   private final NotificationRepository notificationRepository;
   private final InterestRepository interestRepository;
+  private final ActivityService activityService;
 
 
   @Transactional
@@ -48,6 +50,9 @@ public class UserService {
     user.updatePassword(passwordEncoder.encode(request.password()));
 
     userRepository.save(user);
+
+    UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getNickname(), user.getCreatedAt());
+    activityService.updateUser(user.getId(), userDto);
     log.info("새로운 유저 가입 완료: ID={}, Email={}", user.getId(), user.getEmail());
   }
 

@@ -19,6 +19,10 @@ spring:
     job:
       enabled: false
 
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/monew_db
+
 logging:
   level:
     org.hibernate.SQL: DEBUG

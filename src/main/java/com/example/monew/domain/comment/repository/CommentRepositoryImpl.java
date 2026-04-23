@@ -1,7 +1,7 @@
 package com.example.monew.domain.comment.repository;
 
 import com.example.monew.domain.article.entity.QArticleEntity;
-import com.example.monew.domain.comment.dto.CommentActivityDto;
+import com.example.monew.domain.activityManagement.dto.CommentActivityDto;
 import com.example.monew.domain.comment.entity.QCommentEntity;
 import com.example.monew.domain.user.entity.QUser;
 import com.querydsl.core.types.Projections;
