@@ -83,7 +83,7 @@ public class ActivityService {
   public void updateRecentLikedComments(UUID userId, CommentLikeActivityDto commentDto) {
     Query query = new Query(Criteria.where("_id").is(userId));
 
-    Update update = new Update().push("recentLikedComments")
+    Update update = new Update().push("recentLikes")
         .atPosition(Update.Position.FIRST)
         .slice(10)
         .each(commentDto);
@@ -94,7 +94,7 @@ public class ActivityService {
   public void updateRecentViewedArticles(UUID userId, ArticleViewDto articleDto) {
     Query query = new Query(Criteria.where("_id").is(userId));
 
-    Update update = new Update().push("recentViewedArticles")
+    Update update = new Update().push("recentArticles")
         .atPosition(Update.Position.FIRST)
         .slice(10)
         .each(articleDto);

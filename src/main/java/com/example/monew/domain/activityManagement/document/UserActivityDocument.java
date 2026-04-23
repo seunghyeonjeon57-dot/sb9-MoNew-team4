@@ -4,7 +4,6 @@ package com.example.monew.domain.activityManagement.document;
 import com.example.monew.domain.article.dto.ArticleViewDto;
 import com.example.monew.domain.activityManagement.dto.CommentActivityDto;
 import com.example.monew.domain.activityManagement.dto.CommentLikeActivityDto;
-import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.user.dto.UserDto;
 import jakarta.persistence.Id;

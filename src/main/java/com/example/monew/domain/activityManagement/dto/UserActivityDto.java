@@ -1,6 +1,5 @@
 package com.example.monew.domain.activityManagement.dto;
 
-import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import java.time.LocalDateTime;
 import java.util.List;

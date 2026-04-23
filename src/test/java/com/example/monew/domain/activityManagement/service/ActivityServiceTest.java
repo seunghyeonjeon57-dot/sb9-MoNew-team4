@@ -163,7 +163,7 @@ public class ActivityServiceTest {
     assertThat(updateObject.containsKey("$push")).isTrue();
 
     Document pushObject = (Document) updateObject.get("$push");
-    assertThat(pushObject.containsKey("recentLikedComments")).isTrue();
+    assertThat(pushObject.containsKey("recentLikes")).isTrue();
   }
 
 
@@ -184,19 +184,18 @@ public class ActivityServiceTest {
     Update capturedUpdate = (Update) updateCaptor.getValue();
 
     Document queryObject = capturedQuery.getQueryObject();
-    assertThat(queryObject.get("userId")).isEqualTo(userId);
+    assertThat(queryObject.get("_id")).isEqualTo(userId);
 
     Document updateObject = capturedUpdate.getUpdateObject();
     assertThat(updateObject.containsKey("$push")).isTrue();
 
     Document pushObject = (Document) updateObject.get("$push");
-    assertThat(pushObject.containsKey("recentViewedArticles")).isTrue();
+    assertThat(pushObject.containsKey("recentArticles")).isTrue();
   }
 
   @Test
   @DisplayName("사용자 프로필 업데이트 시 MongoTemplate의 set 로직이 정상적으로 호출된다.")
   void updateUser_CallsUpsertWithSet() {
-    // given
     UUID userId = UUID.randomUUID();
     UserDto mockUserDto = mock(UserDto.class);
 
@@ -211,7 +210,7 @@ public class ActivityServiceTest {
     Update capturedUpdate = (Update) updateCaptor.getValue();
 
     Document queryObject = capturedQuery.getQueryObject();
-    assertThat(queryObject.get("userId")).isEqualTo(userId);
+    assertThat(queryObject.get("_id")).isEqualTo(userId);
 
     Document updateObject = capturedUpdate.getUpdateObject();
     assertThat(updateObject.containsKey("$set")).isTrue();
@@ -223,7 +222,6 @@ public class ActivityServiceTest {
   @Test
   @DisplayName("구독 정보 업데이트 시 MongoTemplate의 set 로직이 정상적으로 호출된다.")
   void updateSubscriptionResponse_CallsUpsertWithSet() {
-    // given
     UUID userId = UUID.randomUUID();
     SubscriptionResponse mockDto = mock(SubscriptionResponse.class);
 
@@ -238,12 +236,12 @@ public class ActivityServiceTest {
     Update capturedUpdate = (Update) updateCaptor.getValue();
 
     Document queryObject = capturedQuery.getQueryObject();
-    assertThat(queryObject.get("userId")).isEqualTo(userId);
+    assertThat(queryObject.get("_id")).isEqualTo(userId);
 
     Document updateObject = capturedUpdate.getUpdateObject();
-    assertThat(updateObject.containsKey("$set")).isTrue();
+    assertThat(updateObject.containsKey("$addToSet")).isTrue();
 
-    Document setObject = (Document) updateObject.get("$set");
+    Document setObject = (Document) updateObject.get("$addToSet");
     assertThat(setObject.containsKey("subscribedInterests")).isTrue();
   }
 }
