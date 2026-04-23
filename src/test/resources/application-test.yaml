@@ -43,7 +43,7 @@ cloud:
       access-key: test-access-key
       secret-key: test-secret-key
     region:
-      static: us-east-1
+      static: ap-northeast-2
     s3:
       bucket: test-bucket
     log:
@@ -51,7 +51,7 @@ cloud:
         access-key: ${AWS_LOG_ACCESS_KEY}
         secret-key: ${AWS_LOG_SECRET_KEY}
       region:
-        static: ${AWS_LOG_REGION}
+        static: ap-northeast-2
       bucket: ${AWS_LOG_BUCKET_NAME}
 
 naver:

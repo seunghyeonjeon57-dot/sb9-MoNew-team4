@@ -50,12 +50,12 @@ jobs:
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
           AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
           AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
           AWS_LOG_ACCESS_KEY: ${{ secrets.AWS_LOG_ACCESS_KEY }}
           AWS_LOG_SECRET_KEY: ${{ secrets.AWS_LOG_SECRET_KEY }}
           AWS_LOG_BUCKET_NAME: ${{ secrets.AWS_LOG_BUCKET_NAME }}
-          AWS_LOG_REGION: ${{ secrets.AWS_LOG_REGION }}
+          AWS_LOG_REGION: ${{ vars.AWS_LOG_REGION }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         # 1. sleep 40: 무료 티어의 느린 가상 환경에서도 MongoDB가 완전히 부팅될 시간을 확보합니다.
         # 2. clean: 이전 빌드 잔재를 지워 로컬과 동일한 깨끗한 환경을 보장합니다.
