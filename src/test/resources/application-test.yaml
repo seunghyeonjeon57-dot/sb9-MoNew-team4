@@ -1,6 +1,5 @@
 spring:
   datasource:
-    # PostgreSQL 호환 모드 및 예약어 충돌 방지 설정 유지
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DATABASE_TO_UPPER=FALSE;NON_KEYWORDS=COMMENT,LIKE
     driver-class-name: org.h2.Driver
     username: sa
@@ -8,18 +7,15 @@ spring:
 
   batch:
     jdbc:
-      # S3 간섭을 차단했으므로, 이제 안정적으로 테이블을 생성하도록 always 설정
       initialize-schema: always
     job:
-      # 테스트 구동 시 모든 배치가 자동 실행되는 것을 방지
       enabled: false
 
-
+  # 💡 하나로 합쳐진 autoconfigure 섹션
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
-      # S3ProtocolResolver가 리소스 경로 해석을 방해하지 못하도록 S3 자동 설정 제외
       - io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration
 
   jpa:
@@ -35,8 +31,20 @@ spring:
 
   data:
     mongodb:
-      # 로컬/CI 환경에서 테스트용 임시 DB 사용
       uri: mongodb://localhost:27017/test_db
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 cloud:
   aws:
@@ -47,7 +55,6 @@ cloud:
       static: ap-northeast-2
     s3:
       bucket: test-bucket
-    # 로그용 S3 설정도 가짜 값으로 채워 빈 생성 에러 방지
     log:
       credentials:
         access-key: test-log-key
