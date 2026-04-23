@@ -32,7 +32,6 @@ public class ArticleService {
   private final ArticleViewService articleViewService;
   private final ApplicationEventPublisher eventPublisher;
   private final jakarta.persistence.EntityManager entityManager; // 추가
-  private final jakarta.persistence.EntityManager entityManager; // 추가
 
   @Transactional
   public ArticleDto getArticleDetail(UUID id) {
