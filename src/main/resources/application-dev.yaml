@@ -42,3 +42,13 @@ cloud:
 #    hankyung: ${RSS_URL_HANKYUNG:https://www.hankyung.com/feed/all-news}
 #    chosun: ${RSS_URL_CHOSUN:https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml}
 #    yonhap: ${RSS_URL_YONHAP:https://www.yna.co.kr/rss/news.xml}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - metrics
+          - prometheus
