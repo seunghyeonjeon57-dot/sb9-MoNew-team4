@@ -119,6 +119,21 @@ class InterestSubscriptionServiceTest {
   }
 
   @Test
+  @DisplayName("[MON-146] subscribe: DIVE 원인이 ConstraintViolationException이 아니면 DuplicateSubscriptionException 으로 폴백")
+  void subscribeDataIntegrityWithNonConstraintViolationCause() {
+    Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
+    UUID userId = UUID.randomUUID();
+    when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
+        .thenReturn(Optional.of(interest));
+    DataIntegrityViolationException unknown = new DataIntegrityViolationException(
+        "unknown cause", new IllegalStateException("non-constraint"));
+    when(subscriptionRepository.saveAndFlush(any(Subscription.class))).thenThrow(unknown);
+
+    assertThatThrownBy(() -> service.subscribe(interest.getId(), userId))
+        .isInstanceOf(DuplicateSubscriptionException.class);
+  }
+
+  @Test
   @DisplayName("unsubscribe: 정상 → 삭제 + decrementSubscriberCount 호출")
   void unsubscribeSuccess() {
     UUID interestId = UUID.randomUUID();

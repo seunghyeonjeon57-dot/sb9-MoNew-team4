@@ -285,4 +285,35 @@ class InterestServiceTest {
     assertThatThrownBy(() -> interestService.delete(id))
         .isInstanceOf(InterestNotFoundException.class);
   }
+
+  @Test
+  @DisplayName("[MON-146] getInterests: cursor 가 공백 문자열이면 null 로 정규화되어 첫 페이지 조회")
+  void getInterests_blankCursor_normalizedToNull() {
+    when(interestRepository.findByCursor(any(), anyString(), anyString(), isNull(), isNull(), anyInt()))
+        .thenReturn(new CursorPage(List.of(), 0L, false));
+
+    interestService.getInterests(null, "name", "ASC", "   ", null, 10, null);
+
+    verify(interestRepository).findByCursor(
+        any(), eq("name"), eq("ASC"), isNull(), isNull(), eq(10));
+  }
+
+  @Test
+  @DisplayName("[MON-146] getInterests: userId 는 있지만 검색 결과가 0건이면 subscriptionRepository 조회를 건너뛴다")
+  void getInterests_userIdPresent_butEmptyResult_skipsSubscriptionLookup() {
+    UUID userId = UUID.randomUUID();
+    when(interestRepository.findByCursor(any(), anyString(), anyString(), any(), any(), anyInt()))
+        .thenReturn(new CursorPage(List.of(), 0L, false));
+
+    CursorPageResponse<InterestResponse> page =
+        interestService.getInterests("없는키워드", "name", "ASC", null, null, 10, userId);
+
+    assertThat(page.content()).isEmpty();
+    assertThat(page.hasNext()).isFalse();
+    assertThat(page.nextCursor()).isNull();
+    assertThat(page.nextAfter()).isNull();
+    org.mockito.Mockito.verify(subscriptionRepository,
+        org.mockito.Mockito.never())
+        .findInterestIdsByUserIdAndInterestIdIn(any(), anyCollection());
+  }
 }
