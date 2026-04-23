@@ -116,3 +116,6 @@ jacocoTestReport {
         println "------------------------------------------------------------"
     }
 }
+tasks.named('sonar').configure {
+    dependsOn jacocoTestReport
+}

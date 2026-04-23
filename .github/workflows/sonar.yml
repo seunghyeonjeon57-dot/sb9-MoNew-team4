@@ -39,6 +39,8 @@ jobs:
 
       - name: Build and analyze with SonarCloud
         env:
+          SPRING_BATCH_JDBC_INITIALIZER_ENABLED: "false"
+          GRADLE_OPTS: "-Xmx3g -XX:MaxMetaspaceSize=512m -Dorg.gradle.daemon=false"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SPRING_DATASOURCE_URL: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DATABASE_TO_UPPER=FALSE;NON_KEYWORDS=COMMENT,LIKE
