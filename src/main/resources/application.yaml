@@ -40,7 +40,7 @@ management:
 
   data:
     mongodb:
-      uri: mongodb://localhost:27017/monew_db
+      uri: ${MONGO_ENDPOINT:mongodb://localhost:27017/monew_db}
 
 logging:
   level:

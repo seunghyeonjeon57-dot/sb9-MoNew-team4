@@ -129,6 +129,7 @@ public class UserService {
     subscriptionRepository.deleteAllByUserId(userId);
     commentRepository.deleteAllByUserId(userId);
     userRepository.deleteById(userId);
+    activityService.deleteUserActivity(userId);
 
     log.info("유저 및 연관 데이터 전체 물리 삭제 완료: ID={}", userId);
   }
