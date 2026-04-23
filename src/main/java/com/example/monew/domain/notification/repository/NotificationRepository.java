@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface NotificationRepository extends JpaRepository<Notification, UUID> {
+public interface NotificationRepository extends JpaRepository<Notification, UUID>, NotificationRepositoryCustom {
 
   Optional<Notification> findByIdAndUserIdAndDeletedAtIsNull(UUID id, UUID userId);
 
