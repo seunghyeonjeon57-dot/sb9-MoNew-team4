@@ -35,6 +35,27 @@ jobs:
 
       - name: Build and analyze with SonarCloud
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 이건 깃허브가 자동으로 주는 겁니다.
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    # 팀장님이 등록하신 그 토큰 이름!
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          # DB & MongoDB
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          SPRING_DATASOURCE_PORT: ${{ secrets.SPRING_DATASOURCE_PORT }}
+          SPRING_DATA_MONGODB_URI: ${{ secrets.SPRING_DATA_MONGODB_URI }}
+          # API Keys
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          # AWS Main (S3 등)
+          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
+          # AWS Log 관련 (승현 님이 짚어주신 부분!)
+          AWS_LOG_ACCESS_KEY: ${{ secrets.AWS_LOG_ACCESS_KEY }}
+          AWS_LOG_SECRET_KEY: ${{ secrets.AWS_LOG_SECRET_KEY }}
+          AWS_LOG_BUCKET_NAME: ${{ secrets.AWS_LOG_BUCKET_NAME }}
+          AWS_LOG_REGION: ${{ secrets.AWS_LOG_REGION }}
+          # Others
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: ./gradlew build jacocoTestReport sonar --info
