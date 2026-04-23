@@ -2,18 +2,23 @@ name: SonarCloud Analysis
 
 on:
   push:
-    branches: [ "main", "develop" ] # 메인 브랜치에 코드 들어올 때
+    branches: [ "main", "develop" ]
   pull_request:
-    types: [opened, synchronize, reopened] # PR 올라올 때
-  workflow_dispatch: # 팀장님이 수동으로 실행하고 싶을 때용 버튼
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 jobs:
   build:
     name: Build and analyze
     runs-on: ubuntu-latest
-    # 포크에서 올라온 PR 이벤트에는 GitHub 보안 정책상 SONAR_TOKEN이 주입되지 않아
-    # SonarCloud 분석이 반드시 실패한다. 포크 PR일 때만 skip하고
-    # push(develop/main), upstream 내부 PR, workflow_dispatch는 그대로 실행한다.
+
+    # [수정 1] GitHub 가상 환경에 몽고DB 서비스를 띄웁니다.
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+
     if: >
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
@@ -21,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # SonarCloud 분석을 위해 전체 히스토리가 필요합니다.
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -37,25 +42,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          # DB & MongoDB
           SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
           SPRING_DATASOURCE_PORT: ${{ secrets.SPRING_DATASOURCE_PORT }}
           SPRING_DATA_MONGODB_URI: ${{ secrets.SPRING_DATA_MONGODB_URI }}
-          # API Keys
           NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
-          # AWS Main (S3 등)
           AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
-          # AWS Log 관련 (승현 님이 짚어주신 부분!)
           AWS_LOG_ACCESS_KEY: ${{ secrets.AWS_LOG_ACCESS_KEY }}
           AWS_LOG_SECRET_KEY: ${{ secrets.AWS_LOG_SECRET_KEY }}
           AWS_LOG_BUCKET_NAME: ${{ secrets.AWS_LOG_BUCKET_NAME }}
           AWS_LOG_REGION: ${{ secrets.AWS_LOG_REGION }}
-          # Others
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: ./gradlew build jacocoTestReport sonar --info
+        # [수정 2] test 프로필을 활성화하여 H2 DB를 사용하게 합니다.
+        run: ./gradlew build jacocoTestReport sonar -Dspring.profiles.active=test --info
