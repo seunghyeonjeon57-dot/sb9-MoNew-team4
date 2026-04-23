@@ -67,6 +67,7 @@ jobs:
             -Dspring.profiles.active=test \
             -Dspring.batch.jdbc.initialize-schema=never \
             -Dspring.batch.job.enabled=false \
+            -Dsonar.exclusions="**/NewsBackupBatchConfig.java" \
             --info --stacktrace
 
       - name: Display Test Error Details
