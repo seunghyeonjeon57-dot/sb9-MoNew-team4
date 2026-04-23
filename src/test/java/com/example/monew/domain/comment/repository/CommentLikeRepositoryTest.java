@@ -16,7 +16,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 
 @DataJpaTest
-@Import({QueryDslTestConfig.class, JpaAuditConfig.class})
+@Import(QueryDslTestConfig.class)
 public class CommentLikeRepositoryTest {
 
   @Autowired
