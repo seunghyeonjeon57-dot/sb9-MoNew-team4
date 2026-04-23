@@ -13,7 +13,7 @@ import org.hibernate.annotations.Where;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLDelete(sql = "UPDATE comment SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLDelete(sql = "UPDATE comments SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @Where(clause = "deleted_at IS NULL")
 public class CommentEntity extends BaseEntity {
 
@@ -27,7 +27,7 @@ public class CommentEntity extends BaseEntity {
   @Column(name = "user_id", nullable = false)
   private UUID userId;
 
-   @Column(nullable = false, length = 500)
+  @Column(nullable = false, length = 500)
   private String content;
 
   @Builder.Default
@@ -49,17 +49,17 @@ public class CommentEntity extends BaseEntity {
 
 
   public void incrementLikeCount() {
-    if(this.likeCount == null) {
+    if (this.likeCount == null) {
       this.likeCount = 0L;
     }
     this.likeCount++;
   }
 
   public void decrementLikeCount() {
-    if(this.likeCount == null || likeCount <= 0) {
+    if (this.likeCount == null || likeCount <= 0) {
       this.likeCount = 0L;
       return;
     }
-    this.likeCount --;
+    this.likeCount--;
   }
 }

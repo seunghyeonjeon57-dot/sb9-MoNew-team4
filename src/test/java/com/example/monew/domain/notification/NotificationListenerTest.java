@@ -18,7 +18,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 import software.amazon.awssdk.services.s3.S3Client;
 
-@Disabled
+@Disabled ("수동 확인용 — AFTER_COMMIT 리스너 의존성 이슈로 임시 비활성. 후속 MON-141")
 @SpringBootTest
 class NotificationListenerTest {
 

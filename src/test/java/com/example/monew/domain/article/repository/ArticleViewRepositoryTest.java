@@ -1,5 +1,7 @@
 package com.example.monew.domain.article.repository;
 
+import com.example.monew.config.JpaAuditConfig;
+import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.entity.ArticleViewEntity;
 import org.junit.jupiter.api.DisplayName;
@@ -8,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
@@ -16,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import({QueryDslTestConfig.class, JpaAuditConfig.class})
 class ArticleViewRepositoryTest {
 
   @Autowired
