@@ -9,6 +9,7 @@ spring:
   batch:
     jdbc:
       initialize-schema: always
+      schema: classpath:schema-batch.sql
     job:
       enabled: false
 
