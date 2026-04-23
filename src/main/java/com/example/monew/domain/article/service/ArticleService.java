@@ -46,7 +46,6 @@ public class ArticleService {
   @Transactional
   public void saveArticle(ArticleEntity article) {
     if (!articleRepository.existsBySourceUrl(article.getSourceUrl())) {
-      article.getPublishDate();
 
       articleRepository.save(article);
       log.debug("개별 뉴스 저장 완료 - URL: {}", article.getSourceUrl());

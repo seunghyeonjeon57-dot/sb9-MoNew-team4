@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 
 @Slf4j
@@ -29,7 +28,6 @@ public class NewsBatchScheduler {
   private final ArticleService articleService;
 
   @Scheduled(cron = "0 0 * * * *")
-  @Transactional(readOnly = false)
   public void runNewsBatch() {
     log.info("=== 뉴스 배치 수집 시작 ===");
 

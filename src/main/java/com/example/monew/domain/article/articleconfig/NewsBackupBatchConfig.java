@@ -42,6 +42,8 @@ public class NewsBackupBatchConfig {
   private final ObjectMapper objectMapper;
   private final ArticleRepository articleRepository;
   private final ArticleViewRepository articleViewRepository;
+
+
   @Bean
   public Job backupJob() {
     return new JobBuilder("backupJob", jobRepository)
