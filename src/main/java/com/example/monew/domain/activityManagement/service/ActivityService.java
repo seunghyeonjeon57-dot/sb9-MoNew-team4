@@ -13,7 +13,6 @@ import java.util.UUID;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Update.Position;
-import org.springframework.data.mongodb.core.query.UpdateDefinition;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,23 +37,23 @@ public class ActivityService {
   @Transactional(readOnly = true)
   public UserActivityDto getUserActivity(UUID userId) {
 
-  log.info("사용자 활동 내역 조회 시도: userId={}", userId);
+    log.info("사용자 활동 내역 조회 시도: userId={}", userId);
 
-  User user = userRepository.findById(userId)
-      .orElseThrow(() -> {
-        log.warn("활동 내역 조회 실패: 존재하지 않는 사용자 userId={}", userId);
-        return new UserNotFoundException("해당 유저를 찾을 수 없습니다.");
-      });
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> {
+          log.warn("활동 내역 조회 실패: 존재하지 않는 사용자 userId={}", userId);
+          return new UserNotFoundException("해당 유저를 찾을 수 없습니다.");
+        });
 
-  UserActivityDocument document = userActivityRepository.findById(userId)
-      .orElseGet(() -> {
-        log.info("활동 내역이 없어 빈 내역을 반환합니다. userId={}", userId);
-        return UserActivityDocument.builder()
-            .userId(userId)
-            .build();
-      });
+    UserActivityDocument document = userActivityRepository.findById(userId)
+        .orElseGet(() -> {
+          log.info("활동 내역이 없어 빈 내역을 반환합니다. userId={}", userId);
+          return UserActivityDocument.builder()
+              .userId(userId)
+              .build();
+        });
 
-  log.info("사용자 활동 내역 조회 완료: userId={}", userId);
+    log.info("사용자 활동 내역 조회 완료: userId={}", userId);
 
     return UserActivityDto.builder()
         .id(user.getId())
@@ -69,52 +68,86 @@ public class ActivityService {
   }
 
   public void updateRecentComments(UUID userId, CommentActivityDto commentDto) {
-    Query query = new Query(Criteria.where("_id").is(userId));
+    try {
+      Query query = new Query(Criteria.where("_id").is(userId));
 
-    Update update = new Update();
-    update.push("recentComments")
-        .atPosition(Position.FIRST)    // 배열의 최신
-        .slice(10)              // 최신 10개 유지
-        .each(commentDto);            // 추가할 데이터
+      Update update = new Update();
+      update.push("recentComments")
+          .atPosition(Position.FIRST)    // 배열의 최신
+          .slice(10)              // 최신 10개 유지
+          .each(commentDto);            // 추가할 데이터
 
-    mongoTemplate.upsert(query, update, UserActivityDocument.class);
+      mongoTemplate.upsert(query, update, UserActivityDocument.class);
+      log.info("MongoDB 활동 내역 업데이트 성공: userId={}", userId);
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 업데이트 실패 (데이터 정합성 보정 필요): userId={}, error={}", userId, e.getMessage());
+    }
   }
 
   public void updateRecentLikedComments(UUID userId, CommentLikeActivityDto commentDto) {
-    Query query = new Query(Criteria.where("_id").is(userId));
+    try {
+      Query query = new Query(Criteria.where("_id").is(userId));
 
-    Update update = new Update().push("recentLikes")
-        .atPosition(Update.Position.FIRST)
-        .slice(10)
-        .each(commentDto);
+      Update update = new Update().push("recentLikes")
+          .atPosition(Update.Position.FIRST)
+          .slice(10)
+          .each(commentDto);
 
-    mongoTemplate.upsert(query, update, UserActivityDocument.class);
+      mongoTemplate.upsert(query, update, UserActivityDocument.class);
+      log.info("MongoDB 활동 내역 업데이트 성공: userId={}", userId);
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 업데이트 실패 (데이터 정합성 보정 필요): userId={}, error={}", userId, e.getMessage());
+    }
   }
 
   public void updateRecentViewedArticles(UUID userId, ArticleViewDto articleDto) {
-    Query query = new Query(Criteria.where("_id").is(userId));
+    try {
+      Query query = new Query(Criteria.where("_id").is(userId));
 
-    Update update = new Update().push("recentArticles")
-        .atPosition(Update.Position.FIRST)
-        .slice(10)
-        .each(articleDto);
+      Update update = new Update().push("recentArticles")
+          .atPosition(Update.Position.FIRST)
+          .slice(10)
+          .each(articleDto);
 
-    mongoTemplate.upsert(query, update, UserActivityDocument.class);
+      mongoTemplate.upsert(query, update, UserActivityDocument.class);
+      log.info("MongoDB 활동 내역 업데이트 성공: userId={}", userId);
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 업데이트 실패 (데이터 정합성 보정 필요): userId={}, error={}", userId, e.getMessage());
+    }
   }
 
   public void updateUser(UUID userId, UserDto userDto){
-    Query query = new Query(Criteria.where("_id").is(userId));
+    try{
+      Query query = new Query(Criteria.where("_id").is(userId));
 
-    Update update = new Update().set("userProfile", userDto);
+      Update update = new Update().set("userProfile", userDto);
 
-    mongoTemplate.upsert(query, update, UserActivityDocument.class);
+      mongoTemplate.upsert(query, update, UserActivityDocument.class);
+      log.info("MongoDB 활동 내역 업데이트 성공: userId={}", userId);
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 업데이트 실패 (데이터 정합성 보정 필요): userId={}, error={}", userId, e.getMessage());
+    }
   }
 
   public void updateSubscriptionResponse(UUID userId, SubscriptionResponse subscriptionResponse) {
-    Query query = new Query(Criteria.where("_id").is(userId));
+    try{
+      Query query = new Query(Criteria.where("_id").is(userId));
 
-    Update update = new Update().addToSet("subscribedInterests", subscriptionResponse);
+      Update update = new Update().addToSet("subscribedInterests", subscriptionResponse);
 
-    mongoTemplate.upsert(query, update, UserActivityDocument.class);
+      mongoTemplate.upsert(query, update, UserActivityDocument.class);
+      log.info("MongoDB 활동 내역 업데이트 성공: userId={}", userId);
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 업데이트 실패 (데이터 정합성 보정 필요): userId={}, error={}", userId, e.getMessage());
+    }
+  }
+
+  public void deleteUserActivity(UUID userId) {
+    try {
+      userActivityRepository.deleteAllByUserId(userId);
+      log.info("MongoDB 사용자 활동 내역 삭제 성공: userId={}", userId);
+    } catch (Exception e) {
+      log.warn("MongoDB 사용자 활동 내역 삭제 실패: userId={}, error={}", userId, e.getMessage());
+    }
   }
 }
