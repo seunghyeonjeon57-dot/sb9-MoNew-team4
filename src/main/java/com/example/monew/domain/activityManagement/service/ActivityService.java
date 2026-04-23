@@ -77,7 +77,7 @@ public class ActivityService {
         .slice(10)              // 최신 10개 유지
         .each(commentDto);            // 추가할 데이터
 
-    mongoTemplate.upsert(query, (UpdateDefinition) update, UserActivityDocument.class);
+    mongoTemplate.upsert(query, update, UserActivityDocument.class);
   }
 
   public void updateRecentLikedComments(UUID userId, CommentLikeActivityDto commentDto) {
@@ -88,7 +88,7 @@ public class ActivityService {
         .slice(10)
         .each(commentDto);
 
-    mongoTemplate.upsert(query, (UpdateDefinition) update, UserActivityDocument.class);
+    mongoTemplate.upsert(query, update, UserActivityDocument.class);
   }
 
   public void updateRecentViewedArticles(UUID userId, ArticleViewDto articleDto) {
