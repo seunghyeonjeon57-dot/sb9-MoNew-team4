@@ -113,10 +113,10 @@ CREATE TABLE notifications
     content       TEXT NOT NULL,
     resource_type VARCHAR(50),
     resource_id   UUID,
-    is_confirmed     BOOLEAN                     DEFAULT FALSE,
+    is_confirmed  BOOLEAN                     DEFAULT FALSE,
     created_at    TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-
+    deleted_at    TIMESTAMP WITHOUT TIME ZONE,
     CONSTRAINT fk_noti_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 

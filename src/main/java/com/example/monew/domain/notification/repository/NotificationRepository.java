@@ -16,14 +16,13 @@ import java.util.UUID;
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
 
-  // 본인 소유의 알림인지 확인하며 조회
   Optional<Notification> findByIdAndUserIdAndDeletedAtIsNull(UUID id, UUID userId);
 
   long countByUserIdAndConfirmedFalseAndDeletedAtIsNull(UUID userId);
 
   // 벌크 연산 최적화 (확인 처리)
   @Modifying(clearAutomatically = true, flushAutomatically = true)
-  @Query("UPDATE Notification n SET n.confirmed = true " +
+  @Query("UPDATE Notification n SET n.confirmed = true, n.updatedAt = CURRENT_TIMESTAMP " +
       "WHERE n.userId = :userId AND n.confirmed = false AND n.deletedAt IS NULL")
   int confirmAllByUserId(@Param("userId") UUID userId);
 
