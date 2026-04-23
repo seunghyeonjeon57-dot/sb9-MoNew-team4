@@ -6,10 +6,14 @@ import com.example.monew.domain.comment.dto.CommentUpdateRequest;
 import com.example.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.example.monew.domain.comment.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -92,9 +96,12 @@ public class CommentController {
   @GetMapping
   public ResponseEntity<CursorPageResponseCommentDto> getArticleComments(
       @RequestParam UUID articleId,
+      @Parameter(description = "정렬 기준", schema = @Schema(allowableValues = {"createdAt", "likeCount"}))
       @RequestParam String orderBy,
+      @Parameter(description = "정렬 방향", schema = @Schema(allowableValues = {"ASC", "DESC"}))
       @RequestParam String direction,
       @RequestParam(required = false) String cursor,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
       @RequestParam int limit,
       @RequestHeader(value = "Monew-Request-User-ID") UUID userId
   ) {
@@ -102,6 +109,7 @@ public class CommentController {
         articleId,
         userId,
         cursor,
+        after,
         orderBy,
         direction,
         limit

@@ -5,6 +5,7 @@ import com.example.monew.domain.comment.dto.CommentUpdateRequest;
 import com.example.monew.domain.comment.dto.CursorPageResponseCommentDto;
 import com.example.monew.domain.comment.service.CommentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -108,7 +109,11 @@ class CommentControllerTest {
     UUID articleId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
 
-    String cursor = "15_2026-04-22T10:00:00_" + UUID.randomUUID().toString();
+    String cursorId = UUID.randomUUID().toString();
+    String cursor = "15_" + cursorId;
+
+    String afterString = "2026-04-22T10:00:00";
+    LocalDateTime afterDateTime = LocalDateTime.parse(afterString);
 
     CursorPageResponseCommentDto mockResponse = new CursorPageResponseCommentDto(
         List.of(),
@@ -123,6 +128,7 @@ class CommentControllerTest {
         articleId,
         userId,
         cursor,
+        afterDateTime,
         "likeCount",
         "DESC",
         50
@@ -131,7 +137,8 @@ class CommentControllerTest {
     mockMvc.perform(get("/api/comments")
             .header("Monew-Request-User-ID", userId.toString())
             .param("articleId", articleId.toString())
-            .param("cursor", cursor) // 💡 3. String 커서 그대로 전달
+            .param("cursor", cursor)
+            .param("after", afterString)
             .param("orderBy", "likeCount")
             .param("direction", "DESC")
             .param("limit", "50"))

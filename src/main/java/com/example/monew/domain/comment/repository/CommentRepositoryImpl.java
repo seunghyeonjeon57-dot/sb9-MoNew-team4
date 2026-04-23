@@ -47,6 +47,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
       UUID articleId,
       UUID currentUserId,
       String cursor,
+      LocalDateTime after,
       String orderBy,
       String direction,
       int size
@@ -56,15 +57,14 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
     Long parsedLikeCount = null;
 
     if (cursor != null && !cursor.isBlank()) {
-      String[] parts = cursor.split("_");
-
-      if (ORDER_BY_LIKE_COUNT.equals(orderBy) && parts.length >= 3) {
-        parsedLikeCount = Long.parseLong(parts[0]);
-        parsedCreatedAt = LocalDateTime.parse(parts[1]);
-        parsedCursorId = UUID.fromString(parts[2]);
-      } else if (parts.length >= 2) {
-        parsedCreatedAt = LocalDateTime.parse(parts[0]);
-        parsedCursorId = UUID.fromString(parts[1]);
+      if (ORDER_BY_LIKE_COUNT.equals(orderBy)) {
+        String[] parts = cursor.split("_");
+        if(parts.length >= 2) {
+          parsedLikeCount = Long.parseLong(parts[0]);
+          parsedCursorId = UUID.fromString(parts[1]);
+        }
+      } else {
+        parsedCursorId = UUID.fromString(cursor);
       }
     }
 

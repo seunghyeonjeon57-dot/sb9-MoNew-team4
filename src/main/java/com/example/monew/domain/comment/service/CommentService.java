@@ -16,6 +16,7 @@ import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.global.exception.ErrorCode;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -165,6 +166,7 @@ public class  CommentService {
       UUID articleId,
       UUID userId,
       String cursor,
+      LocalDateTime after,
       String orderBy,
       String direction,
       int limit
@@ -177,7 +179,7 @@ public class  CommentService {
 
     List<CommentDto> comments = new ArrayList<>(
         commentRepository.findCommentsByArticleWithCursor(
-            articleId, userId, cursor, orderBy, direction, limit + 1
+            articleId, userId, cursor, after, orderBy, direction, limit + 1
         )
     );
 
@@ -187,21 +189,20 @@ public class  CommentService {
     }
 
     String nextCursor = null;
+    LocalDateTime nextAfter = null;
+
     if (hasNext && !comments.isEmpty()) {
       CommentDto lastComment = comments.get(comments.size() - 1);
+      nextAfter = lastComment.createdAt();
+
       if ("likeCount".equals(orderBy)) {
-        nextCursor = String.format("%d_%s_%s",
-            lastComment.likeCount(),
-            lastComment.createdAt(),
-            lastComment.id());
+        nextCursor = String.format("%d_%s", lastComment.likeCount(), lastComment.id());
       } else {
-        nextCursor = String.format("%s_%s",
-            lastComment.createdAt(),
-            lastComment.id());
+        nextCursor = lastComment.id().toString();
       }
     }
 
     log.info("댓글 목록 조회 완료: 조회된 건수={}, hasNext={}", comments.size(), hasNext);
-    return new CursorPageResponseCommentDto(comments, nextCursor, null, limit, null, hasNext);
+    return new CursorPageResponseCommentDto(comments, nextCursor, nextAfter, limit, null, hasNext);
   }
 }

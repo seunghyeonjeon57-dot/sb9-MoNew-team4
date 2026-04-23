@@ -256,6 +256,7 @@ public class CommentServiceTest {
         eq(articleId),
         eq(currentUserId),
         isNull(),
+        isNull(),
         eq("likeCount"),
         eq("DESC"),
         eq(2)
@@ -265,6 +266,7 @@ public class CommentServiceTest {
         articleId,
         currentUserId,
         null,
+        null,
         "likeCount",
         "DESC",
         1
@@ -273,9 +275,8 @@ public class CommentServiceTest {
     assertThat(response.content()).hasSize(1);
     assertThat(response.hasNext()).isTrue();
 
-    String expectedNextCursor = String.format("%d_%s_%s",
+    String expectedNextCursor = String.format("%d_%s",
         comment1.likeCount(),
-        comment1.createdAt(),
         comment1.id()
     );
 
@@ -307,6 +308,7 @@ public class CommentServiceTest {
         eq(articleId),
         eq(currentUserId),
         isNull(),
+        isNull(),
         eq("createdAt"),
         eq("DESC"),
         eq(11)
@@ -315,6 +317,7 @@ public class CommentServiceTest {
     CursorPageResponseCommentDto response = commentService.getArticleComments(
         articleId,
         currentUserId,
+        null,
         null,
         "createdAt",
         "DESC",
