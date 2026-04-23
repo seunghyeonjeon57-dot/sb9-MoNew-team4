@@ -1,4 +1,4 @@
-package com.example.monew.domain.article.articleConfig;
+package com.example.monew.domain.article.articleconfig;
 
 import com.example.monew.domain.article.batch.NewsRss;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
