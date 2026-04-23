@@ -14,7 +14,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ArticleRepository extends JpaRepository<ArticleEntity, UUID> , ArticleRepositoryCustom{
+public interface ArticleRepository extends JpaRepository<ArticleEntity, UUID>,
+    ArticleRepositoryCustom {
 
   @Query("SELECT a FROM ArticleEntity a WHERE a.deletedAt IS NULL AND " +
       "(:keyword IS NULL OR a.title LIKE %:keyword% OR a.summary LIKE %:keyword%) AND " +

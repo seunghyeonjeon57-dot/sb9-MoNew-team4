@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConfigurationPropertiesBinding;
 
-@ConfigurationProperties(prefix = "news") // 'news' 레벨에서 시작
+@ConfigurationProperties(prefix = "news")
 @ConfigurationPropertiesBinding
 
 @RequiredArgsConstructor

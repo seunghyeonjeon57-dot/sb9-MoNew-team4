@@ -1,4 +1,4 @@
-package com.example.monew.domain.article.config;
+package com.example.monew.config;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;

@@ -30,9 +30,6 @@ public class ArticleService {
   private final ArticleViewService articleViewService;
   private final EntityManager entityManager;
 
-  /**
-   * 뉴스 상세 조회 (삭제된 기사는 필터링)
-   */
   @Transactional
   public ArticleDto getArticleDetail(UUID id) {
     log.info("뉴스 상세 조회 요청 - ID: {}", id);
@@ -46,13 +43,9 @@ public class ArticleService {
     return articleMapper.toDto(article, false);
   }
 
-  /**
-   * 개별 뉴스 저장 (리플렉션 날짜 주입 포함)
-   */
   @Transactional
   public void saveArticle(ArticleEntity article) {
     if (!articleRepository.existsBySourceUrl(article.getSourceUrl())) {
-      // 리플렉션을 통해 부모의 createdAt에 기사 발행일 이식
       article.getPublishDate();
 
       articleRepository.save(article);
@@ -62,9 +55,6 @@ public class ArticleService {
     }
   }
 
-  /**
-   * 뉴스 논리 삭제 (Soft Delete)
-   */
   @Transactional
   public void isDeleted(UUID id) {
     log.info("뉴스 논리 삭제 요청 - ID: {}", id);
@@ -83,18 +73,13 @@ public class ArticleService {
     log.info("뉴스 논리 삭제 완료 - ID: {}", id);
   }
 
-  /**
-   * 뉴스 물리 삭제 (Hard Delete)
-   */
   @Transactional
   public void hardDelete(UUID id) {
     log.info("뉴스 물리 삭제 진행 - ID: {}", id);
     articleRepository.hardDeleteById(id);
   }
 
-  /**
-   * 삭제된 뉴스 복구
-   */
+
   @Transactional
   public ArticleRestoreResultDto restore(UUID id) {
     log.info("뉴스 복구 요청 - ID: {}", id);
@@ -110,9 +95,6 @@ public class ArticleService {
     );
   }
 
-  /**
-   * 커서 기반 뉴스 목록 조회
-   */
   public CursorPageResponseArticleDto getArticles(UUID cursor, LocalDateTime after, int size) {
     log.info("목록 조회 요청 - Cursor: {}, After: {}, Size: {}", cursor, after, size);
 
@@ -135,7 +117,6 @@ public class ArticleService {
     if (!articles.isEmpty()) {
       ArticleEntity last = articles.get(articles.size() - 1);
       nextCursor = last.getId();
-      // 리플렉션으로 주입된 기사 발행일(createdAt)을 커서 시점으로 사용
       nextAfter = last.getCreatedAt();
     }
 
@@ -149,12 +130,9 @@ public class ArticleService {
     );
   }
 
-  /**
-   * 대량 뉴스 저장 (리플렉션 날짜 주입 포함)
-   */
   @Transactional
   public void saveInChunks(List<ArticleEntity> articles) {
-    if (articles.isEmpty()) return;
+    if (articles == null || articles.isEmpty()) return;
 
     List<String> sourceUrls = articles.stream()
         .map(ArticleEntity::getSourceUrl)
@@ -167,12 +145,11 @@ public class ArticleService {
 
     List<ArticleEntity> newArticles = articles.stream()
         .filter(article -> !existingUrls.contains(article.getSourceUrl()))
-        .peek(ArticleEntity::getPublishDate) // 저장 전 리플렉션 적용
         .toList();
 
     if (!newArticles.isEmpty()) {
       articleRepository.saveAll(newArticles);
-      log.info("{}건 신규 뉴스 저장 완료", newArticles.size());
+      log.info("신규 뉴스 {}건 일괄 저장 완료", newArticles.size());
     }
   }
 
@@ -186,13 +163,4 @@ public class ArticleService {
     articleViewService.logView(articleId, viewedBy, clientIp);
   }
 
-  @Transactional
-  public void saveIfUnique(List<ArticleEntity> articles) {
-    for (ArticleEntity article : articles) {
-      if (!articleRepository.existsBySourceUrl(article.getSourceUrl())) {
-        articleRepository.saveAndFlush(article); // save 대신 saveAndFlush 시도
-        log.info(">>> [진짜 DB 전송] {}", article.getTitle());
-      }
-    }
-  }
 }

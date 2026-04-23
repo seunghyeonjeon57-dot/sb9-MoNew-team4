@@ -43,15 +43,16 @@ public class ArticleController {
   })
 
   @GetMapping
-  public CursorPageResponseArticleDto getArticles(
+  public ResponseEntity<CursorPageResponseArticleDto> getArticleList(
       @RequestParam(required = false) UUID cursor,
       @RequestParam(required = false)
-      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-      LocalDateTime after,
-
+      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
       @RequestParam(defaultValue = "10") int size
   ) {
-    return articleService.getArticles(cursor, after, size);
+    if (size > 100) {
+      throw new InvalidCursorException(ErrorCode.INVALID_INPUT_VALUE);
+    }
+    return ResponseEntity.ok(articleService.getArticles(cursor, after, size));
   }
 
   @Operation(summary = "뉴스 기사 단건 조회", description = "뉴스 기사 ID로 뉴스 기사 단건을 조회합니다.")

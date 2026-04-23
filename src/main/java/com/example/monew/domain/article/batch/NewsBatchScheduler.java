@@ -28,7 +28,7 @@ public class NewsBatchScheduler {
   private final InterestRepository interestRepository;
   private final ArticleService articleService;
 
-  @Scheduled(cron = "0 0/15 * * * *")
+  @Scheduled(cron = "0 0 * * * *")
   @Transactional(readOnly = false)
   public void runNewsBatch() {
     log.info("=== 뉴스 배치 수집 시작 ===");
@@ -37,7 +37,7 @@ public class NewsBatchScheduler {
         .flatMap(interest -> interest.getKeywords().stream())
         .map(InterestKeyword::getValue)
         .distinct()
-        .filter(kw -> kw != null && !kw.isBlank()) // 빈 값 방어
+        .filter(kw -> kw != null && !kw.isBlank())
         .toList();
 
     if (keywords.isEmpty()) {
@@ -48,33 +48,15 @@ public class NewsBatchScheduler {
     for (String keyword : keywords) {
       List<ArticleEntity> naverArticles = newsCollector.fetchNaver(keyword);
 
-      articleService.saveIfUnique(naverArticles);
+      articleService.saveInChunks(naverArticles);
 
       newsRss.getRss().forEach((pressName, url) -> {
         List<ArticleEntity> rssArticles = newsCollector.fetchRss(url, pressName, keyword);
-        articleService.saveIfUnique(rssArticles);
+        articleService.saveInChunks(rssArticles);
       });
     }
 
     log.info("=== 뉴스 수집 및 저장 완료 ===");
-  }
-
-  private void saveUniqueArticles(List<ArticleEntity> articles) {
-    if (articles == null || articles.isEmpty()) {
-      log.warn(">>> [확인] 수집된 기사가 0건입니다. 키워드나 API 설정을 확인하세요.");
-      return;
-    }
-
-    for (ArticleEntity article : articles) {
-      boolean isExist = articleRepository.existsBySourceUrl(article.getSourceUrl());
-
-      if (!isExist) {
-        articleRepository.save(article);
-        log.info(">>> [DB 저장 성공] 제목: {}", article.getTitle());
-      } else {
-        log.info(">>> [중복 스킵] 이미 존재하는 URL입니다: {}", article.getSourceUrl());
-      }
-    }
   }
 
 }

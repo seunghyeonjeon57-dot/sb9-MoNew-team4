@@ -1,6 +1,6 @@
 package com.example.monew.domain.article.repository;
 
-import com.example.monew.domain.article.config.JpaAuditConfig;
+import com.example.monew.config.JpaAuditConfig;
 import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.entity.ArticleViewEntity;
