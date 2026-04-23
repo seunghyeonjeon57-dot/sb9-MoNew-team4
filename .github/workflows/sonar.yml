@@ -12,7 +12,6 @@ jobs:
     name: Build and analyze
     runs-on: ubuntu-latest
 
-    # [수정 1] GitHub 가상 환경에 몽고DB 서비스를 띄웁니다.
     services:
       mongodb:
         image: mongo:latest
@@ -58,5 +57,8 @@ jobs:
           AWS_LOG_BUCKET_NAME: ${{ secrets.AWS_LOG_BUCKET_NAME }}
           AWS_LOG_REGION: ${{ secrets.AWS_LOG_REGION }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        # [수정 2] test 프로필을 활성화하여 H2 DB를 사용하게 합니다.
-        run: ./gradlew build jacocoTestReport sonar -Dspring.profiles.active=test --info
+        # 1. sleep 40: 무료 티어의 느린 가상 환경에서도 MongoDB가 완전히 부팅될 시간을 확보합니다.
+        # 2. clean: 이전 빌드 잔재를 지워 로컬과 동일한 깨끗한 환경을 보장합니다.
+        run: |
+          sleep 40
+          ./gradlew clean build jacocoTestReport sonar -Dspring.profiles.active=test --info
