@@ -61,4 +61,10 @@ jobs:
         # 2. clean: 이전 빌드 잔재를 지워 로컬과 동일한 깨끗한 환경을 보장합니다.
         run: |
           sleep 40
-          ./gradlew clean build jacocoTestReport sonar -Dspring.profiles.active=test --info
+          ./gradlew clean build jacocoTestReport sonar -Dspring.profiles.active=test --info --stacktrace
+
+      - name: Display Test Error Details
+        if: failure()
+        run: |
+          echo "검색에 실패한 상세 에러 로그를 출력합니다..."
+          find build/test-results/test -name "*.xml" -exec cat {} +
