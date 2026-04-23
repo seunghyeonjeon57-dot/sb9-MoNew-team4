@@ -6,10 +6,17 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 
 @DataMongoTest
 public class ActivityRepositoryTest {
+
+  @SpringBootConfiguration
+  @EnableAutoConfiguration
+  static class TestApplication {
+  }
 
   @Autowired
   private UserActivityRepository userActivityRepository;
