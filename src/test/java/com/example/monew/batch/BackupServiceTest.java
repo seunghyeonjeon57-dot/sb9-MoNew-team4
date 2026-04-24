@@ -70,7 +70,7 @@ class BackupServiceTest {
   @Test
   @DisplayName("백업 중 예외 발생 시 SneakyThrows에 의해 예외")
   void backupDailyNews_Fail_ThrowsException() throws Exception {
-    given(jobLauncher.run(eq(backupJob), any(JobParameters.class)))
+    given(jobLauncher.run(any(), any(JobParameters.class)))
         .willThrow(new RuntimeException("Batch Job Failed"));
 
     assertThatThrownBy(() -> backupService.backupDailyNews())

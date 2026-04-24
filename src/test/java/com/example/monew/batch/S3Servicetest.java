@@ -8,13 +8,19 @@ import com.example.monew.domain.article.batch.exception.S3DownloadException;
 import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
 import com.example.monew.domain.article.batch.service.S3Service;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -75,4 +81,32 @@ class S3Servicetest {
     assertThatThrownBy(() -> s3Service.download("error.json"))
         .isInstanceOf(S3DownloadException.class);
   }
+  @Test
+  @DisplayName("권한 설정 로직 커버리지 체크")
+  void download_NonPosixEnvironment() throws IOException {
+    try (MockedStatic<FileSystems> mockedFileSystems = mockStatic(FileSystems.class);
+        MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
+
+      FileSystem mockFileSystem = mock(FileSystem.class);
+      when(mockFileSystem.supportedFileAttributeViews()).thenReturn(Collections.emptySet());
+      mockedFileSystems.when(FileSystems::getDefault).thenReturn(mockFileSystem);
+
+      File mockFile = mock(File.class);
+      Path mockPath = mock(Path.class);
+      when(mockPath.toFile()).thenReturn(mockFile);
+
+      mockedFiles.when(() -> Files.createTempFile(anyString(), anyString()))
+          .thenReturn(mockPath);
+      mockedFiles.when(() -> Files.createTempFile(anyString(), anyString(), any()))
+          .thenReturn(mockPath);
+
+      lenient().when(s3Client.getObject(any(GetObjectRequest.class), any(Path.class))).thenReturn(null);
+
+      s3Service.download("test.json");
+
+      verify(mockFile).setReadable(true, true);
+      verify(mockFile).setWritable(true, true);
+      verify(mockFile).setExecutable(true, true);
+    }
+}
 }
