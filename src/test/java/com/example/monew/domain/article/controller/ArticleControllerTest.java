@@ -114,10 +114,10 @@ class ArticleControllerTest {
   @Test
   @DisplayName("뉴스 복구 성공")
   void restoreFromS3_Success() throws Exception {
-    String date = java.time.LocalDate.now().toString();
+    String fixedDate = "2026-01-01";
 
     mockMvc.perform(post("/api/articles/restore")
-            .param("date", date))
+            .param("date", fixedDate))
         .andExpect(status().isOk());
 
     verify(backupService).restoreNews(any());
@@ -126,10 +126,10 @@ class ArticleControllerTest {
   @Test
   @DisplayName("뉴스 복구 실패")
   void restoreFromS3_Fail_FutureDate() throws Exception {
-    String futureDate = java.time.LocalDate.now().plusDays(1).toString();
+    String farFutureDate = "2126-01-01";
 
     mockMvc.perform(post("/api/articles/restore")
-            .param("date", futureDate))
+            .param("date", farFutureDate))
         .andExpect(status().isBadRequest());
   }
 }
