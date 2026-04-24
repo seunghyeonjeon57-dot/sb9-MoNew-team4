@@ -22,7 +22,7 @@ public class InterestKeyword {
   @Column(columnDefinition = "uuid")
   private UUID id = UUID.randomUUID();
 
-  @Column(name = "keyword_value", nullable = false)
+  @Column(name = "value", nullable = false)
   private String value;
 
   @ManyToOne
