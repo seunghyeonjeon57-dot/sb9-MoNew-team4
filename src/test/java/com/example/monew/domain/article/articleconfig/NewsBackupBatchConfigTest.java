@@ -49,13 +49,19 @@ class NewsBackupBatchConfigTest {
   void duplicateCheckProcessorTest() throws Exception {
     ArticleEntity existingArticle = mock(ArticleEntity.class);
     given(existingArticle.isDeleted()).willReturn(false);
-    given(articleRepository.findBySourceUrl(any())).willReturn(Optional.of(existingArticle));
 
-    ArticleEntity newArticle = ArticleEntity.builder().sourceUrl("test.com").build();
+    given(articleRepository.findBySourceUrl(any()))
+        .willReturn(Optional.of(existingArticle))
+        .willReturn(Optional.empty());
 
-    ArticleEntity result = config.duplicateCheckProcessor().process(newArticle);
+    ArticleEntity article1 = ArticleEntity.builder().sourceUrl("old.com").build();
+    ArticleEntity result1 = config.duplicateCheckProcessor().process(article1);
+    assertThat(result1).isNull();
 
-    assertThat(result).isNull();
+    ArticleEntity article2 = ArticleEntity.builder().sourceUrl("new.com").build();
+    ArticleEntity result2 = config.duplicateCheckProcessor().process(article2);
+    assertThat(result2).isNotNull();
+    assertThat(result2.getSourceUrl()).isEqualTo("new.com");
   }
 
   @Test
@@ -89,5 +95,16 @@ class NewsBackupBatchConfigTest {
 
     verify(articleViewRepository).deleteByArticleEntity(any());
     verify(articleRepository).delete(any());
+  }
+
+  @Test
+  @DisplayName("jsonFileItemReader 빈 생성 및 설정 확인 (Reader 분기)")
+  void jsonFileItemReaderTest() {
+    String testPath = "src/test/resources/test.json";
+
+    var reader = config.jsonFileItemReader(testPath);
+
+    assertThat(reader).isNotNull();
+    assertThat(reader).isInstanceOf(org.springframework.batch.item.file.FlatFileItemReader.class);
   }
 }

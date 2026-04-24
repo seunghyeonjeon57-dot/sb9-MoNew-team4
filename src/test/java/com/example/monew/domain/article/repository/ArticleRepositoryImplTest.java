@@ -46,27 +46,33 @@ class ArticleRepositoryImplTest {
   @Test
   @DisplayName("커서 테스트 커버리지 반영")
   void findByCursorTest() {
+    LocalDateTime sameTime = LocalDateTime.now().withNano(0);
+    LocalDateTime yesterday = sameTime.minusDays(1);
+
     ArticleEntity older = articleRepository.save(ArticleEntity.builder()
         .title("과거").source("A").sourceUrl("U1").build());
-    ArticleEntity latest = articleRepository.save(ArticleEntity.builder()
-        .title("최신").source("B").sourceUrl("U2").build());
+    ArticleEntity latest1 = articleRepository.save(ArticleEntity.builder()
+        .title("최신1").source("B").sourceUrl("U2").build());
+    ArticleEntity latest2 = articleRepository.save(ArticleEntity.builder()
+        .title("최신2").source("C").sourceUrl("U3").build());
 
-    LocalDateTime now = LocalDateTime.now();
-    org.springframework.test.util.ReflectionTestUtils.setField(older, "createdAt", now.minusDays(1));
-    org.springframework.test.util.ReflectionTestUtils.setField(latest, "createdAt", now);
+    org.springframework.test.util.ReflectionTestUtils.setField(older, "createdAt", yesterday);
+    org.springframework.test.util.ReflectionTestUtils.setField(latest1, "createdAt", sameTime);
+    org.springframework.test.util.ReflectionTestUtils.setField(latest2, "createdAt", sameTime);
 
     em.flush();
     em.clear();
 
-    assertThat(articleRepository.findByCursor(null, null, 10)).hasSize(2);
+    ArticleEntity biggerIdArticle =
+        (latest1.getId().compareTo(latest2.getId()) > 0) ? latest1 : latest2;
+    ArticleEntity smallerIdArticle = (biggerIdArticle == latest1) ? latest2 : latest1;
 
-    assertThat(articleRepository.findByCursor(null, latest.getCreatedAt(), 10))
+    var results = articleRepository.findByCursor(biggerIdArticle.getId(), sameTime, 10);
+
+    assertThat(results)
         .extracting(ArticleEntity::getTitle)
-        .contains("과거");
+        .contains(smallerIdArticle.getTitle(), "과거");
 
-    var results = articleRepository.findByCursor(latest.getId(), null, 10);
-    if (!results.isEmpty()) {
-      assertThat(results).extracting(ArticleEntity::getTitle).contains("과거");
-    }
+    assertThat(results).hasSize(2);
   }
 }
