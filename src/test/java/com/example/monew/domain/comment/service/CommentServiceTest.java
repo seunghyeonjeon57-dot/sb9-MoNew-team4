@@ -50,7 +50,7 @@ public class CommentServiceTest {
   @InjectMocks
   private CommentService commentService;
 
-  
+
   @Test
   @DisplayName("요청 DTO를 받아 댓글을 성공적으로 등록한다.")
   void registerComment() {
@@ -71,7 +71,7 @@ public class CommentServiceTest {
     verify(commentRepository, times(1)).save(any(CommentEntity.class));
   }
 
-  
+
   @Test
   @DisplayName("존재하지 않는 기사 ID로 댓글을 등록하면 예외가 발생한다.")
   void registerComment_ArticleNotFound() {
@@ -84,7 +84,7 @@ public class CommentServiceTest {
         .isInstanceOf(ArticleNotFoundException.class);
   }
 
-  
+
   @Test
   @DisplayName("존재하지 않는 댓글을 수정하려고 하면 예외가 발생한다.")
   void updateComment_NotFound() {
@@ -98,7 +98,7 @@ public class CommentServiceTest {
         .isInstanceOf(CommentNotFoundException.class);
   }
 
-  
+
   @Test
   @DisplayName("작성자가 아닌 사용자가 수정을 요청하면 예외가 발생한다.")
   void updateComment_Unauthorized() {
@@ -113,7 +113,7 @@ public class CommentServiceTest {
         .isInstanceOf(CommentAccessDenied.class);
   }
 
-  
+
   @Test
   @DisplayName("댓글 삭제 시 논리 삭제(Soft Delete) 처리가 되어야 한다.")
   void deleteComment_SoftDelete() {
@@ -127,7 +127,7 @@ public class CommentServiceTest {
     assertThat(comment.getDeletedAt()).isNotNull();
   }
 
-  
+
   @Test
   @DisplayName("특정 사용자의 모든 댓글을 논리 삭제하도록 레포지토리에 위임한다.")
   void softDeleteByUserId() {
@@ -136,7 +136,7 @@ public class CommentServiceTest {
     verify(commentRepository, times(1)).softDeleteAllByUserId(eq(userId), any(LocalDateTime.class));
   }
 
-  
+
   @Test
   @DisplayName("특정 사용자의 모든 댓글을 물리 삭제하도록 레포지토리에 위임한다.")
   void hardDeleteAllByUserId() {
@@ -145,7 +145,7 @@ public class CommentServiceTest {
     verify(commentRepository, times(1)).deleteAllByUserId(userId);
   }
 
-  
+
   @Test
   @DisplayName("댓글에 좋아요를 누르면 좋아요 테이블에 기록이 남고, 댓글의 좋아요 수가 1 증가한다.")
   void addLike_Success() {
@@ -165,7 +165,7 @@ public class CommentServiceTest {
     assertThat(comment.getLikeCount()).isEqualTo(1L);
   }
 
-  
+
   @Test
   @DisplayName("이미 좋아요를 누른 댓글에 다시 좋아요를 누르면 예외가 발생한다.")
   void addLike_AlreadyLiked() {
@@ -179,7 +179,7 @@ public class CommentServiceTest {
         .isInstanceOf(CommentDuplicateLike.class);
   }
 
-  
+
   @Test
   @DisplayName("뉴스 기사 별 댓글 조회 시 좋아요 순 정렬과 커서 페이징이 정상 동작한다.")
   void getArticleComments_LikesSort_Success() {
@@ -200,7 +200,7 @@ public class CommentServiceTest {
     assertThat(response.nextCursor()).isEqualTo(c1.id().toString());
   }
 
-  
+
   @Test
   @DisplayName("뉴스 기사 별 댓글 조회 시 날짜 순 정렬과 커서 페이징이 정상 동작한다.")
   void getArticleComments_DateSort_Success() {
