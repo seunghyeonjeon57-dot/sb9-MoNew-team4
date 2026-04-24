@@ -46,7 +46,6 @@ public class NotificationService {
             .build())
         .toList();
 
-    // saveAll을 사용하여 한 번에 DB에 저장 (성능 최적화)
     notificationRepository.saveAll(notifications);
   }
 
@@ -100,7 +99,7 @@ public class NotificationService {
   }
 
   @Transactional
-  public int confirmAllNotifications(UUID userId) { // 🚀 반환 타입을 int로 변경
+  public int confirmAllNotifications(UUID userId) {
     return notificationRepository.confirmAllByUserId(userId);
   }
 }

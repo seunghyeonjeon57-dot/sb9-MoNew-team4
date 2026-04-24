@@ -1,4 +1,4 @@
-package com.example.monew.domain.notification.exception; // 패키지 경로는 프로젝트에 맞게!
+package com.example.monew.domain.notification.exception;
 
 import com.example.monew.global.exception.ErrorCode;
 import com.example.monew.global.exception.MonewException;

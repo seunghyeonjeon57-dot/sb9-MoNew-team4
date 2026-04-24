@@ -118,6 +118,26 @@ class InterestSubscriptionServiceTest {
     return new DataIntegrityViolationException("constraint violation", cve);
   }
 
+  // [MON-146] 스웨거(docs/monew-swagger.json) POST /api/interests/{id}/subscriptions 의
+  // 명시 응답 코드는 200 / 404 / 500 뿐이며 409 DUPLICATE_SUBSCRIPTION 은 누락되어 있음.
+  // 현 구현은 원인 불명 DataIntegrityViolationException 을 DuplicateSubscriptionException(409)
+  // 으로 폴백시키는 보수적 정책을 사용한다. 본 테스트는 해당 폴백 동작을 고정하는 목적이며,
+  // 스웨거에 409 응답이 추가되거나 폴백 정책이 변경되면 함께 갱신해야 한다.
+  @Test
+  @DisplayName("[MON-146] subscribe: DIVE 원인이 ConstraintViolationException이 아니면 DuplicateSubscriptionException 으로 폴백")
+  void subscribeDataIntegrityWithNonConstraintViolationCause() {
+    Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
+    UUID userId = UUID.randomUUID();
+    when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
+        .thenReturn(Optional.of(interest));
+    DataIntegrityViolationException unknown = new DataIntegrityViolationException(
+        "unknown cause", new IllegalStateException("non-constraint"));
+    when(subscriptionRepository.saveAndFlush(any(Subscription.class))).thenThrow(unknown);
+
+    assertThatThrownBy(() -> service.subscribe(interest.getId(), userId))
+        .isInstanceOf(DuplicateSubscriptionException.class);
+  }
+
   @Test
   @DisplayName("unsubscribe: 정상 → 삭제 + decrementSubscriberCount 호출")
   void unsubscribeSuccess() {

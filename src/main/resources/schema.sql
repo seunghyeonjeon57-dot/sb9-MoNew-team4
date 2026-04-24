@@ -116,7 +116,7 @@ CREATE TABLE notifications
     is_confirmed  BOOLEAN                     DEFAULT FALSE,
     created_at    TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    deleted_at    TIMESTAMP WITHOUT TIME ZONE,
+
     CONSTRAINT fk_noti_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
