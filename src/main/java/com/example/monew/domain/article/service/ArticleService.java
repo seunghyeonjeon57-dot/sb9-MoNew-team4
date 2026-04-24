@@ -3,32 +3,32 @@ package com.example.monew.domain.article.service;
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.dto.ArticleRestoreResultDto;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
-import com.example.monew.domain.article.entity.ArticleViewEntity;
+import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
+import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.global.exception.ErrorCode;
+import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.transaction.annotation.Transactional;
-import com.example.monew.domain.article.entity.ArticleEntity;
-import com.example.monew.domain.article.repository.ArticleRepository;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ArticleService {
+
   private final ArticleRepository articleRepository;
   private final ArticleMapper articleMapper;
   private final ArticleViewService articleViewService;
-  private final jakarta.persistence.EntityManager entityManager; // 추가
+  private final EntityManager entityManager;
 
   @Transactional
   public ArticleDto getArticleDetail(UUID id) {
@@ -46,12 +46,12 @@ public class ArticleService {
   @Transactional
   public void saveArticle(ArticleEntity article) {
     if (!articleRepository.existsBySourceUrl(article.getSourceUrl())) {
+
       articleRepository.save(article);
       log.debug("개별 뉴스 저장 완료 - URL: {}", article.getSourceUrl());
     } else {
       log.debug("중복 뉴스 스킵 - URL: {}", article.getSourceUrl());
     }
-
   }
 
   @Transactional
@@ -69,7 +69,6 @@ public class ArticleService {
     entityManager.flush();
     entityManager.clear();
 
-
     log.info("뉴스 논리 삭제 완료 - ID: {}", id);
   }
 
@@ -78,6 +77,8 @@ public class ArticleService {
     log.info("뉴스 물리 삭제 진행 - ID: {}", id);
     articleRepository.hardDeleteById(id);
   }
+
+
   @Transactional
   public ArticleRestoreResultDto restore(UUID id) {
     log.info("뉴스 복구 요청 - ID: {}", id);
@@ -93,26 +94,16 @@ public class ArticleService {
     );
   }
 
-  public List<String> getAllSources() {
-    return articleRepository.findAllSources();
-  }
-
-  @Transactional
-  public void incrementViewCount(UUID articleId, UUID viewedBy, String clientIp) {
-    log.info("조회수 로그 기록 - Article: {}, User: {}, IP: {}", articleId, viewedBy, clientIp);
-    articleViewService.logView(articleId, viewedBy, clientIp);
-  }
   public CursorPageResponseArticleDto getArticles(UUID cursor, LocalDateTime after, int size) {
     log.info("목록 조회 요청 - Cursor: {}, After: {}, Size: {}", cursor, after, size);
 
-    List<ArticleEntity> articles =
-        articleRepository.findByCursor(cursor, after, size);
+    List<ArticleEntity> articles = articleRepository.findByCursor(cursor, after, size);
 
     boolean hasNext = articles.size() > size;
-
     if (hasNext) {
       articles.remove(size);
     }
+
     log.debug("DB 조회 완료 - 결과 건수: {}, 다음 페이지 존재 여부: {}", articles.size(), hasNext);
 
     List<ArticleDto> content = articles.stream()
@@ -140,11 +131,12 @@ public class ArticleService {
 
   @Transactional
   public void saveInChunks(List<ArticleEntity> articles) {
-    if (articles.isEmpty()) return;
+    if (articles == null || articles.isEmpty()) return;
 
     List<String> sourceUrls = articles.stream()
         .map(ArticleEntity::getSourceUrl)
         .toList();
+
     Set<String> existingUrls = articleRepository.findAllBySourceUrlIn(sourceUrls)
         .stream()
         .map(ArticleEntity::getSourceUrl)
@@ -156,7 +148,18 @@ public class ArticleService {
 
     if (!newArticles.isEmpty()) {
       articleRepository.saveAll(newArticles);
-      log.info("{}건 신규 뉴스 저장 완료", newArticles.size());
+      log.info("신규 뉴스 {}건 일괄 저장 완료", newArticles.size());
     }
   }
+
+  public List<String> getAllSources() {
+    return articleRepository.findAllSources();
+  }
+
+  @Transactional
+  public void incrementViewCount(UUID articleId, UUID viewedBy, String clientIp) {
+    log.info("조회수 로그 기록 - Article: {}, User: {}, IP: {}", articleId, viewedBy, clientIp);
+    articleViewService.logView(articleId, viewedBy, clientIp);
+  }
+
 }
