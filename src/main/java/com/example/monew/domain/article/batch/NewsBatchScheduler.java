@@ -48,8 +48,6 @@ public class NewsBatchScheduler {
         articleService.saveInChunks(rssArticles);
       });
     }
-
     log.info("=== 뉴스 수집 및 저장 완료 ===");
   }
-
 }
