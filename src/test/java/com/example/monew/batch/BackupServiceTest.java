@@ -1,5 +1,6 @@
 package com.example.monew.batch;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -55,7 +56,8 @@ class BackupServiceTest {
   void restoreNews_Fail_Catch() throws Exception {
     given(s3Service.download(anyString())).willThrow(new RuntimeException("S3 에러"));
 
-    backupService.restoreNews(LocalDate.now());
+    assertThatThrownBy(() -> backupService.restoreNews(LocalDate.now()))
+        .isInstanceOf(com.example.monew.domain.article.batch.exception.RestoreFailedException.class);
 
     verify(jobLauncher, never()).run(any(), any());
   }

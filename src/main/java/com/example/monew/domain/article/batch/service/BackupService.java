@@ -1,5 +1,6 @@
 package com.example.monew.domain.article.batch.service;
 
+import com.example.monew.domain.article.batch.exception.RestoreFailedException;
 import jakarta.transaction.Transactional;
 import java.io.File;
 import lombok.SneakyThrows;
@@ -48,6 +49,7 @@ public class BackupService {
 
     } catch (Exception e) {
       log.error("복구 배치 실행 실패", e);
+      throw new RestoreFailedException(targetDate + " 날짜 기사 복구 중 오류 발생", e);
     }
   }
 

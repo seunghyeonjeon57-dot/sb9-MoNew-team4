@@ -3,6 +3,7 @@ package com.example.monew.domain.article.controller;
 import com.example.monew.domain.article.batch.BackupBatch;
 import com.example.monew.domain.article.batch.service.BackupService;
 import com.example.monew.domain.article.dto.ArticleDto;
+import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.exception.InvalidCursorException;
 import com.example.monew.domain.article.exception.InvalidRestoreDateException;
@@ -44,15 +45,12 @@ public class ArticleController {
 
   @GetMapping
   public ResponseEntity<CursorPageResponseArticleDto> getArticleList(
-      @RequestParam(required = false) UUID cursor,
-      @RequestParam(required = false)
-      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
-      @RequestParam(defaultValue = "10") int size
+      @ModelAttribute ArticleSearchCondition condition
   ) {
-    if (size > 100) {
+    if (condition.getSize() > 100) {
       throw new InvalidCursorException(ErrorCode.INVALID_INPUT_VALUE);
     }
-    return ResponseEntity.ok(articleService.getArticles(cursor, after, size));
+    return ResponseEntity.ok(articleService.getArticles(condition));
   }
 
   @Operation(summary = "뉴스 기사 단건 조회", description = "뉴스 기사 ID로 뉴스 기사 단건을 조회합니다.")

@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 import com.example.monew.domain.article.dto.ArticleDto;
+import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
@@ -134,12 +135,16 @@ class ArticleServiceTest {
     List<ArticleEntity> list = new ArrayList<>();
     for(int i=0; i <= size; i++) list.add(ArticleEntity.builder().id(UUID.randomUUID()).build());
 
-    given(articleRepository.findByCursor(any(), any(), eq(size))).willReturn(list);
+    given(articleRepository.findByCursor(any(ArticleSearchCondition.class))).willReturn(list);
 
-    var result = articleService.getArticles(null, null, size);
+    ArticleSearchCondition condition = ArticleSearchCondition.builder()
+        .size(size)
+        .build();
+    var result = articleService.getArticles(condition);
 
     assertThat(result.hasNext()).isTrue();
     assertThat(result.content()).hasSize(5);
+    verify(articleRepository).findByCursor(any(ArticleSearchCondition.class));
   }
   @Nested
   @DisplayName("뉴스 물리 삭제")

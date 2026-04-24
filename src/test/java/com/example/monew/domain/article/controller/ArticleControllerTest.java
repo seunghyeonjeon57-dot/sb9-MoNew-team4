@@ -3,6 +3,7 @@ package com.example.monew.domain.article.controller;
 import com.example.monew.domain.article.batch.BackupBatch;
 import com.example.monew.domain.article.batch.NewsRss;
 import com.example.monew.domain.article.batch.service.BackupService;
+import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.article.service.ArticleViewService;
 import org.junit.jupiter.api.DisplayName;
@@ -57,8 +58,7 @@ class ArticleControllerTest {
             .param("size", "10"))
         .andExpect(status().isOk());
 
-    verify(articleService).getArticles(any(), any(), eq(10));
-  }
+    verify(articleService).getArticles(any(ArticleSearchCondition.class));  }
 
   @Test
   @DisplayName("기사 상세 조회 테스트")

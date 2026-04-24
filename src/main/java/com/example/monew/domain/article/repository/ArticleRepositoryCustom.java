@@ -1,5 +1,6 @@
 package com.example.monew.domain.article.repository;
 
+import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.entity.ArticleEntity;
 
 import java.time.LocalDateTime;
@@ -12,5 +13,5 @@ public interface ArticleRepositoryCustom {
 
   List<ArticleEntity> findAllActive();
 
-  List<ArticleEntity> findByCursor(UUID cursor, LocalDateTime after, int size);
+  List<ArticleEntity> findByCursor(ArticleSearchCondition condition);
 }

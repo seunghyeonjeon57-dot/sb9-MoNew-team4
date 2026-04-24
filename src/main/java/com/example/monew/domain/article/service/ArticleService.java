@@ -2,6 +2,7 @@ package com.example.monew.domain.article.service;
 
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.dto.ArticleRestoreResultDto;
+import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
@@ -94,12 +95,14 @@ public class ArticleService {
     );
   }
 
-  public CursorPageResponseArticleDto getArticles(UUID cursor, LocalDateTime after, int size) {
-    log.info("목록 조회 요청 - Cursor: {}, After: {}, Size: {}", cursor, after, size);
+  public CursorPageResponseArticleDto getArticles(ArticleSearchCondition condition) {
+    log.info("목록 조회 요청 - Condition: {}", condition);
 
-    List<ArticleEntity> articles = articleRepository.findByCursor(cursor, after, size);
+    List<ArticleEntity> articles = articleRepository.findByCursor(condition);
 
+    int size = condition.getSize();
     boolean hasNext = articles.size() > size;
+
     if (hasNext) {
       articles.remove(size);
     }

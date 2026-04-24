@@ -2,6 +2,7 @@ package com.example.monew.domain.article.controller;
 
 import com.example.monew.domain.article.batch.BackupBatch;
 import com.example.monew.domain.article.batch.service.BackupService;
+import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.article.service.ArticleViewService;
@@ -17,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -55,13 +57,13 @@ public class ArticleControllerPagingApiTest {
             true
         );
 
-    given(articleService.getArticles(any(), any(), anyInt()))
+    given(articleService.getArticles(any(ArticleSearchCondition.class)))
         .willReturn(mockResponse);
 
     mockMvc.perform(get("/api/articles")
             .param("size", "10"))
         .andExpect(status().isOk());
 
-    verify(articleService).getArticles(any(), any(), eq(10));
+    verify(articleService).getArticles(argThat(condition -> condition.getSize() == 10));
   }
 }
