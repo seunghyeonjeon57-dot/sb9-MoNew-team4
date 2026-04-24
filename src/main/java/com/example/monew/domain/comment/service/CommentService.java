@@ -1,12 +1,11 @@
 package com.example.monew.domain.comment.service;
 
-import com.example.monew.domain.activityManagement.dto.CommentLikeActivityDto;
-import com.example.monew.domain.activityManagement.service.ActivityService;
+import com.example.monew.domain.activity.dto.CommentLikeActivityDto;
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.repository.ArticleRepository;
-import com.example.monew.domain.activityManagement.dto.CommentActivityDto;
-import com.example.monew.domain.article.service.ArticleService;
+import com.example.monew.domain.activity.dto.CommentActivityDto;
 import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
 import com.example.monew.domain.comment.dto.CommentUpdateRequest;

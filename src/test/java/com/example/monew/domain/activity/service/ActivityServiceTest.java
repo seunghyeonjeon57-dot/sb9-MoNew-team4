@@ -1,4 +1,4 @@
-package com.example.monew.domain.activityManagement.service;
+package com.example.monew.domain.activity.service;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -7,9 +7,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import com.example.monew.domain.activityManagement.dto.CommentActivityDto;
-import com.example.monew.domain.activityManagement.dto.CommentLikeActivityDto;
-import com.example.monew.domain.activityManagement.dto.UserActivityDto;
+import com.example.monew.domain.activity.dto.CommentActivityDto;
+import com.example.monew.domain.activity.dto.CommentLikeActivityDto;
+import com.example.monew.domain.activity.dto.UserActivityDto;
 import com.example.monew.domain.article.dto.ArticleViewDto;
 import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.user.dto.UserDto;
@@ -31,8 +31,8 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.mongodb.core.query.UpdateDefinition;
 import org.bson.Document;
 
-import com.example.monew.domain.activityManagement.document.UserActivityDocument;
-import com.example.monew.domain.activityManagement.repository.UserActivityRepository;
+import com.example.monew.domain.activity.document.UserActivityDocument;
+import com.example.monew.domain.activity.repository.UserActivityRepository;
 
 
 @ExtendWith(MockitoExtension.class)

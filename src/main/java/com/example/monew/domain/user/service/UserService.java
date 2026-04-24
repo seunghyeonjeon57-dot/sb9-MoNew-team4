@@ -1,6 +1,6 @@
 package com.example.monew.domain.user.service;
 
-import com.example.monew.domain.activityManagement.service.ActivityService;
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.domain.interest.repository.InterestRepository;

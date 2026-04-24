@@ -6,7 +6,7 @@ import com.example.monew.config.JpaAuditConfig;
 import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
-import com.example.monew.domain.activityManagement.dto.CommentActivityDto;
+import com.example.monew.domain.activity.dto.CommentActivityDto;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;

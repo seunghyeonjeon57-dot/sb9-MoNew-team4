@@ -1,6 +1,6 @@
-package com.example.monew.domain.activityManagement.repository;
+package com.example.monew.domain.activity.repository;
 
-import com.example.monew.domain.activityManagement.document.UserActivityDocument;
+import com.example.monew.domain.activity.document.UserActivityDocument;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.mongodb.core.MongoTemplate;

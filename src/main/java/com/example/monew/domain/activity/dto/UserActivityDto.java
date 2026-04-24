@@ -1,4 +1,4 @@
-package com.example.monew.domain.activityManagement.dto;
+package com.example.monew.domain.activity.dto;
 
 import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import java.time.LocalDateTime;

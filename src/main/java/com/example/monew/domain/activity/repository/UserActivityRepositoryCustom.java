@@ -1,4 +1,4 @@
-package com.example.monew.domain.activityManagement.repository;
+package com.example.monew.domain.activity.repository;
 
 import java.util.UUID;
 
