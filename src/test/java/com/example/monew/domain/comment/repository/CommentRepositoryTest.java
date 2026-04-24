@@ -230,6 +230,8 @@ public class CommentRepositoryTest {
         .build();
     articleRepository.save(article);
 
+    LocalDateTime baseTime = LocalDateTime.now().withNano(0);
+
     CommentEntity c1 = CommentEntity.builder()
         .articleId(article.getId())
         .userId(user.getId())
@@ -254,7 +256,7 @@ public class CommentRepositoryTest {
         .content("가장 최신 댓글")
         .likeCount(0L)
         .build();
-    ReflectionTestUtils.setField(c3, "createdAt", LocalDateTime.now());
+    ReflectionTestUtils.setField(c3, "createdAt",baseTime);
     commentRepository.save(c3);
 
     em.flush();
