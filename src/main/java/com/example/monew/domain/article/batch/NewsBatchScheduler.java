@@ -1,9 +1,6 @@
 package com.example.monew.domain.article.batch;
 
-import com.example.monew.domain.article.batch.service.BackupService;
-
 import com.example.monew.domain.article.entity.ArticleEntity;
-import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.interest.entity.InterestKeyword;
 import com.example.monew.domain.interest.repository.InterestRepository;
@@ -22,8 +19,6 @@ public class NewsBatchScheduler {
 
   private final NewsCollector newsCollector;
   private final NewsRss newsRss;
-  private final ArticleRepository articleRepository;
-  private final BackupService backupService;
   private final InterestRepository interestRepository;
   private final ArticleService articleService;
 
