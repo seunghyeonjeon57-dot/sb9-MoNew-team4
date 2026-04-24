@@ -322,4 +322,67 @@ public class CommentServiceTest {
     assertThat(response.content()).hasSize(1);
     assertThat(response.hasNext()).isFalse();
   }
+  @Test
+  @DisplayName("댓글을 성공적으로 수정한다.")
+  void updateComment_Success() {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    CommentUpdateRequest request = CommentUpdateRequest.builder()
+        .content("수정 내용")
+        .build();
+
+    CommentEntity existingComment = CommentEntity.builder()
+        .articleId(UUID.randomUUID())
+        .userId(userId) // 요청자와 작성자가 일치해야 함
+        .content("원본 내용")
+        .likeCount(0L)
+        .build();
+
+    given(commentRepository.findByIdAndDeletedAtIsNull(commentId))
+        .willReturn(Optional.of(existingComment));
+
+    commentService.updateComment(commentId, userId, request);
+
+    assertThat(existingComment.getContent()).isEqualTo("수정 내용");
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 댓글을 논리 삭제하려고 하면 예외가 발생한다.")
+  void deleteComment_SoftDelete_NotFound() {
+    UUID commentId = UUID.randomUUID();
+
+    given(commentRepository.findByIdAndDeletedAtIsNull(commentId)).willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> commentService.softDeleteComment(commentId))
+        .isInstanceOf(CommentNotFoundException.class)
+        .hasMessage("해당 댓글을 찾을 수 없습니다.");
+  }
+
+  @Test
+  @DisplayName("댓글을 성공적으로 물리 삭제(Hard Delete)한다.")
+  void hardDeleteComment_Success() {
+    UUID commentId = UUID.randomUUID();
+
+    CommentEntity comment = CommentEntity.builder()
+        .id(commentId)
+        .build();
+
+    given(commentRepository.findByIdAndDeletedAtIsNull(commentId)).willReturn(Optional.of(comment));
+
+    commentService.hardDeleteComment(commentId);
+
+    verify(commentRepository, times(1)).delete(comment);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 댓글을 물리 삭제하려고 하면 예외가 발생한다.")
+  void hardDeleteComment_NotFound() {
+    UUID commentId = UUID.randomUUID();
+
+    given(commentRepository.findByIdAndDeletedAtIsNull(commentId)).willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> commentService.hardDeleteComment(commentId))
+        .isInstanceOf(CommentNotFoundException.class)
+        .hasMessage("해당 댓글을 찾을 수 없습니다.");
+  }
 }
