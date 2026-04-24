@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class  CommentService {
+public class CommentService {
 
   private final CommentRepository commentRepository;
   private final CommentMapper commentMapper;
