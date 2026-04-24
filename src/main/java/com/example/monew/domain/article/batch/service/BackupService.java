@@ -22,6 +22,7 @@ public class BackupService {
   private final JobLauncher jobLauncher;
   private final Job backupJob;
 
+
   @Scheduled(cron = "0 0 1 * * *")
   @SneakyThrows //롬북 - 모든 예외를 자동으로
   public void backupDailyNews() {

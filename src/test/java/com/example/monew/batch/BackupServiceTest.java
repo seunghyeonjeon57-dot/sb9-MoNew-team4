@@ -1,5 +1,7 @@
 package com.example.monew.batch;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -7,16 +9,19 @@ import static org.mockito.Mockito.*;
 import com.example.monew.domain.article.batch.service.BackupService;
 import com.example.monew.domain.article.batch.service.S3Service;
 import java.io.File;
+import java.io.IOException;
 import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @ExtendWith(MockitoExtension.class)
 class BackupServiceTest {
@@ -25,6 +30,7 @@ class BackupServiceTest {
   @Mock private JobLauncher jobLauncher;
   @Mock private Job restoreJob;
   @Mock private Job backupJob;
+
 
   @InjectMocks
   private BackupService backupService;
@@ -59,4 +65,17 @@ class BackupServiceTest {
 
     verify(jobLauncher, never()).run(any(), any());
   }
+
+
+  @Test
+  @DisplayName("백업 중 예외 발생 시 SneakyThrows에 의해 예외")
+  void backupDailyNews_Fail_ThrowsException() throws Exception {
+    given(jobLauncher.run(eq(backupJob), any(JobParameters.class)))
+        .willThrow(new RuntimeException("Batch Job Failed"));
+
+    assertThatThrownBy(() -> backupService.backupDailyNews())
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("Batch Job Failed");
+  }
+
 }
