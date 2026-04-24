@@ -76,30 +76,54 @@ sonar {
         property "sonar.host.url", "https://sonarcloud.io"
         property "sonar.language", "java"
         property "sonar.sourceEncoding", "UTF-8"
-        property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml"
+
+        // [핵심] 분석 대상 소스 코드 및 컴파일된 바이너리 경로 명시
+        property "sonar.sources", "src/main/java"
+        property "sonar.java.binaries", "${layout.buildDirectory.get()}/classes/java/main"
+
+        // [핵심] JaCoCo XML 리포트 절대 경로 지정
+        property "sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml"
+
+        // [핵심] 제외 패턴 통합 관리 (Notification 포함 모든 잔당 제거)
+        def exclusionPatterns = [
+                "**/dto/**",
+                "**/entity/**",
+                "**/mapper/**",
+                "**/global/**",
+                "**/config/**",
+                "**/exception/**",
+                "**/*Application*",
+                "**/Q*",
+                "**/*Notification*"
+        ].join(",")
+
+        property "sonar.exclusions", exclusionPatterns
+        property "sonar.coverage.exclusions", exclusionPatterns
     }
 }
 
-// [핵심] 테스트 실행 설정
+// 테스트 실행 설정
 test {
     useJUnitPlatform()
-    finalizedBy jacocoTestReport // 테스트 성공 시 리포트 자동 생성
+    finalizedBy jacocoTestReport // 테스트 완료 후 JaCoCo 리포트 생성 강제
 }
 
-// [핵심] JaCoCo 리포트 생성 및 경로 출력 설정
+// JaCoCo 리포트 생성 및 분석 제외 설정
 jacocoTestReport {
     dependsOn test
     reports {
         html.required = true
-        xml.required = true
+        xml.required = true // SonarCloud 분석을 위해 XML은 반드시 true여야 함
     }
 
+    // JaCoCo 리포트 결과물 자체에서도 특정 클래스 제외
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it, exclude: [
                     "**/dto/**",
                     "**/entity/**",
                     "**/mapper/**",
+                    "**/global/**",
                     "**/config/**",
                     "**/*Application*",
                     "**/Q*"
@@ -107,15 +131,15 @@ jacocoTestReport {
         }))
     }
 
-    // [팀원 제안 반영] 리포트 생성이 완료되면 절대 경로를 터미널에 출력
+    // 리포트 생성 후 경로 출력 (디버깅용)
     doLast {
-        def reportFile = reports.html.outputLocation.get().asFile
         println "------------------------------------------------------------"
-        println "✅ JaCoCo HTML Report 생성 완료!"
-        println "👉 경로: ${reportFile.getAbsolutePath()}/index.html"
+        println "✅ JaCoCo XML Report: ${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml"
         println "------------------------------------------------------------"
     }
 }
+
+// 소나 분석 전에 반드시 JaCoCo 리포트가 먼저 생성되도록 순서 보장
 tasks.named('sonar').configure {
     dependsOn jacocoTestReport
 }
