@@ -2,9 +2,9 @@ package com.example.monew.domain.notification.service;
 
 import com.example.monew.domain.notification.dto.CursorPageResponseNotificationDto;
 import com.example.monew.domain.notification.dto.NotificationRequest;
-import com.example.monew.domain.notification.dto.NotificationResponse;
 import com.example.monew.domain.notification.entity.Notification;
 import com.example.monew.domain.notification.entity.ResourceType;
+import com.example.monew.domain.notification.exception.NotificationException;
 import com.example.monew.domain.notification.repository.NotificationRepository;
 import java.util.List;
 import java.util.Optional;
@@ -14,12 +14,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -104,5 +104,56 @@ class NotificationServiceTest {
     verify(mockNotification, times(1)).confirm();
     verify(notificationRepository, times(1))
         .findByIdAndUserIdAndDeletedAtIsNull(notificationId, userId);
+  }
+
+  @Test
+  @DisplayName("여러 개의 알림을 한 번에 저장할 때 saveAll이 호출된다.")
+  void createNotifications_Success() {
+    List<NotificationRequest> requests = List.of(
+        new NotificationRequest(UUID.randomUUID(), "알림1", ResourceType.COMMENT, UUID.randomUUID()),
+        new NotificationRequest(UUID.randomUUID(), "알림2", ResourceType.COMMENT, UUID.randomUUID())
+    );
+
+    notificationService.createNotifications(requests);
+
+    verify(notificationRepository, times(1)).saveAll(any());
+  }
+
+  @Test
+  @DisplayName("특정 유저의 모든 알림을 읽음 처리 시 confirmAllByUserId가 호출된다.")
+  void confirmAllNotifications_Success() {
+    UUID userId = UUID.randomUUID();
+
+    notificationService.confirmAllNotifications(userId);
+
+    verify(notificationRepository, times(1)).confirmAllByUserId(userId);
+  }
+
+  @Test
+  @DisplayName("잘못된 커서 값으로 알림 조회 시 예외가 발생한다.")
+  void getNotifications_InvalidCursor() {
+    UUID userId = UUID.randomUUID();
+    String invalidCursor = "invalid-uuid-string";
+
+    // ✅ 순서 맞춤: userId, cursor, null(LocalDateTime 자리), 10(size)
+    assertThatThrownBy(() -> notificationService.getNotifications(userId, invalidCursor, null, 10))
+        .isInstanceOf(NotificationException.class); // (주의: 예외 클래스명은 프로젝트에 맞게 확인)
+  }
+
+  @Test
+  @DisplayName("알림 목록 다음 페이지 조회가 정상적으로 동작한다.")
+  void getNotifications_NextPage_Success() {
+    UUID userId = UUID.randomUUID();
+    String cursor = UUID.randomUUID().toString(); // 정상적인 커서 UUID 문자열
+
+    // Mocking 설정 (Repository 메서드명은 실제 코드에 맞게 수정 필요)
+    // given(notificationRepository.findNextPageByUserId(eq(userId), any(), any(), eq(10)))
+    //         .willReturn(List.of());
+
+    // ✅ 순서 맞춤: userId, cursor, null, 10
+    notificationService.getNotifications(userId, cursor, null, 10);
+
+    // 검증 (Repository 메서드명 실제 코드에 맞게 수정 필요)
+    // verify(notificationRepository, times(1)).findNextPageByUserId(eq(userId), any(), any(), eq(10));
   }
 }

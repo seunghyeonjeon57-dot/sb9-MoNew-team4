@@ -18,6 +18,7 @@ import com.example.monew.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -151,7 +152,8 @@ public class CommentServiceTest {
   void addLike_Success() {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    CommentEntity comment = CommentEntity.builder().likeCount(0L).build();
+    UUID commentAuthorId = UUID.randomUUID();
+    CommentEntity comment = CommentEntity.builder().id(commentId).userId(commentAuthorId).likeCount(0L).build();
     User liker = User.builder().nickname("tester").build();
 
     given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
@@ -163,6 +165,15 @@ public class CommentServiceTest {
     verify(eventPublisher, times(1)).publishEvent(any(CommentLikedEvent.class));
     verify(commentLikeRepository, times(1)).save(any(CommentLikeEntity.class));
     assertThat(comment.getLikeCount()).isEqualTo(1L);
+
+    ArgumentCaptor<CommentLikedEvent> captor = ArgumentCaptor.forClass(CommentLikedEvent.class);
+    verify(eventPublisher, times(1)).publishEvent(captor.capture());
+
+    CommentLikedEvent event = captor.getValue();
+
+    assertThat(event.receiverId()).isEqualTo(commentAuthorId); // 알림을 받는 사람이 댓글 작성자가 맞는지
+    assertThat(event.likerNickname()).isEqualTo("tester"); // 좋아요 누른 사람 닉네임이 맞는지
+    assertThat(event.commentId()).isEqualTo(commentId); // 좋아요가 눌린 댓글 ID가 맞는지
   }
 
 

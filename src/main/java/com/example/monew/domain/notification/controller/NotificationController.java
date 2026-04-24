@@ -3,7 +3,6 @@ package com.example.monew.domain.notification.controller;
 import com.example.monew.domain.notification.dto.CursorPageResponseNotificationDto;
 import com.example.monew.domain.notification.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
