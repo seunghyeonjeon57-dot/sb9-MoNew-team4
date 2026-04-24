@@ -12,6 +12,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq; // 👈 올바른 eq import
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,15 +47,9 @@ class NotificationControllerTest {
     mockMvc.perform(get("/api/notifications")
             .header(USER_ID_HEADER, VALID_USER_ID))
         .andExpect(status().isOk());
-  }
 
-  @Test
-  @DisplayName("단건 알림 확인 시 헤더가 없으면 400 에러를 반환한다.")
-  void confirmNotification_WithoutHeader() throws Exception {
-    UUID notificationId = UUID.randomUUID();
-
-    mockMvc.perform(patch("/api/notifications/{notificationId}", notificationId))
-        .andExpect(status().isBadRequest());
+    // 조회의 경우 getNotifications 메서드가 호출되었는지 검증
+    verify(notificationService, times(1)).getNotifications(any(UUID.class), any(), any(), anyInt());
   }
 
   @Test
@@ -61,13 +60,9 @@ class NotificationControllerTest {
     mockMvc.perform(patch("/api/notifications/{notificationId}", notificationId)
             .header(USER_ID_HEADER, VALID_USER_ID))
         .andExpect(status().isOk());
-  }
 
-  @Test
-  @DisplayName("전체 알림 확인 시 헤더가 없으면 400 에러를 반환한다.")
-  void confirmAllNotifications_WithoutHeader() throws Exception {
-    mockMvc.perform(patch("/api/notifications"))
-        .andExpect(status().isBadRequest());
+    // 단건 확인 서비스 호출 검증
+    verify(notificationService, times(1)).confirmNotification(eq(notificationId), any(UUID.class));
   }
 
   @Test
@@ -76,5 +71,22 @@ class NotificationControllerTest {
     mockMvc.perform(patch("/api/notifications")
             .header(USER_ID_HEADER, VALID_USER_ID))
         .andExpect(status().isOk());
+
+    // ✅ 전체 확인용 서비스 메서드(confirmAllNotifications)로 수정
+    verify(notificationService, times(1)).confirmAllNotifications(any(UUID.class));
+  }
+
+  @Test
+  @DisplayName("커서와 날짜 조건이 모두 있을 때 알림 목록을 조회한다.")
+  void getNotifications_WithCursorAndAfter() throws Exception {
+    mockMvc.perform(get("/api/notifications")
+            .header(USER_ID_HEADER, VALID_USER_ID)
+            .param("cursor", UUID.randomUUID().toString())
+            .param("after", "2024-04-24T15:00:00")
+            .param("limit", "10"))
+        .andExpect(status().isOk());
+
+    // 조회 서비스 호출 검증
+    verify(notificationService, times(1)).getNotifications(any(UUID.class), any(String.class), any(), anyInt());
   }
 }

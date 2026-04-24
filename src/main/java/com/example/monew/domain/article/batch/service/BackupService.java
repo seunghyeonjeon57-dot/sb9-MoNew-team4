@@ -1,8 +1,5 @@
 package com.example.monew.domain.article.batch.service;
 
-
-import com.example.monew.domain.article.repository.ArticleRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import java.io.File;
 import lombok.SneakyThrows;
@@ -20,13 +17,10 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 public class BackupService {
-  private final ArticleRepository articleRepository;
   private final S3Service s3Service;
   private final Job restoreJob;
   private final JobLauncher jobLauncher;
   private final Job backupJob;
-
-  private final ObjectMapper objectMapper; // JSON 변환용
 
   @Scheduled(cron = "0 0 1 * * *")
   @SneakyThrows //롬북 - 모든 예외를 자동으로

@@ -4,8 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.util.UUID;
 import com.example.monew.global.base.BaseEntity;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
+
 
 @Entity
 @Table(name = "comments")
@@ -13,8 +12,6 @@ import org.hibernate.annotations.SQLRestriction;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLDelete(sql = "UPDATE comments SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
-@SQLRestriction("deleted_at IS NULL")
 public class CommentEntity extends BaseEntity {
 
   @Id
