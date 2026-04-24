@@ -2,6 +2,7 @@ package com.example.monew.domain.comment.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.monew.config.JpaAuditConfig;
 import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
@@ -19,9 +20,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @DataJpaTest
-@Import(QueryDslTestConfig.class)
+@Import({QueryDslTestConfig.class, JpaAuditConfig.class})
 public class CommentRepositoryTest {
   @Autowired
   private CommentRepository commentRepository;
@@ -46,10 +48,15 @@ public class CommentRepositoryTest {
 
     CommentEntity savedComment = commentRepository.save(comment);
 
-    assertThat(savedComment.getId()).isNotNull();
-    assertThat(savedComment.getContent()).isEqualTo("레포지토리 테스트 댓글");
-    assertThat(savedComment.getLikeCount()).isEqualTo(0L);
-    assertThat(savedComment.getCreatedAt()).isNotNull();
+    em.flush();
+    em.clear();
+
+    CommentEntity foundComment = commentRepository.findById(savedComment.getId()).get();
+
+    assertThat(foundComment.getId()).isNotNull();
+    assertThat(foundComment.getContent()).isEqualTo("레포지토리 테스트 댓글");
+    assertThat(foundComment.getLikeCount()).isEqualTo(0L);
+    assertThat(foundComment.getCreatedAt()).isNotNull();
   }
 
   @Test
@@ -226,6 +233,7 @@ public class CommentRepositoryTest {
         .content("가장 오래된 댓글")
         .likeCount(0L)
         .build();
+    ReflectionTestUtils.setField(c1, "createdAt", LocalDateTime.now().minusDays(2));
     commentRepository.save(c1);
 
     CommentEntity c2 = CommentEntity.builder()
@@ -234,6 +242,7 @@ public class CommentRepositoryTest {
         .content("중간 댓글")
         .likeCount(0L)
         .build();
+    ReflectionTestUtils.setField(c2, "createdAt", LocalDateTime.now().minusDays(1));
     commentRepository.save(c2);
 
     CommentEntity c3 = CommentEntity.builder()
@@ -242,6 +251,7 @@ public class CommentRepositoryTest {
         .content("가장 최신 댓글")
         .likeCount(0L)
         .build();
+    ReflectionTestUtils.setField(c3, "createdAt", LocalDateTime.now());
     commentRepository.save(c3);
 
     em.flush();
