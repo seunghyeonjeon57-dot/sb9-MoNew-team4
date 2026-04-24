@@ -95,6 +95,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
         .join(article).on(comment.articleId.eq(article.id))
         .where(
             comment.articleId.eq(articleId),
+            isNotDeleted(),
             isArticleNotDeleted(),
             getCursorCondition(parsedCursorId, after, parsedLikeCount, orderBy, direction)
         )
