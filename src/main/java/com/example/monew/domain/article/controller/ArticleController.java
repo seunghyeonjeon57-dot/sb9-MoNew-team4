@@ -41,6 +41,7 @@ public class ArticleController {
       @ApiResponse(responseCode = "400", description = "잘못된 요청 (정렬 기준 오류, 페이지네이션 파라미터 오류 등)"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
+
   @GetMapping
   public ResponseEntity<CursorPageResponseArticleDto> getArticleList(
       @RequestParam(required = false) UUID cursor,
@@ -74,6 +75,7 @@ public class ArticleController {
       @ApiResponse(responseCode = "200", description = "기사 뷰 등록 성공"),
       @ApiResponse(responseCode = "404", description = "기사 정보 없음")
   })
+
   @PostMapping("/{articleId}/article-views")
   public ResponseEntity<Void> incrementArticleView(
       @PathVariable UUID articleId,

@@ -1,4 +1,5 @@
-package com.example.monew.config;
+package com.example.monew.domain.article.articleconfig;
+
 import com.example.monew.domain.article.batch.service.S3Service;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
@@ -30,11 +31,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.transaction.PlatformTransactionManager;
+
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class NewsBackupBatchConfig {
-
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
   private final EntityManagerFactory entityManagerFactory;
@@ -42,44 +43,35 @@ public class NewsBackupBatchConfig {
   private final ObjectMapper objectMapper;
   private final ArticleRepository articleRepository;
   private final ArticleViewRepository articleViewRepository;
+
   @Bean
   public Job backupJob() {
-    return new JobBuilder("backupJob", jobRepository)
-        .start(backupStep())
-        .build();
+    return new JobBuilder("backupJob", jobRepository).start(backupStep()).build();
   }
 
   @Bean
   public Step backupStep() {
-    return new StepBuilder("backupStep", jobRepository)
-        .<ArticleEntity, ArticleEntity>chunk(100, transactionManager)
-        .reader(articleReader())
-        .writer(articleS3Writer())
-        .build();
+    return new StepBuilder("backupStep", jobRepository).<ArticleEntity, ArticleEntity>chunk(100,
+        transactionManager).reader(articleReader()).writer(articleS3Writer()).build();
   }
 
   @Bean
   public Job restoreJob() {
-    return new JobBuilder("restoreJob", jobRepository)
-        .start(restoreStep())
-        .build();
+    return new JobBuilder("restoreJob", jobRepository).start(restoreStep()).build();
   }
 
   @Bean
   public Step restoreStep() {
-    return new StepBuilder("restoreStep", jobRepository)
-        .<ArticleEntity, ArticleEntity>chunk(100, transactionManager)
-        .reader(jsonFileItemReader(null))
-        .processor(duplicateCheckProcessor())
-        .writer(articleRestoreWriter())
-        .build();
+    return new StepBuilder("restoreStep", jobRepository).<ArticleEntity, ArticleEntity>chunk(100,
+            transactionManager).reader(jsonFileItemReader(null)).processor(duplicateCheckProcessor())
+        .writer(articleRestoreWriter()).build();
   }
+
   @Bean
   @StepScope
   public FlatFileItemReader<ArticleEntity> jsonFileItemReader(
       @Value("#{jobParameters['filePath']}") String filePath) {
-    return new FlatFileItemReaderBuilder<ArticleEntity>()
-        .name("jsonFileItemReader")
+    return new FlatFileItemReaderBuilder<ArticleEntity>().name("jsonFileItemReader")
         .resource(new FileSystemResource(filePath))
         .lineMapper((line, lineNumber) -> objectMapper.readValue(line, ArticleEntity.class))
         .build();
@@ -88,7 +80,8 @@ public class NewsBackupBatchConfig {
   @Bean
   public ItemProcessor<ArticleEntity, ArticleEntity> duplicateCheckProcessor() {
     return article -> {
-      Optional<ArticleEntity> existingOpt = articleRepository.findBySourceUrl(article.getSourceUrl());
+      Optional<ArticleEntity> existingOpt = articleRepository.findBySourceUrl(
+          article.getSourceUrl());
       if (existingOpt.isPresent() && !existingOpt.get().isDeleted()) {
         return null;
       }
@@ -98,19 +91,17 @@ public class NewsBackupBatchConfig {
 
   @Bean
   public JpaItemWriter<ArticleEntity> articleJpaWriter() {
-    return new JpaItemWriterBuilder<ArticleEntity>()
-        .entityManagerFactory(entityManagerFactory)
+    return new JpaItemWriterBuilder<ArticleEntity>().entityManagerFactory(entityManagerFactory)
         .build();
   }
+
   @Bean
   public JpaPagingItemReader<ArticleEntity> articleReader() {
-    return new JpaPagingItemReaderBuilder<ArticleEntity>()
-        .name("articleReader")
+    return new JpaPagingItemReaderBuilder<ArticleEntity>().name("articleReader")
         .entityManagerFactory(entityManagerFactory)
         .queryString("SELECT a FROM ArticleEntity a WHERE a.publishDate >= :yesterday")
         .parameterValues(Map.of("yesterday", LocalDate.now().minusDays(1).atStartOfDay()))
-        .pageSize(100)
-        .build();
+        .pageSize(100).build();
   }
 
   @Bean
@@ -123,11 +114,13 @@ public class NewsBackupBatchConfig {
       s3Service.upload(fileName, jsonChunk);
     };
   }
+
   @Bean
   public ItemWriter<ArticleEntity> articleRestoreWriter() {
     return chunk -> {
       for (ArticleEntity article : chunk) {
-        Optional<ArticleEntity> existingOpt = articleRepository.findBySourceUrl(article.getSourceUrl());
+        Optional<ArticleEntity> existingOpt = articleRepository.findBySourceUrl(
+            article.getSourceUrl());
 
         if (existingOpt.isPresent()) {
           ArticleEntity existing = existingOpt.get();
@@ -145,28 +138,22 @@ public class NewsBackupBatchConfig {
 
   @Bean
   public Job hardDeleteJob() {
-    return new JobBuilder("hardDeleteJob", jobRepository)
-        .start(hardDeleteStep())
-        .build();
+    return new JobBuilder("hardDeleteJob", jobRepository).start(hardDeleteStep()).build();
   }
 
   @Bean
   public Step hardDeleteStep() {
-    return new StepBuilder("hardDeleteStep", jobRepository)
-        .<ArticleEntity, ArticleEntity>chunk(100, transactionManager)
-        .reader(oldDeletedArticleReader())
-        .writer(articleHardDeleteWriter())
+    return new StepBuilder("hardDeleteStep", jobRepository).<ArticleEntity, ArticleEntity>chunk(100,
+            transactionManager).reader(oldDeletedArticleReader()).writer(articleHardDeleteWriter())
         .build();
   }
 
   @Bean
   public JpaPagingItemReader<ArticleEntity> oldDeletedArticleReader() {
-    return new JpaPagingItemReaderBuilder<ArticleEntity>()
-        .name("oldDeletedArticleReader")
+    return new JpaPagingItemReaderBuilder<ArticleEntity>().name("oldDeletedArticleReader")
         .entityManagerFactory(entityManagerFactory)
         .queryString("SELECT a FROM ArticleEntity a WHERE a.deletedAt <= :threshold")
-        .parameterValues(Map.of("threshold", LocalDateTime.now().minusDays(30)))
-        .pageSize(100)
+        .parameterValues(Map.of("threshold", LocalDateTime.now().minusDays(30))).pageSize(100)
         .build();
   }
 
