@@ -30,6 +30,7 @@ class ArticleServiceTest {
   @Mock private ArticleRepository articleRepository;
   @Mock private ArticleMapper articleMapper;
   @Mock private EntityManager entityManager;
+  @Mock private ArticleViewService articleViewService;
 
   @InjectMocks
   private ArticleService articleService;
@@ -139,5 +140,61 @@ class ArticleServiceTest {
 
     assertThat(result.hasNext()).isTrue();
     assertThat(result.content()).hasSize(5);
+  }
+  @Nested
+  @DisplayName("뉴스 물리 삭제")
+  class HardDelete {
+    @Test
+    @DisplayName("물리삭제 호출 성공")
+    void success() {
+      UUID id = UUID.randomUUID();
+
+      articleService.hardDelete(id);
+
+      verify(articleRepository, times(1)).hardDeleteById(id);
+    }
+  }
+
+  @Nested
+  @DisplayName("청크 저장")
+  class SaveInChunks {
+    @Test
+    @DisplayName("중복된 URL은 제외, 일괄 저장")
+    void success() {
+      ArticleEntity newArticle = ArticleEntity.builder().sourceUrl("new-url").build();
+      ArticleEntity existingArticle = ArticleEntity.builder().sourceUrl("old-url").build();
+      List<ArticleEntity> articles = List.of(newArticle, existingArticle);
+
+      given(articleRepository.findAllBySourceUrlIn(any())).willReturn(List.of(existingArticle));
+
+      articleService.saveInChunks(articles);
+
+      verify(articleRepository, times(1)).saveAll(argThat((List<ArticleEntity> list) -> list.size() == 1));    }
+
+    @Test
+    @DisplayName("실패: 빈 리스트나 null이 들어오면 아무것도 수행하지 않음")
+    void skip_EmptyOrNull() {
+      articleService.saveInChunks(new ArrayList<>());
+      articleService.saveInChunks(null);
+
+      verify(articleRepository, never()).saveAll(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("조회수 증가 로직")
+  class IncrementViewCount {
+
+    @Test
+    @DisplayName("조회 수 증가 로직 호출")
+    void success() {
+      UUID articleId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      String clientIp = "127.0.0.1";
+
+      articleService.incrementViewCount(articleId, userId, clientIp);
+
+      verify(articleViewService, times(1)).logView(articleId, userId, clientIp);
+    }
   }
 }
