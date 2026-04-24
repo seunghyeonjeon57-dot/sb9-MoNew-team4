@@ -138,7 +138,7 @@ public class ActivityServiceTest {
     assertThat(queryObject.get("_id")).isEqualTo(userId);
 
     Document updateObject = capturedUpdate.getUpdateObject();
-    assertThat(updateObject.containsKey("$push")).isTrue();
+    assertThat(capturedUpdate.getUpdateObject()).containsKey("$push");
 
     Document pushObject = (Document) updateObject.get("$push");
     assertThat(pushObject.containsKey("recentComments")).isTrue();
