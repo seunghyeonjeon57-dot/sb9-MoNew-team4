@@ -18,6 +18,8 @@ import java.time.LocalDate;
 public class LogBackupScheduler {
 
   private final LogS3Service logS3Service;
+  private String logDirectory = "./logs";
+
 
   @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Seoul")
   public void executeLogBackup() {
@@ -27,7 +29,7 @@ public class LogBackupScheduler {
     LocalDate targetDate = LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1);
 
 
-    Path logFilePath = Paths.get("./logs/app-" + targetDate + ".log");
+    Path logFilePath = Paths.get(logDirectory,"app-" + targetDate + ".log");
 
     if (Files.exists(logFilePath)) {
 
