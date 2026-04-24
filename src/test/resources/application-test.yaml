@@ -1,6 +1,5 @@
 spring:
   datasource:
-    # 에러 유발 옵션 제거 및 예약어(COMMENT, LIKE) 충돌 방지 옵션 추가
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DATABASE_TO_UPPER=FALSE;NON_KEYWORDS=COMMENT,LIKE
     driver-class-name: org.h2.Driver
     username: sa
@@ -12,9 +11,12 @@ spring:
     job:
       enabled: false
 
-  sql:
-    init:
-      mode: never
+  # 💡 하나로 합쳐진 autoconfigure 섹션
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+      - io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration
 
   jpa:
     hibernate:
@@ -23,7 +25,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        # H2 대소문자 문제 방지를 위해 false 유지
         globally_quoted_identifiers: false
         dialect: org.hibernate.dialect.H2Dialect
         physical_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
@@ -31,11 +32,6 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/test_db
-
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
-      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
 management:
   endpoints:
@@ -56,16 +52,16 @@ cloud:
       access-key: test-access-key
       secret-key: test-secret-key
     region:
-      static: us-east-1
+      static: ap-northeast-2
     s3:
       bucket: test-bucket
     log:
       credentials:
-        access-key: ${AWS_LOG_ACCESS_KEY}
-        secret-key: ${AWS_LOG_SECRET_KEY}
+        access-key: test-log-key
+        secret-key: test-log-secret
       region:
-        static: ${AWS_LOG_REGION}
-      bucket: ${AWS_LOG_BUCKET_NAME}
+        static: ap-northeast-2
+      bucket: test-log-bucket
 
 naver:
   client-id: dummy-id

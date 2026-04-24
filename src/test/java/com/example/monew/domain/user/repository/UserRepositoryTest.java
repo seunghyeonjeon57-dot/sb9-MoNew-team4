@@ -2,6 +2,7 @@ package com.example.monew.domain.user.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.config.QuerydslConfig;
 import com.example.monew.domain.user.entity.User;
 import java.time.LocalDateTime;
@@ -16,7 +17,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import(QuerydslConfig.class) 
+@Import(QueryDslTestConfig.class)
 class UserRepositoryTest {
 
   @Autowired
