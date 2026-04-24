@@ -1,8 +1,5 @@
 package com.example.monew.domain.article.batch.service;
 
-
-import com.example.monew.domain.article.repository.ArticleRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import java.io.File;
 import lombok.SneakyThrows;

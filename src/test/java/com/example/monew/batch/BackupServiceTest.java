@@ -34,7 +34,8 @@ class BackupServiceTest {
   void backupDailyNews_Success() throws Exception {
     backupService.backupDailyNews();
 
-    verify(jobLauncher, times(1)).run(any(Job.class), any(JobParameters.class));  }
+    verify(jobLauncher, times(1)).run(any(Job.class), any(JobParameters.class));
+  }
 
   @Test
   @DisplayName("s3로 복구 성공")
@@ -46,7 +47,8 @@ class BackupServiceTest {
 
     backupService.restoreNews(targetDate);
 
-    verify(jobLauncher, times(1)).run(any(Job.class), any(JobParameters.class));  }
+    verify(jobLauncher, times(1)).run(any(Job.class), any(JobParameters.class));
+  }
 
   @Test
   @DisplayName("복구 중 에러 발생 시 catch")
