@@ -141,26 +141,40 @@ class NotificationServiceTest {
   }
 
   @Test
-  @DisplayName("알림 목록 다음 페이지 조회가 정상적으로 동작한다.")
+  @DisplayName("cursor와 after가 모두 주어지고, 다음 페이지(hasNext)가 존재하는 경우 정상 조회된다.")
   void getNotifications_NextPage_Success() {
-    // Given
+    // given
     UUID userId = UUID.randomUUID();
-    String cursor = UUID.randomUUID().toString();
-    int limit = 10;
+    String cursor = UUID.randomUUID().toString(); // cursor 존재
+    java.time.LocalDateTime after = java.time.LocalDateTime.now(); // after 존재 (null 아님!)
+    int limit = 2;
 
-    // When
-    var response = notificationService.getNotifications(userId, cursor, null, limit);
+    // limit(2)보다 1개 더 많은 3개의 데이터를 가짜(Mock)로 생성 (hasNext를 true로 만들기 위함)
+    Notification noti1 = mock(Notification.class);
+    Notification noti2 = mock(Notification.class);
+    Notification noti3 = mock(Notification.class);
 
-    // Then
-    // 1. 응답 DTO 자체가 생성되었는지 확인 (SonarCloud 만족)
-    org.assertj.core.api.Assertions.assertThat(response).isNotNull();
+    // subList 후 마지막 요소의 id()와 createdAt()을 꺼낼 때 NullPointerException 방지
+    lenient().when(noti1.getId()).thenReturn(UUID.randomUUID());
+    lenient().when(noti2.getId()).thenReturn(UUID.randomUUID());
+    lenient().when(noti3.getId()).thenReturn(UUID.randomUUID());
+    lenient().when(noti1.getCreatedAt()).thenReturn(after);
+    lenient().when(noti2.getCreatedAt()).thenReturn(after);
+    lenient().when(noti3.getCreatedAt()).thenReturn(after);
 
-    // 2. 실제 데이터 개수(size)는 Mock 설정에 따라 0일 수 있으므로, 0 이상인지 확인하거나
-    // 혹은 단순히 리포지토리가 한 번 실행되었는지를 검증합니다.
-    org.assertj.core.api.Assertions.assertThat(response.size()).isGreaterThanOrEqualTo(0);
+    // cursor와 after가 모두 존재할 때 호출되는 findNextPageByUserId 모킹
+    when(notificationRepository.findNextPageByUserId(eq(userId), eq(after), any(UUID.class), any(Pageable.class)))
+        .thenReturn(List.of(noti1, noti2, noti3));
 
-    // 3. (가장 추천) 리포지토리의 findNextPageByUserId가 호출되었는지 검증
-    verify(notificationRepository, atLeastOnce()).findFirstPageByUserId(any(), any());
+    // when
+    CursorPageResponseNotificationDto response =
+        notificationService.getNotifications(userId, cursor, after, limit);
+
+    // then
+    assertThat(response.hasNext()).isTrue(); // hasNext가 true가 되는지 검증
+    assertThat(response.content()).hasSize(limit); // 3개가 들어왔지만 2개(limit)로 잘렸는지 검증
+    verify(notificationRepository, times(1))
+        .findNextPageByUserId(eq(userId), eq(after), any(UUID.class), any(Pageable.class));
   }
 
 }
