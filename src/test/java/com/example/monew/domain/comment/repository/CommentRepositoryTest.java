@@ -238,7 +238,7 @@ public class CommentRepositoryTest {
         .content("가장 오래된 댓글")
         .likeCount(0L)
         .build();
-    ReflectionTestUtils.setField(c1, "createdAt", LocalDateTime.now().minusDays(2));
+    ReflectionTestUtils.setField(c1, "createdAt", baseTime.minusDays(2));
     commentRepository.save(c1);
 
     CommentEntity c2 = CommentEntity.builder()
@@ -247,7 +247,7 @@ public class CommentRepositoryTest {
         .content("중간 댓글")
         .likeCount(0L)
         .build();
-    ReflectionTestUtils.setField(c2, "createdAt", LocalDateTime.now().minusDays(1));
+    ReflectionTestUtils.setField(c2, "createdAt", baseTime.minusDays(1));
     commentRepository.save(c2);
 
     CommentEntity c3 = CommentEntity.builder()
