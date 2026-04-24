@@ -37,22 +37,23 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ArticleServiceTest {
 
-  @Mock private ArticleRepository articleRepository;
-  @Mock private ArticleMapper articleMapper;
-  @Mock private EntityManager entityManager;
-  @Mock private ArticleViewService articleViewService;
+  @Mock
+  private ArticleRepository articleRepository;
+
+  @Mock
+  private ArticleMapper articleMapper;
+
+  @Mock
+  private EntityManager entityManager;
+
+  @Mock
+  private ArticleViewService articleViewService;
 
   @InjectMocks
   private ArticleService articleService;
 
   @Mock
   private ApplicationEventPublisher eventPublisher;
-
-  @Mock
-  private ArticleMapper articleMapper;
-
-  @Mock
-  private jakarta.persistence.EntityManager entityManager;
 
   @Nested
   @DisplayName("뉴스 상세 조회")

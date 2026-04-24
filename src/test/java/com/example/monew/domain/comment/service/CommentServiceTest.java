@@ -192,6 +192,7 @@ public class CommentServiceTest {
     User liker = User.builder().nickname("tester").build();
 
     CommentEntity comment = CommentEntity.builder()
+        .id(commentId)
         .articleId(UUID.randomUUID())
         .userId(commentAuthorId)
         .content("좋아요 받을 댓글")
