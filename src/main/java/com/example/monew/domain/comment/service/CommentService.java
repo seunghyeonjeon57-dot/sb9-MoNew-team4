@@ -79,7 +79,7 @@ public class CommentService {
   @Transactional
   public CommentDto updateComment(UUID commentId, UUID userId, CommentUpdateRequest request){
     log.info("댓글 수정 시도: commentId={}, userId={}", commentId, userId);
-    CommentEntity comment = commentRepository.findById(commentId)
+    CommentEntity comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(() -> {
           log.warn("댓글 수정 실패: 존재하지 않는 댓글입니다. commentId={}", commentId);
           return new CommentNotFoundException(ErrorCode.COMMENT_NOT_FOUND);
@@ -100,7 +100,7 @@ public class CommentService {
   public void softDeleteComment(UUID commentId){
     log.info("댓글 논리 삭제 시도: commentId={}", commentId);
 
-    CommentEntity comment = commentRepository.findById(commentId)
+    CommentEntity comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(() -> {
           log.warn("댓글 논리 삭제 실패: 존재하지 않는 댓글 CommentID={}", commentId);
           return new CommentNotFoundException(ErrorCode.COMMENT_NOT_FOUND);
@@ -115,7 +115,7 @@ public class CommentService {
   public void hardDeleteComment(UUID commentId){
     log.info("댓글 물리 삭제 시도: commentId={}", commentId);
 
-    CommentEntity comment = commentRepository.findById(commentId)
+    CommentEntity comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(() -> {
           log.warn("댓글 물리 삭제 실패: 존재 하지 않는 댓글 commentId={}", commentId);
           return new CommentNotFoundException(ErrorCode.COMMENT_NOT_FOUND);
@@ -128,19 +128,22 @@ public class CommentService {
   @Transactional
   public void softDeleteAllByUserId(UUID userId){
     log.info("사용자 댓글 일괄 논리 삭제 시도: userID={}", userId);
-    commentRepository.softDeleteAllByUserId(userId, LocalDateTime.now());
+    long updatedCount = commentRepository.softDeleteAllByUserId(userId);
+
+    log.info("사용자 댓글 {}개 일괄 논리 삭제 완료", updatedCount);
   }
 
   @Transactional
-  public void hardDeleteAllByUserId(UUID userId){
+  public void deleteAllByUserId(UUID userId){
     log.info("사용자 댓글 일괄 물리 삭제 시도: userId={}", userId);
-    commentRepository.deleteAllByUserId(userId);
+    long deletedCount =commentRepository.deleteAllByUserId(userId);
+    log.info("사용자 댓글 {}개 일괄 물리 삭제 완료", deletedCount);
   }
 
   @Transactional
   public void addLike(UUID commentId, UUID userId) {
     log.info("좋아요 추가 시도: userId={}, commentId={}", userId, commentId);
-    CommentEntity comment = commentRepository.findById(commentId)
+    CommentEntity comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(() -> {
           log.warn("좋아요 추가 실패: 존재하지 않는 댓글 ID={}", commentId);
           return new CommentNotFoundException(ErrorCode.COMMENT_NOT_FOUND);
@@ -186,7 +189,7 @@ public class CommentService {
   public void removeLike(UUID commentId, UUID userId) {
     log.info("좋아요 취소 시도: userId={}, commentId={}", userId, commentId);
 
-    CommentEntity comment = commentRepository.findById(commentId)
+    CommentEntity comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(() -> {
           log.warn("좋아요 취소 실패: 존재하지 않는 댓글 ID={}", commentId);
           return new CommentNotFoundException(ErrorCode.COMMENT_NOT_FOUND);
@@ -207,43 +210,45 @@ public class CommentService {
   @Transactional(readOnly = true)
   public CursorPageResponseCommentDto getArticleComments(
       UUID articleId,
-      UUID cursorId,
-      LocalDateTime cursorCreatedAt,
-      Long cursorLikeCount,
-      String sort,
-      int size
+      UUID userId,
+      String cursor,
+      LocalDateTime after,
+      String orderBy,
+      String direction,
+      int limit
   ) {
-    log.info("댓글 목록 조회 요청: articleId={}, sort={}, size={}", articleId, sort, size);
+    log.info("댓글 목록 조회 요청: articleId={}, orderBy={}, direction={}, limit={}", articleId, orderBy, direction, limit);
 
     if (!articleRepository.existsById(articleId)) {
-      log.warn("댓글 목록 조회 실패: 존재하지 않는 기사 articleId={}", articleId);
       throw new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
     }
 
-    List<CommentActivityDto> comments = new ArrayList<>(
+    List<CommentDto> comments = new ArrayList<>(
         commentRepository.findCommentsByArticleWithCursor(
-            articleId, cursorId, cursorCreatedAt, cursorLikeCount, sort, size
+            articleId, userId, cursor, after, orderBy, direction, limit + 1
         )
     );
 
-    boolean hasNext = comments.size() > size;
-    if(hasNext) {
-      comments.remove(size);
+    boolean hasNext = comments.size() > limit;
+    if (hasNext) {
+      comments.remove(limit);
     }
 
     String nextCursor = null;
     LocalDateTime nextAfter = null;
 
-    if(!comments.isEmpty()) {
-      CommentActivityDto lastComment = comments.get(comments.size() - 1);
-      nextCursor = lastComment.id().toString();
+    if (hasNext && !comments.isEmpty()) {
+      CommentDto lastComment = comments.get(comments.size() - 1);
       nextAfter = lastComment.createdAt();
+
+      if ("likeCount".equals(orderBy)) {
+        nextCursor = String.format("%d_%s", lastComment.likeCount(), lastComment.id());
+      } else {
+        nextCursor = lastComment.id().toString();
+      }
     }
 
     log.info("댓글 목록 조회 완료: 조회된 건수={}, hasNext={}", comments.size(), hasNext);
-
-    return new CursorPageResponseCommentDto(
-        comments, nextCursor, nextAfter, size, null, hasNext
-    );
+    return new CursorPageResponseCommentDto(comments, nextCursor, nextAfter, comments.size(), null, hasNext);
   }
 }

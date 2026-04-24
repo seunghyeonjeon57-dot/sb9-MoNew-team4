@@ -6,7 +6,7 @@ import com.example.monew.config.JpaAuditConfig;
 import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
-import com.example.monew.domain.activity.dto.CommentActivityDto;
+import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
@@ -20,11 +20,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @DataJpaTest
 @Import({QueryDslTestConfig.class, JpaAuditConfig.class})
 public class CommentRepositoryTest {
-  // RED 원인: CommentRepository 인터페이스를 아직 만들지 않아서 컴파일 에러 발생
   @Autowired
   private CommentRepository commentRepository;
   @Autowired
@@ -48,10 +48,15 @@ public class CommentRepositoryTest {
 
     CommentEntity savedComment = commentRepository.save(comment);
 
-    assertThat(savedComment.getId()).isNotNull();
-    assertThat(savedComment.getContent()).isEqualTo("레포지토리 테스트 댓글");
-    assertThat(savedComment.getLikeCount()).isEqualTo(0L);
-    assertThat(savedComment.getCreatedAt()).isNotNull();
+    em.flush();
+    em.clear();
+
+    CommentEntity foundComment = commentRepository.findById(savedComment.getId()).get();
+
+    assertThat(foundComment.getId()).isNotNull();
+    assertThat(foundComment.getContent()).isEqualTo("레포지토리 테스트 댓글");
+    assertThat(foundComment.getLikeCount()).isEqualTo(0L);
+    assertThat(foundComment.getCreatedAt()).isNotNull();
   }
 
   @Test
@@ -127,8 +132,7 @@ public class CommentRepositoryTest {
     entityManager.clear();
 
 
-    LocalDateTime now = LocalDateTime.now();
-    commentRepository.softDeleteAllByUserId(targetUserId, now);
+    commentRepository.softDeleteAllByUserId(targetUserId);
 
     List<CommentEntity> allComments = commentRepository.findAll();
 
@@ -154,8 +158,6 @@ public class CommentRepositoryTest {
         .build();
     userRepository.save(user);
 
-    userRepository.save(user);
-
     ArticleEntity article = ArticleEntity.builder()
         .source("출처")
         .sourceUrl("url" + UUID.randomUUID())
@@ -170,18 +172,18 @@ public class CommentRepositoryTest {
         .articleId(article.getId())
         .userId(user.getId())
         .content("댓글 1")
-        .likeCount(0L)
+        .likeCount(10L)
         .build();
     CommentEntity c2 = CommentEntity.builder()
         .articleId(article.getId())
         .userId(user.getId())
-        .content("댓글 1")
-        .likeCount(0L)
+        .content("댓글 2")
+        .likeCount(5L)
         .build();
     CommentEntity c3 = CommentEntity.builder()
         .articleId(article.getId())
         .userId(user.getId())
-        .content("댓글 1")
+        .content("댓글 3")
         .likeCount(0L)
         .build();
     commentRepository.saveAll(List.of(c1, c2, c3));
@@ -189,11 +191,20 @@ public class CommentRepositoryTest {
     em.flush();
     em.clear();
 
-    List<CommentActivityDto> result = commentRepository.findCommentsByArticleWithCursor(
-        article.getId(), null, null, null, "LIKES", 10
+    List<CommentDto> result = commentRepository.findCommentsByArticleWithCursor(
+        article.getId(),
+        null,
+        null,
+        null,
+        "likeCount",
+        "DESC",
+        10
     );
 
     assertThat(result).hasSize(3);
+    assertThat(result.get(0).likeCount()).isEqualTo(10L);
+    assertThat(result.get(1).likeCount()).isEqualTo(5L);
+    assertThat(result.get(2).likeCount()).isZero();
   }
 
   @Test
@@ -204,7 +215,6 @@ public class CommentRepositoryTest {
         .email("test2@test.com")
         .password("password")
         .build();
-    userRepository.save(user);
     userRepository.save(user);
 
     ArticleEntity article = ArticleEntity.builder()
@@ -220,18 +230,48 @@ public class CommentRepositoryTest {
     CommentEntity c1 = CommentEntity.builder()
         .articleId(article.getId())
         .userId(user.getId())
-        .content("최신 댓글")
-        .likeCount(0L) // 초기값 명시
+        .content("가장 오래된 댓글")
+        .likeCount(0L)
         .build();
+    ReflectionTestUtils.setField(c1, "createdAt", LocalDateTime.now().minusDays(2));
     commentRepository.save(c1);
+
+    CommentEntity c2 = CommentEntity.builder()
+        .articleId(article.getId())
+        .userId(user.getId())
+        .content("중간 댓글")
+        .likeCount(0L)
+        .build();
+    ReflectionTestUtils.setField(c2, "createdAt", LocalDateTime.now().minusDays(1));
+    commentRepository.save(c2);
+
+    CommentEntity c3 = CommentEntity.builder()
+        .articleId(article.getId())
+        .userId(user.getId())
+        .content("가장 최신 댓글")
+        .likeCount(0L)
+        .build();
+    ReflectionTestUtils.setField(c3, "createdAt", LocalDateTime.now());
+    commentRepository.save(c3);
 
     em.flush();
     em.clear();
-    List<CommentActivityDto> result = commentRepository.findCommentsByArticleWithCursor(
-        article.getId(), null, null, null, "DATE", 10
+
+    List<CommentDto> result = commentRepository.findCommentsByArticleWithCursor(
+        article.getId(),
+        null,
+        null,
+        null,
+        "createdAt",
+        "DESC",
+        10
     );
+
+    assertThat(result).hasSize(3);
+
+    assertThat(result.get(0).content()).isEqualTo("가장 최신 댓글");
+    assertThat(result.get(2).content()).isEqualTo("가장 오래된 댓글");
 
     assertThat(result).isSortedAccordingTo((a, b) -> b.createdAt().compareTo(a.createdAt()));
   }
-
 }
