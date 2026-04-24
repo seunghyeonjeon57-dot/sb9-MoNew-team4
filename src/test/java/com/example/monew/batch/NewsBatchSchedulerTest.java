@@ -1,19 +1,12 @@
 package com.example.monew.batch;
 
-
 import com.example.monew.domain.article.batch.NewsBatchScheduler;
 import com.example.monew.domain.article.batch.NewsCollector;
 import com.example.monew.domain.article.batch.NewsRss;
-import com.example.monew.domain.article.batch.service.BackupService;
-import com.example.monew.domain.article.batch.service.S3Service;
-import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.entity.InterestKeyword;
 import com.example.monew.domain.interest.repository.InterestRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.File;
-import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -24,9 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.launch.JobLauncher;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -39,8 +29,6 @@ class NewsBatchSchedulerTest {
 
   @Mock private NewsCollector newsCollector;
   @Mock private NewsRss newsRss;
-  @Mock private ArticleRepository articleRepository;
-  @Mock private BackupService backupService;
   @Mock private InterestRepository interestRepository;
   @Mock private ArticleService articleService;
 

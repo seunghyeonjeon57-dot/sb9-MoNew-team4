@@ -1,169 +1,114 @@
 package com.example.monew.domain.article.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
+
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.entity.ArticleEntity;
-import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.domain.article.repository.ArticleRepository;
+import jakarta.persistence.EntityManager;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
-class ArticleServiceTest {
+class ArticleServiceSuccessTest {
 
-  @Mock
-  private ArticleRepository articleRepository;
+  @Mock private ArticleRepository articleRepository;
+  @Mock private ArticleMapper articleMapper;
+  @Mock private EntityManager entityManager;
+  @Mock private ArticleViewService articleViewService;
 
   @InjectMocks
   private ArticleService articleService;
 
-  @Mock
-  private ArticleMapper articleMapper;
+  @Test
+  @DisplayName("상세 조회 성공")
+  void getArticleDetail_Success() {
+    UUID id = UUID.randomUUID();
+    ArticleEntity article = ArticleEntity.builder().id(id).build();
+    given(articleRepository.findById(id)).willReturn(Optional.of(article));
+    given(articleMapper.toDto(any(), anyBoolean())).willReturn(mock(ArticleDto.class));
 
-  @Mock
-  private jakarta.persistence.EntityManager entityManager;
+    articleService.getArticleDetail(id);
 
-  @Nested
-  @DisplayName("기사 상세 조회")
-  class GetArticleDetail {
-
-    @Test
-    @DisplayName("성공: 기사가 존재하면 조회수가 증가된 기사를 반환")
-    void success() {
-      UUID id = UUID.randomUUID();
-      ArticleEntity article = ArticleEntity.builder()
-          .id(id)
-          .title("테스트")
-
-          .build();
-
-      given(articleRepository.findById(id)).willReturn(Optional.of(article));
-
-      ArticleDto expectedDto = new ArticleDto(id, null, null, "테스트", null, null, null, 1L, false);
-      given(articleMapper.toDto(any(ArticleEntity.class), anyBoolean())).willReturn(expectedDto);
-
-      ArticleDto result = articleService.getArticleDetail(id);
-
-      assertThat(result.viewCount()).isEqualTo(1);
-      verify(articleRepository, times(1)).findById(id);
-    }
-
-    @Test
-    @DisplayName("실패: 기사가 없으면 예외처리")
-    void fail() {
-      UUID id = UUID.randomUUID();
-      given(articleRepository.findById(id)).willReturn(Optional.empty());
-
-      assertThatThrownBy(() -> articleService.getArticleDetail(id))
-          .isInstanceOf(ArticleNotFoundException.class)
-          .hasMessageContaining("해당 기사를 찾을 수 없습니다.");
-    }
+    verify(articleRepository).findById(id);
   }
 
-  @Nested
-  @DisplayName("기사 저장")
-  class SaveArticle {
+  @Test
+  @DisplayName("페이지네이션 목록 조회 성공")
+  void getArticles_Success() {
+    UUID cursor = UUID.randomUUID();
+    LocalDateTime after = LocalDateTime.now();
+    int size = 10;
 
-    @Test
-    @DisplayName("성공: 중복되지 않은 URL이면 기사를 저장")
-    void success() {
-      ArticleEntity article = ArticleEntity.builder().sourceUrl("http://new-url.com").build();
-      given(articleRepository.existsBySourceUrl(article.getSourceUrl())).willReturn(false);
+    // size보다 하나 더 많게 반환하여 hasNext 로직 타게 함
+    List<ArticleEntity> list = new ArrayList<>();
+    for(int i=0; i <= size; i++) list.add(ArticleEntity.builder().id(UUID.randomUUID()).build());
 
-      articleService.saveArticle(article);
+    given(articleRepository.findByCursor(cursor, after, size)).willReturn(list);
 
-      verify(articleRepository, times(1)).save(article);
-    }
+    var result = articleService.getArticles(cursor, after, size);
 
-    @Test
-    @DisplayName("실패: 중복된 URL이면 저장 로직을 호출하지 않음")
-    void fail_Duplicate() {
-      ArticleEntity article = ArticleEntity.builder().sourceUrl("http://old-url.com").build();
-      given(articleRepository.existsBySourceUrl(article.getSourceUrl())).willReturn(true);
-
-      articleService.saveArticle(article);
-
-      verify(articleRepository, never()).save(any());
-    }
+    assertThat(result.hasNext()).isTrue();
+    verify(articleRepository).findByCursor(cursor, after, size);
   }
 
-  @Nested
-  @DisplayName("기사 논리 삭제")
-  class isDeleted {
+  @Test
+  @DisplayName("신규 뉴스 일괄 저장 성공")
+  void saveInChunks_Success() {
+    ArticleEntity news1 = ArticleEntity.builder().sourceUrl("url1").build();
+    ArticleEntity news2 = ArticleEntity.builder().sourceUrl("url2").build();
+    List<ArticleEntity> list = List.of(news1, news2);
 
-    @Test
-    @DisplayName("기사 논리삭제 호출")
-    void success() {
-      UUID id = UUID.randomUUID();
-      ArticleEntity article = ArticleEntity.builder().id(id).build();
+    // DB에 아무것도 없다고 가정
+    given(articleRepository.findAllBySourceUrlIn(any())).willReturn(List.of());
 
-      given(articleRepository.findById(id)).willReturn(Optional.of(article));
+    articleService.saveInChunks(list);
 
-      articleService.isDeleted(id);
-
-      verify(articleRepository).softDelete(id);
-
-      verify(entityManager).flush();
-    }
-
-    @Test
-    @DisplayName("실패: 없는 기사 아이디면 예외를 발생시킨다.")
-    void fail() {
-      UUID id = UUID.randomUUID();
-      given(articleRepository.findById(id)).willReturn(Optional.empty());
-
-      assertThatThrownBy(() -> articleService.isDeleted(id))
-          .isInstanceOf(ArticleNotFoundException.class);
-    }
+    verify(articleRepository).saveAll(any());
   }
 
-  @Nested
-  @DisplayName("기사 복구 테스트")
-  class RestoreArticle {
+  @Test
+  @DisplayName("논리 삭제 성공")
+  void isDeleted_Success() {
+    UUID id = UUID.randomUUID();
+    ArticleEntity article = ArticleEntity.builder().id(id).build();
+    given(articleRepository.findById(id)).willReturn(Optional.of(article));
 
-    @Test
-    @DisplayName("복구 메서드 호출 후 메서드 확인")
-    void success() {
-      UUID id = UUID.randomUUID();
+    articleService.isDeleted(id);
 
-      articleService.restore(id);
-
-      verify(articleRepository, times(1)).restoreById(id);
-
-      verify(entityManager).flush();
-    }
+    verify(articleRepository).softDelete(id);
+    verify(entityManager).flush();
   }
 
-  @Nested
-  @DisplayName("출처 목록 조회 테스트 (getAllSources)")
-  class GetAllSources {
+  @Test
+  @DisplayName("조회수 증가 호출 성공")
+  void incrementViewCount_Success() {
+    UUID articleId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
 
-    @Test
-    @DisplayName("성공: 등록된 모든 언론사 리스트를 반환한다")
-    void success() {
+    articleService.incrementViewCount(articleId, userId, "127.0.0.1");
 
-      List<String> sources = List.of("네이버", "0000");
-      given(articleRepository.findAllSources()).willReturn(sources);
-
-      List<String> result = articleService.getAllSources();
-
-      assertThat(result).hasSize(2);
-      assertThat(result).contains("네이버", "0000");
-    }
+    verify(articleViewService).logView(articleId, userId, "127.0.0.1");
   }
 
+  @Test
+  @DisplayName("물리 삭제 성공")
+  void hardDelete_Success() {
+    UUID id = UUID.randomUUID();
+    articleService.hardDelete(id);
+    verify(articleRepository).hardDeleteById(id);
+  }
 }

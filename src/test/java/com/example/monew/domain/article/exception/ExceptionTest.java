@@ -1,11 +1,11 @@
 package com.example.monew.domain.article.exception;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import com.example.monew.global.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class ExceptionTest {
+class ExceptionTest {
 
   @Test
   @DisplayName("커스텀 예외 생성 시 설정한 ErrorCode가 올바르게 저장되어야 한다")

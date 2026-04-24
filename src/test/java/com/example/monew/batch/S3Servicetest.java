@@ -9,6 +9,7 @@ import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
 import com.example.monew.domain.article.batch.service.S3Service;
 import java.io.File;
 import java.nio.file.Path;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,11 +31,14 @@ class S3Servicetest {
   @InjectMocks
   private S3Service s3Service;
 
+  @BeforeEach
+  void setUp() {
+    ReflectionTestUtils.setField(s3Service, "bucket", "test-bucket");
+  }
+
   @Test
   @DisplayName("업로드 성공 시 s3Client의 putObject가 호출")
   void upload_Success() {
-    ReflectionTestUtils.setField(s3Service, "bucket", "test-bucket");
-
     s3Service.upload("test.json", "{}");
 
     verify(s3Client, times(1)).putObject(any(PutObjectRequest.class), any(RequestBody.class));
@@ -43,8 +47,6 @@ class S3Servicetest {
   @Test
   @DisplayName("다운로드 성공 시 임시 파일 생성")
   void download_Success() {
-    ReflectionTestUtils.setField(s3Service, "bucket", "test-bucket");
-
     when(s3Client.getObject(any(GetObjectRequest.class), any(Path.class))).thenReturn(null);
 
     File file = s3Service.download("test.json");
@@ -57,8 +59,6 @@ class S3Servicetest {
   @Test
   @DisplayName("파일이 없을 때 예외 발생")
   void download_Fail_NotFound() {
-    ReflectionTestUtils.setField(s3Service, "bucket", "test-bucket");
-
     when(s3Client.getObject(any(GetObjectRequest.class), any(Path.class)))
         .thenThrow(NoSuchKeyException.builder().build());
 
@@ -69,8 +69,6 @@ class S3Servicetest {
   @Test
   @DisplayName("기타 에러 시 S3DownloadException이 발생")
   void download_Fail_General() {
-    ReflectionTestUtils.setField(s3Service, "bucket", "test-bucket");
-
     when(s3Client.getObject(any(GetObjectRequest.class), any(Path.class)))
         .thenThrow(new RuntimeException("S3 Error"));
 
