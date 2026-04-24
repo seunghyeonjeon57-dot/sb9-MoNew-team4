@@ -2,7 +2,7 @@ package com.example.monew.domain.user.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.example.monew.config.QuerydslConfig;
+import com.example.monew.config.QueryDslTestConfig;
 import com.example.monew.domain.user.entity.User;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,7 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import(QuerydslConfig.class) 
+@Import(QueryDslTestConfig.class)
 class UserRepositoryTest {
 
   @Autowired
@@ -78,5 +78,19 @@ class UserRepositoryTest {
     
     assertThat(expiredUsers).hasSize(1);
     assertThat(expiredUsers.get(0).getEmail()).isEqualTo("expired@naver.com");
+  }
+  @Test
+  @DisplayName("ID로 활성 유저 조회 테스트")
+  void findActiveByIdTest() {
+    
+    User user = User.builder().email("id-test@naver.com")
+        .nickname("id-tester").password("password").build();
+    User savedUser = userRepository.save(user);
+
+    
+    Optional<User> result = userRepository.findActiveById(savedUser.getId());
+
+    
+    assertThat(result).isPresent();
   }
 }
