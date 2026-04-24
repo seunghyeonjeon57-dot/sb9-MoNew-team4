@@ -29,10 +29,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
       @Param("userId") UUID userId,
       @Param("interestIds") Collection<UUID> interestIds);
 
-//  특정 관심사들을 구독하고 있는 유저 ID 목록을 조회합니다.
-  @Query("SELECT DISTINCT s.userId FROM Subscription s WHERE s.interestId IN :interestIds")
-  List<UUID> findUserIdsByInterestIdIn(@Param("interestIds") Collection<UUID> interestIds);
-
   @Transactional
   long deleteAllByInterestId(UUID interestId);
 
