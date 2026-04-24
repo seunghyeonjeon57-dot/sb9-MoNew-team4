@@ -330,6 +330,7 @@ public class CommentRepositoryTest {
 
     String cursor = c1.getLikeCount() + "_" + c1.getId();
 
+
     List<CommentDto> result = commentRepository.findCommentsByArticleWithCursor(
         article.getId(),
         null,
@@ -341,7 +342,8 @@ public class CommentRepositoryTest {
     );
 
     assertThat(result).hasSize(1);
-    assertThat(result.get(0).content()).isEqualTo("좋아요 적음");
+    assertThat(result.get(0).content()).isEqualTo(c2.getContent());
+    assertThat(result.get(0).likeCount()).isEqualTo(c2.getLikeCount());
   }
 
   @Test
