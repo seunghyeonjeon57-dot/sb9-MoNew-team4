@@ -89,4 +89,30 @@ class NotificationControllerTest {
     // 조회 서비스 호출 검증
     verify(notificationService, times(1)).getNotifications(any(UUID.class), any(String.class), any(), anyInt());
   }
+
+  @Test
+  @DisplayName("커서(cursor) 조건만 있을 때 알림 목록을 조회한다.")
+  void getNotifications_WithCursorOnly() throws Exception {
+    mockMvc.perform(get("/api/notifications")
+            .header(USER_ID_HEADER, VALID_USER_ID)
+            .param("cursor", UUID.randomUUID().toString())
+            .param("limit", "20"))
+        .andExpect(status().isOk());
+
+    // 조회 서비스 호출 검증
+    verify(notificationService, times(1)).getNotifications(any(UUID.class), any(String.class), any(), anyInt());
+  }
+
+  @Test
+  @DisplayName("날짜(after) 조건만 있을 때 알림 목록을 조회한다.")
+  void getNotifications_WithAfterOnly() throws Exception {
+    mockMvc.perform(get("/api/notifications")
+            .header(USER_ID_HEADER, VALID_USER_ID)
+            .param("after", "2024-04-24T15:00:00")
+            .param("limit", "20"))
+        .andExpect(status().isOk());
+
+    // 조회 서비스 호출 검증
+    verify(notificationService, times(1)).getNotifications(any(UUID.class), any(), any(), anyInt());
+  }
 }

@@ -15,3 +15,4 @@ class AsyncConfigTest {
     assertThat(asyncConfig).isNotNull();
   }
 }
+
