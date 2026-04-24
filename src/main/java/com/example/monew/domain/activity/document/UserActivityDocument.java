@@ -25,6 +25,7 @@ public class UserActivityDocument {
   private UUID userId;
 
   private UserDto userProfile;
+  private LocalDateTime deletedAt;
 
   @Builder.Default
   private List<SubscriptionResponse> subscribedInterests = new ArrayList<>();

@@ -99,6 +99,7 @@ public class UserService {
         .orElseThrow(() -> new UserNotFoundException("이미 탈퇴했거나 존재하지 않는 유저입니다."));
 
     user.withdraw();
+    activityService.softDeleteUserActivity(id);
     log.info("유저 논리 삭제 완료 (ID={}): 탈퇴 시점={}", id, user.getDeletedAt());
   }
 

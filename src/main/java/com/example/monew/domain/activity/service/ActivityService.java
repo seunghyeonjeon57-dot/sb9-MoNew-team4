@@ -147,7 +147,18 @@ public class ActivityService {
       userActivityRepository.deleteAllByUserId(userId);
       log.info("MongoDB 사용자 활동 내역 삭제 성공: userId={}", userId);
     } catch (Exception e) {
-      log.warn("MongoDB 사용자 활동 내역 삭제 실패: userId={}, error={}", userId, e.getMessage());
+      log.error("MongoDB 사용자 활동 내역 삭제 실패: userId={}, error={}", userId, e.getMessage());
+      throw new RuntimeException("MongoDB 사용자 활동 내역 논리 삭제 중 오류 발생", e);
+    }
+  }
+
+  public void softDeleteUserActivity(UUID userId) {
+    try {
+      long softDeletedCount = userActivityRepository.softDeleteAllByUserId(userId);
+      log.info("MongoDB 사용자 활동 내역 논리 삭제 성공: userId={}, 처리된 문서 수={}", userId, softDeletedCount);
+    } catch (Exception e) {
+      log.error("MongoDB 사용자 활동 내역 논리 삭제 실패: userId={}, error={}", userId, e.getMessage());
+      throw new RuntimeException("MongoDB 사용자 활동 내역 삭제 중 오류 발생", e);
     }
   }
 }
