@@ -12,6 +12,9 @@ import com.example.monew.domain.comment.exception.CommentNotFoundException;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.notification.event.CommentLikedEvent;
+import com.example.monew.domain.user.entity.User;
+import com.example.monew.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,6 +44,8 @@ public class CommentServiceTest {
   @Mock private CommentMapper commentMapper;
   @Mock private ArticleRepository articleRepository;
   @Mock private CommentLikeRepository commentLikeRepository;
+  @Mock private ApplicationEventPublisher eventPublisher;
+  @Mock private UserRepository userRepository;
 
   @InjectMocks
   private CommentService commentService;
@@ -146,12 +152,15 @@ public class CommentServiceTest {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
     CommentEntity comment = CommentEntity.builder().likeCount(0L).build();
+    User liker = User.builder().nickname("tester").build();
 
     given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
     given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(false);
+    given(userRepository.findById(userId)).willReturn(Optional.of(liker));
 
     commentService.addLike(commentId, userId);
 
+    verify(eventPublisher, times(1)).publishEvent(any(CommentLikedEvent.class));
     verify(commentLikeRepository, times(1)).save(any(CommentLikeEntity.class));
     assertThat(comment.getLikeCount()).isEqualTo(1L);
   }

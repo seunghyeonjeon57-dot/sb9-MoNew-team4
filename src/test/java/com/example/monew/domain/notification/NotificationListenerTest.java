@@ -31,12 +31,6 @@ class NotificationListenerTest {
   @Autowired
   private TransactionTemplate transactionTemplate;
 
-  @MockitoBean
-  private S3Client s3Client;
-
-  @MockitoBean
-  private com.example.monew.config.NewsBackupBatchConfig newsBackupBatchConfig;
-
   @AfterEach
   void tearDown() {
     notificationRepository.deleteAllInBatch();
