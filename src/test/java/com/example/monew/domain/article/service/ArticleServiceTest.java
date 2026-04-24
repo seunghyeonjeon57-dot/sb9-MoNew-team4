@@ -115,7 +115,7 @@ class ArticleServiceTest {
   }
 
   @Test
-  @DisplayName("뉴스 복구")
+  @DisplayName("뉴스 복구 성공")
   void restoreSuccess() {
     UUID id = UUID.randomUUID();
 
