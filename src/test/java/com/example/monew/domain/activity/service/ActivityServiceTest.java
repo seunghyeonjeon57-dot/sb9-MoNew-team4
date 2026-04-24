@@ -4,7 +4,9 @@ package com.example.monew.domain.activity.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.example.monew.domain.activity.dto.CommentActivityDto;
@@ -30,6 +32,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.mongodb.core.query.UpdateDefinition;
 import org.bson.Document;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.any;
 
 import com.example.monew.domain.activity.document.UserActivityDocument;
 import com.example.monew.domain.activity.repository.UserActivityRepository;
@@ -243,5 +247,44 @@ public class ActivityServiceTest {
 
     Document setObject = (Document) updateObject.get("$addToSet");
     assertThat(setObject.containsKey("subscribedInterests")).isTrue();
+  }
+
+  @Test
+  @DisplayName("관심사 구독 취소 - MongoDB 배열에서 $pull 연산자가 포함된 업데이트가 정상 실행된다")
+  void removeSubscription_Success() {
+
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    activityService.removeSubscription(userId, interestId);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
+
+    verify(mongoTemplate, times(1)).updateFirst(
+        queryCaptor.capture(),
+        updateCaptor.capture(),
+        eq(UserActivityDocument.class)
+    );
+
+    Query capturedQuery = queryCaptor.getValue();
+    assertThat(capturedQuery.getQueryObject().get("_id")).isEqualTo(userId);
+
+    Update capturedUpdate = updateCaptor.getValue();
+    assertThat(capturedUpdate.getUpdateObject().containsKey("$pull")).isTrue();
+  }
+
+  @Test
+  @DisplayName("관심사 구독 취소 예외 - MongoDB 통신 중 에러가 발생해도 예외를 던지지 않고 꿀꺽 삼킨다 (트랜잭션 롤백 방지)")
+  void removeSubscription_ExceptionHandled() {
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    doThrow(new RuntimeException("MongoDB 연결 에러 테스트"))
+        .when(mongoTemplate).updateFirst(any(Query.class), any(Update.class), eq(UserActivityDocument.class));
+
+    assertDoesNotThrow(() -> activityService.removeSubscription(userId, interestId));
+
+    verify(mongoTemplate, times(1)).updateFirst(any(Query.class), any(Update.class), eq(UserActivityDocument.class));
   }
 }

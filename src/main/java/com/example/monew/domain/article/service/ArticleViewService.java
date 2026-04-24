@@ -9,7 +9,7 @@ import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.article.repository.ArticleViewRepository;
 import com.example.monew.global.exception.ErrorCode;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

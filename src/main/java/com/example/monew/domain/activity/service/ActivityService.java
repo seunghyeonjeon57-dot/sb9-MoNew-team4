@@ -148,7 +148,6 @@ public class ActivityService {
       log.info("MongoDB 사용자 활동 내역 삭제 성공: userId={}", userId);
     } catch (Exception e) {
       log.error("MongoDB 사용자 활동 내역 삭제 실패: userId={}, error={}", userId, e.getMessage());
-      throw new RuntimeException("MongoDB 사용자 활동 내역 논리 삭제 중 오류 발생", e);
     }
   }
 
@@ -158,7 +157,22 @@ public class ActivityService {
       log.info("MongoDB 사용자 활동 내역 논리 삭제 성공: userId={}, 처리된 문서 수={}", userId, softDeletedCount);
     } catch (Exception e) {
       log.error("MongoDB 사용자 활동 내역 논리 삭제 실패: userId={}, error={}", userId, e.getMessage());
-      throw new RuntimeException("MongoDB 사용자 활동 내역 삭제 중 오류 발생", e);
+    }
+  }
+
+  public void removeSubscription(UUID userId, UUID interestId) {
+    try {
+      Query query = new Query(Criteria.where("_id").is(userId));
+
+      Update update = new Update().pull("subscriptions",
+          new org.bson.Document("interestId", interestId)
+      );
+
+      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+      log.info("MongoDB 관심사 구독 취소 반영 성공: userId={}, interestId={}", userId, interestId);
+
+    } catch (Exception e) {
+      log.warn("MongoDB 관심사 구독 취소 반영 실패: userId={}, interestId={}, error={}", userId, interestId, e.getMessage());
     }
   }
 }

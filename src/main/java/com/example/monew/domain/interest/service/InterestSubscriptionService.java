@@ -56,6 +56,7 @@ public class InterestSubscriptionService {
 
     subscriptionRepository.delete(sub);
     interestRepository.decrementSubscriberCount(interestId);
+    activityService.removeSubscription(userId, interestId);
   }
 
   private RuntimeException translateIntegrityViolation(
