@@ -12,6 +12,7 @@ import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -273,5 +274,94 @@ public class CommentRepositoryTest {
     assertThat(result.get(2).content()).isEqualTo("가장 오래된 댓글");
 
     assertThat(result).isSortedAccordingTo((a, b) -> b.createdAt().compareTo(a.createdAt()));
+  }
+
+  @Test
+  @DisplayName("특정 기사의 댓글 목록을 최신순으로 커서 페이징 조회한다 (다음 페이지)")
+  void findCommentsByArticleId_OrderByDate_WithCursor() {
+    User user = User.builder().nickname("유저").email("u@test.com").password("p").build();
+    userRepository.save(user);
+
+    ArticleEntity article = ArticleEntity.builder()
+        .source("출").sourceUrl("u" + UUID.randomUUID()).title("기").publishDate(LocalDateTime.now())
+        .summary("요").interest("IT").build();
+    articleRepository.save(article);
+
+    CommentEntity c1 = CommentEntity.builder().articleId(article.getId()).userId(user.getId()).content("오래된").likeCount(0L).build();
+    ReflectionTestUtils.setField(c1, "createdAt", LocalDateTime.now().minusDays(2));
+    commentRepository.save(c1);
+
+    CommentEntity c2 = CommentEntity.builder().articleId(article.getId()).userId(user.getId()).content("중간").likeCount(0L).build();
+    ReflectionTestUtils.setField(c2, "createdAt", LocalDateTime.now().minusDays(1));
+    commentRepository.save(c2);
+
+    em.flush();
+    em.clear();
+
+    List<CommentDto> result = commentRepository.findCommentsByArticleWithCursor(
+        article.getId(),
+        null,
+        c2.getId().toString(),
+        c2.getCreatedAt(),
+        "createdAt",
+        "DESC",
+        10
+    );
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).content()).isEqualTo("오래된");
+  }
+
+  @Test
+  @DisplayName("특정 기사의 댓글 목록을 좋아요 순으로 커서 페이징 조회한다 (다음 페이지)")
+  void findCommentsByArticleId_OrderByLikes_WithCursor_Coverage() {
+    User user = userRepository.save(User.builder().nickname("유저").email("like@test.com").password("p").build());
+    ArticleEntity article = articleRepository.save(ArticleEntity.builder().source("출").sourceUrl("l" + UUID.randomUUID()).title("기").publishDate(LocalDateTime.now()).interest("IT").build());
+
+    CommentEntity c1 = commentRepository.save(CommentEntity.builder().articleId(article.getId()).userId(user.getId()).content("좋아요 많음").likeCount(10L).build());
+    CommentEntity c2 = commentRepository.save(CommentEntity.builder().articleId(article.getId()).userId(user.getId()).content("좋아요 적음").likeCount(5L).build());
+
+    em.flush();
+    em.clear();
+
+    String cursor = c1.getLikeCount() + "_" + c1.getId();
+
+    List<CommentDto> result = commentRepository.findCommentsByArticleWithCursor(
+        article.getId(),
+        null,
+        cursor,
+        null,
+        "likeCount",
+        "DESC",
+        10
+    );
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).content()).isEqualTo("좋아요 적음");
+  }
+
+  @Test
+  @DisplayName("로그인한 유저(currentUserId)가 있을 때 좋아요 여부 서브쿼리를 실행한다")
+  void findCommentsByArticleId_WithCurrentUserId_Coverage() {
+    User user = userRepository.save(User.builder().nickname("유저").email("me@test.com").password("p").build());
+    ArticleEntity article = articleRepository.save(ArticleEntity.builder().source("출").sourceUrl("m" + UUID.randomUUID()).title("기").publishDate(LocalDateTime.now()).interest("IT").build());
+
+    commentRepository.save(CommentEntity.builder().articleId(article.getId()).userId(user.getId()).content("내 댓글").likeCount(0L).build());
+
+    em.flush();
+    em.clear();
+
+    List<CommentDto> result = commentRepository.findCommentsByArticleWithCursor(
+        article.getId(),
+        user.getId(),
+        null,
+        null,
+        "createdAt",
+        "DESC",
+        10
+    );
+
+    assertThat(result).isNotEmpty();
+    assertThat(result.get(0).likedByMe()).isFalse();
   }
 }
