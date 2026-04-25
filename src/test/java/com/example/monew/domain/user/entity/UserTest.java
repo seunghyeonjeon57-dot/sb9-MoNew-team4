@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.example.monew.domain.user.exception.NickNameBlankException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +22,7 @@ class UserTest {
   void UpdateNickname_fail_black(){
     User user = User.builder().nickname("원래 닉네임").build();
     assertThatThrownBy(()->user.updateNickname(" "))
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(NickNameBlankException.class)
         .hasMessage("닉네임은 공백일 수 없습니다.");
 
   }
