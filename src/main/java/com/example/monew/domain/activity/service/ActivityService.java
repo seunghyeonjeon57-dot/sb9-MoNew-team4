@@ -60,7 +60,7 @@ public class ActivityService {
         .email(user.getEmail())
         .nickname(user.getNickname())
         .createdAt(user.getCreatedAt())
-        .subscribedInterests(document.getSubscribedInterests())
+        .subscriptions(document.getSubscribedInterests())
         .comments(document.getRecentComments())
         .commentLikes(document.getRecentLikes())
         .articleViews(document.getRecentArticles())
