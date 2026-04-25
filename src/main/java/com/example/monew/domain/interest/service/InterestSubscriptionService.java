@@ -1,5 +1,6 @@
 package com.example.monew.domain.interest.service;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.entity.Subscription;
@@ -23,6 +24,7 @@ public class InterestSubscriptionService {
 
   private final InterestRepository interestRepository;
   private final SubscriptionRepository subscriptionRepository;
+  private final ActivityService activityService;
 
   @Transactional
   public SubscriptionResponse subscribe(UUID interestId, UUID userId) {
@@ -38,7 +40,12 @@ public class InterestSubscriptionService {
 
     interestRepository.incrementSubscriberCount(interest.getId());
     Interest refreshed = interestRepository.findByIdAndDeletedAtIsNull(interestId).orElse(interest);
-    return SubscriptionResponse.of(saved, refreshed);
+    SubscriptionResponse response = SubscriptionResponse.of(saved, refreshed);
+
+
+    activityService.updateSubscriptionResponse(userId, response);
+
+    return response;
   }
 
   @Transactional
@@ -49,6 +56,7 @@ public class InterestSubscriptionService {
 
     subscriptionRepository.delete(sub);
     interestRepository.decrementSubscriberCount(interestId);
+    activityService.removeSubscription(userId, interestId);
   }
 
   private RuntimeException translateIntegrityViolation(
