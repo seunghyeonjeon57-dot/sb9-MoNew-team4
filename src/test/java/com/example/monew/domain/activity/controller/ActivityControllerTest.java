@@ -40,7 +40,7 @@ public class ActivityControllerTest {
         .email("test@test.com")
         .nickname("test")
         .createdAt(LocalDateTime.now())
-        .subscribedInterests(List.of())
+        .subscriptions(List.of())
         .comments(List.of())
         .commentLikes(List.of())
         .articleViews(List.of())
