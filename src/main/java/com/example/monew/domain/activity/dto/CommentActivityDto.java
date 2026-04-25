@@ -1,4 +1,4 @@
-package com.example.monew.domain.comment.dto;
+package com.example.monew.domain.activity.dto;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

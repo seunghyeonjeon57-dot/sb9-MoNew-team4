@@ -1,9 +1,10 @@
-package com.example.monew.domain.comment.dto;
+package com.example.monew.domain.activity.dto;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.Builder;
 
-
+@Builder
 public record CommentLikeActivityDto(
     UUID id,
     LocalDateTime createdAt,

@@ -1,5 +1,6 @@
 package com.example.monew.domain.comment.service;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.repository.ArticleRepository;
@@ -15,6 +16,8 @@ import com.example.monew.domain.comment.exception.CommentNotFoundException;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.user.entity.User;
+import com.example.monew.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -45,6 +48,10 @@ public class CommentServiceTest {
   private CommentMapper commentMapper;
   @Mock
   private CommentLikeRepository commentLikeRepository;
+  @Mock
+  private ActivityService activityService;
+  @Mock
+  private UserRepository userRepository;
   @InjectMocks
   private CommentService commentService;
 
@@ -59,7 +66,10 @@ public class CommentServiceTest {
         .build();
 
     ArticleEntity article = ArticleEntity.builder().build();
+    User user = User.builder().build();
+
     given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article)); // 이후에 변경
+    given(userRepository.findById(request.userId())).willReturn(Optional.of(user)); // 추가
     given(commentRepository.save(any(CommentEntity.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -176,19 +186,33 @@ public class CommentServiceTest {
   void addLike_Success() {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
+    UUID articleId = UUID.randomUUID();
+
+    User user = User.builder()
+        .nickname("tester")
+        .email("test@test.com")
+        .password("pw")
+        .build();
+
     CommentEntity comment = CommentEntity.builder()
         .articleId(UUID.randomUUID())
-        .userId(commentId)
+        .userId(userId) // [수정] userId를 명시적으로 맞춰주는 것이 더 정확합니다.
         .content("좋아요 받을 댓글")
         .likeCount(0L)
         .build();
 
+    ArticleEntity article = ArticleEntity.builder().build();
+    // 중복된 given을 제거하고 깔끔하게 한 번씩만 작성합니다.
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(commentRepository.findByIdAndDeletedAtIsNull(commentId)).willReturn(Optional.of(comment));
-
     given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(false);
 
+    given(articleRepository.findById(any(UUID.class))).willReturn(Optional.of(article));
+
+    // when
     commentService.addLike(commentId, userId);
 
+    // then
     verify(commentLikeRepository, times(1)).save(any(CommentLikeEntity.class));
     assertThat(comment.getLikeCount()).isEqualTo(1L);
   }

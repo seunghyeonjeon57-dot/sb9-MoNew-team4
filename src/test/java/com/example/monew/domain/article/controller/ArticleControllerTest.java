@@ -102,4 +102,34 @@ class ArticleControllerTest {
 
     verify(articleService).getAllSources();
   }
+
+  @Test
+  @DisplayName("목록 조회 실패")
+  void getArticleList_Fail_SizeExceeded() throws Exception {
+    mockMvc.perform(get("/api/articles")
+            .param("size", "101")) // 100 초과 에러
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("뉴스 복구 성공")
+  void restoreFromS3_Success() throws Exception {
+    String date = java.time.LocalDate.now().toString();
+
+    mockMvc.perform(post("/api/articles/restore")
+            .param("date", date))
+        .andExpect(status().isOk());
+
+    verify(backupService).restoreNews(any());
+  }
+
+  @Test
+  @DisplayName("뉴스 복구 실패")
+  void restoreFromS3_Fail_FutureDate() throws Exception {
+    String futureDate = java.time.LocalDate.now().plusDays(1).toString();
+
+    mockMvc.perform(post("/api/articles/restore")
+            .param("date", futureDate))
+        .andExpect(status().isBadRequest());
+  }
 }
