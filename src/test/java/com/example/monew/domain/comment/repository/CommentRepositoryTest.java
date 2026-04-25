@@ -302,11 +302,13 @@ public class CommentRepositoryTest {
     em.flush();
     em.clear();
 
+    CommentEntity cursorEntity = em.find(CommentEntity.class, c2.getId());
+
     List<CommentDto> result = commentRepository.findCommentsByArticleWithCursor(
         article.getId(),
         null,
-        c2.getId().toString(),
-        c2.getCreatedAt(),
+        cursorEntity.getId().toString(),
+        cursorEntity.getCreatedAt(),
         "createdAt",
         "DESC",
         10
