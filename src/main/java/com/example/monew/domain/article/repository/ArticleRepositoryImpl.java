@@ -1,7 +1,6 @@
 package com.example.monew.domain.article.repository;
 
 import static com.example.monew.domain.article.entity.QArticleEntity.articleEntity;
-import static com.querydsl.jpa.JPAExpressions.selectFrom;
 
 import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.entity.ArticleEntity;
@@ -9,22 +8,22 @@ import com.example.monew.domain.article.entity.QArticleEntity;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
-import java.util.ArrayList;
-import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
   private final JPAQueryFactory queryFactory;
-
   private final QArticleEntity article = articleEntity;
+
+  public ArticleRepositoryImpl(EntityManager em) {
+    this.queryFactory = new JPAQueryFactory(em);
+  }
 
   @Override
   public long softDelete(UUID articleId) {
@@ -43,14 +42,10 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
         .fetch();
   }
 
-
-  public ArticleRepositoryImpl(EntityManager em) {
-    this.queryFactory = new JPAQueryFactory(em);
-  }
-
-
   @Override
   public List<ArticleEntity> findByCursor(ArticleSearchCondition condition) {
+    int size = (condition.getSize() > 0) ? condition.getSize() : 10;
+
     return queryFactory
         .selectFrom(article)
         .where(
@@ -61,14 +56,8 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
             cursorCondition(condition)
         )
         .orderBy(getOrderSpecifiers(condition))
-        .limit(condition.getSize() + 1)
+        .limit(size + 1)
         .fetch();
-  }
-
-  private BooleanExpression keywordContains(String keyword) {
-    if (keyword == null || keyword.isBlank()) return null;
-    return article.title.containsIgnoreCase(keyword)
-        .or(article.summary.containsIgnoreCase(keyword));
   }
 
   private BooleanExpression sourceIn(List<String> sources) {
@@ -84,9 +73,13 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
   }
 
   private OrderSpecifier<?> getOrderSpecifier(ArticleSearchCondition condition) {
-    Order direction = condition.getDirection().equalsIgnoreCase("ASC") ? Order.ASC : Order.DESC;
+    String dirStr = condition.getDirection();
+    Order direction = "ASC".equalsIgnoreCase(dirStr) ? Order.ASC : Order.DESC;
 
-    return switch (condition.getOrderBy()) {
+    String orderBy = condition.getOrderBy();
+    if (orderBy == null) orderBy = "createdAt";
+
+    return switch (orderBy) {
       case "viewCount" -> new OrderSpecifier<>(direction, article.viewCount);
       case "commentCount" -> new OrderSpecifier<>(direction, article.id);
       default -> new OrderSpecifier<>(direction, article.createdAt);
@@ -94,42 +87,53 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
   }
 
   private BooleanExpression cursorCondition(ArticleSearchCondition condition) {
-    if (condition.getCursor() == null) return null;
+    if (condition.getCursor() == null || condition.getCursor().isBlank()) return null;
+
+    UUID cursorId;
+    try {
+      cursorId = UUID.fromString(condition.getCursor());
+    } catch (IllegalArgumentException e) { return null; }
 
     ArticleEntity cursorArticle = queryFactory
         .selectFrom(article)
-        .where(article.id.eq(condition.getCursor()))
+        .where(article.id.eq(cursorId))
         .fetchOne();
 
     if (cursorArticle == null) return null;
 
-    String orderBy = condition.getOrderBy();
-    Order direction = condition.getDirection().equalsIgnoreCase("ASC") ? Order.ASC : Order.DESC;
+    String orderBy = (condition.getOrderBy() == null) ? "createdAt" : condition.getOrderBy();
+    String dirStr = (condition.getDirection() == null) ? "DESC" : condition.getDirection();
+    boolean isDesc = "DESC".equalsIgnoreCase(dirStr);
 
     if ("viewCount".equals(orderBy)) {
-      long viewCount = cursorArticle.getViewCount();
-      return direction == Order.DESC
-          ? article.viewCount.lt(viewCount).or(article.viewCount.eq(viewCount).and(article.id.lt(condition.getCursor())))
-          : article.viewCount.gt(viewCount).or(article.viewCount.eq(viewCount).and(article.id.gt(condition.getCursor())));
+      long v = cursorArticle.getViewCount();
+      return isDesc
+          ? article.viewCount.lt(v).or(article.viewCount.eq(v).and(article.id.lt(cursorId)))
+          : article.viewCount.gt(v).or(article.viewCount.eq(v).and(article.id.gt(cursorId)));
     }
 
     if ("commentCount".equals(orderBy)) {
-      return article.id.lt(condition.getCursor());
+      return article.id.lt(cursorId);
     }
 
-    LocalDateTime createdAt = cursorArticle.getCreatedAt();
-    return direction == Order.DESC
-        ? article.createdAt.lt(createdAt).or(article.createdAt.eq(createdAt).and(article.id.lt(condition.getCursor())))
-        : article.createdAt.gt(createdAt).or(article.createdAt.eq(createdAt).and(article.id.gt(condition.getCursor())));
+    LocalDateTime t = cursorArticle.getCreatedAt();
+    return isDesc
+        ? article.createdAt.lt(t).or(article.createdAt.eq(t).and(article.id.lt(cursorId)))
+        : article.createdAt.gt(t).or(article.createdAt.eq(t).and(article.id.gt(cursorId)));
   }
+
+  private BooleanExpression keywordContains(String keyword) {
+    if (keyword == null || keyword.isBlank()) return null;
+
+    return article.title.containsIgnoreCase(keyword)
+        .or(article.summary.containsIgnoreCase(keyword));
+  }
+
   private OrderSpecifier<?>[] getOrderSpecifiers(ArticleSearchCondition condition) {
     List<OrderSpecifier<?>> specifiers = new ArrayList<>();
-
-    // 1. 단수형 메서드를 호출해서 첫 번째 정렬 조건을 가져옴
     specifiers.add(getOrderSpecifier(condition));
 
-    // 2. 보조 정렬 조건 (ID) 추가
-    Order direction = condition.getDirection().equalsIgnoreCase("ASC") ? Order.ASC : Order.DESC;
+    Order direction = "ASC".equalsIgnoreCase(condition.getDirection()) ? Order.ASC : Order.DESC;
     specifiers.add(new OrderSpecifier<>(direction, article.id));
 
     return specifiers.toArray(new OrderSpecifier[0]);

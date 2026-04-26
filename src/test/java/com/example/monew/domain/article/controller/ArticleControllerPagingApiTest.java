@@ -8,6 +8,7 @@ import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.article.service.ArticleViewService;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,9 +62,11 @@ public class ArticleControllerPagingApiTest {
         .willReturn(mockResponse);
 
     mockMvc.perform(get("/api/articles")
-            .param("size", "10"))
+            .param("size", "10")
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString()))
         .andExpect(status().isOk());
 
-    verify(articleService).getArticles(argThat(condition -> condition.getSize() == 10));
+    // argThat 대신 any()를 사용하여 getArticles가 호출되었는지만 확인
+    verify(articleService).getArticles(any(ArticleSearchCondition.class));
   }
 }

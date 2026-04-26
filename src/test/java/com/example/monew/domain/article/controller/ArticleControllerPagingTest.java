@@ -51,8 +51,7 @@ class ArticleControllerPagingTest {
         .size(2)
         .build();
 
-    CursorPageResponseArticleDto result = articleController.getArticleList(condition).getBody();
-
+    CursorPageResponseArticleDto result = articleController.getArticleList(UUID.randomUUID(), condition).getBody();
     assertThat(result).isNotNull();
     assertThat(result.content()).hasSize(2);
     assertThat(result.hasNext()).isTrue();
