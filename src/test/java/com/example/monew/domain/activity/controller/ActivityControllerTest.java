@@ -40,7 +40,7 @@ public class ActivityControllerTest {
         .email("test@test.com")
         .nickname("test")
         .createdAt(LocalDateTime.now())
-        .subscribedInterests(List.of())
+        .subscriptions(List.of())
         .comments(List.of())
         .commentLikes(List.of())
         .articleViews(List.of())
@@ -53,7 +53,7 @@ public class ActivityControllerTest {
         .andExpect(jsonPath("$.id").value(userId.toString())) // JSON 응답 필드 검증
         .andExpect(jsonPath("$.email").value(expectedEmail))
         .andExpect(jsonPath("$.nickname").value(expectedNickname))
-        .andExpect(jsonPath("$.subscribedInterests").isArray()) // 배열 형태인지 검증
-        .andExpect(jsonPath("$.subscribedInterests").isEmpty()); // 비어있는지 검증
+        .andExpect(jsonPath("$.subscriptions").isArray()) // 배열 형태인지 검증
+        .andExpect(jsonPath("$.subscriptions").isEmpty()); // 비어있는지 검증
   }
 }

@@ -15,7 +15,7 @@ public record UserActivityDto(
     String email,
     String nickname,
     LocalDateTime createdAt,
-    List<SubscriptionResponse> subscribedInterests,
+    List<SubscriptionResponse> subscriptions,
     List<CommentActivityDto> comments,
     List<CommentLikeActivityDto> commentLikes,
     List<ArticleViewDto> articleViews

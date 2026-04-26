@@ -28,7 +28,7 @@ public class UserActivityDocument {
   private LocalDateTime deletedAt;
 
   @Builder.Default
-  private List<SubscriptionResponse> subscribedInterests = new ArrayList<>();
+  private List<SubscriptionResponse> subscriptions = new ArrayList<>();
   @Builder.Default
   private List<CommentActivityDto> recentComments = new ArrayList<>();
   @Builder.Default
