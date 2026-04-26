@@ -26,13 +26,11 @@ public class ArticleViewService {
     ArticleEntity article = articleRepository.findById(articleId)
         .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
 
-    // 1. 중복 조회 체크
     boolean alreadyViewed = articleViewRepository.existsByArticleEntityIdAndViewedBy(articleId, viewedBy);
     if (alreadyViewed) {
       return buildDto(article, null);
     }
 
-    // 2. 조회수 증가 및 로그 저장
     article.incrementViewCount();
     ArticleViewEntity viewRecord = ArticleViewEntity.builder()
         .article(article)
@@ -42,10 +40,8 @@ public class ArticleViewService {
 
     ArticleViewEntity saved = articleViewRepository.save(viewRecord);
 
-    // 3. 응답 DTO 생성
     ArticleViewDto responseDto = buildDto(article, saved);
 
-    // 4. 최근 본 기사 업데이트 (ActivityService 연동)
     if (viewedBy != null) {
       activityService.updateRecentViewedArticles(viewedBy, responseDto);
     }
@@ -53,7 +49,6 @@ public class ArticleViewService {
     return responseDto;
   }
 
-  // DTO 생성을 별도 메서드로 분리하여 중복 코드를 제거하고 구조를 깨끗하게 만들었습니다.
   private ArticleViewDto buildDto(ArticleEntity article, ArticleViewEntity saved) {
     return ArticleViewDto.builder()
         .id(saved != null ? saved.getId() : null)

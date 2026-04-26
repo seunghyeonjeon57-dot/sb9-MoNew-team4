@@ -34,7 +34,6 @@ public class BackupService {
     jobLauncher.run(backupJob, jobParameters);
 
   }
-  @Transactional
   public void restoreNewsRange(LocalDateTime from, LocalDateTime to) {
     LocalDate startDate = from.toLocalDate();
     LocalDate endDate = to.toLocalDate();
