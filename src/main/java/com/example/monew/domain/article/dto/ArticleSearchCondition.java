@@ -45,7 +45,7 @@ public class ArticleSearchCondition {
   @Schema(description = "보조 커서/정렬 기준 시간")
   private LocalDateTime after;
 
-  @Schema(description = "페이지 크기", example = "10")
+  @Schema(description = "페이지 크기", example = "50")
   @Builder.Default
   private int limit = 50;
 

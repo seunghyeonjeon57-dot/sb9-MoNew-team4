@@ -5,6 +5,7 @@ import static com.example.monew.domain.article.entity.QArticleEntity.articleEnti
 import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.entity.QArticleEntity;
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -19,11 +20,14 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
   private final JPAQueryFactory queryFactory;
+  private final EntityManager em;
   private final QArticleEntity article = articleEntity;
 
   public ArticleRepositoryImpl(EntityManager em) {
     this.queryFactory = new JPAQueryFactory(em);
+    this.em = em;
   }
+
 
   @Override
   public long softDelete(UUID articleId) {
@@ -92,34 +96,53 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
     UUID cursorId;
     try {
       cursorId = UUID.fromString(condition.getCursor());
-    } catch (IllegalArgumentException e) { return null; }
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
 
-    ArticleEntity cursorArticle = queryFactory
-        .selectFrom(article)
-        .where(article.id.eq(cursorId))
-        .fetchOne();
-
+    ArticleEntity cursorArticle = em.find(ArticleEntity.class, cursorId);
     if (cursorArticle == null) return null;
 
     String orderBy = (condition.getOrderBy() == null) ? "createdAt" : condition.getOrderBy();
-    String dirStr = (condition.getDirection() == null) ? "DESC" : condition.getDirection();
-    boolean isDesc = "DESC".equalsIgnoreCase(dirStr);
+    boolean isDesc = !"ASC".equalsIgnoreCase(condition.getDirection());
 
     if ("viewCount".equals(orderBy)) {
-      long v = cursorArticle.getViewCount();
-      return isDesc
-          ? article.viewCount.lt(v).or(article.viewCount.eq(v).and(article.id.lt(cursorId)))
-          : article.viewCount.gt(v).or(article.viewCount.eq(v).and(article.id.gt(cursorId)));
+      return viewCountCursorCondition(cursorArticle, cursorId, isDesc);
     }
 
     if ("commentCount".equals(orderBy)) {
       return article.id.lt(cursorId);
     }
 
+    return createdAtCursorCondition(cursorArticle, cursorId, isDesc);
+  }
+
+  private BooleanExpression viewCountCursorCondition(
+      ArticleEntity cursorArticle, UUID cursorId, boolean isDesc) {
+
+    long v = cursorArticle.getViewCount();
+
+    if (isDesc) {
+      return article.viewCount.lt(v)
+          .or(article.viewCount.eq(v).and(article.id.lt(cursorId)));
+    } else {
+      return article.viewCount.gt(v)
+          .or(article.viewCount.eq(v).and(article.id.gt(cursorId)));
+    }
+  }
+
+  private BooleanExpression createdAtCursorCondition(
+      ArticleEntity cursorArticle, UUID cursorId, boolean isDesc) {
+
     LocalDateTime t = cursorArticle.getCreatedAt();
-    return isDesc
-        ? article.createdAt.lt(t).or(article.createdAt.eq(t).and(article.id.lt(cursorId)))
-        : article.createdAt.gt(t).or(article.createdAt.eq(t).and(article.id.gt(cursorId)));
+
+    if (isDesc) {
+      return article.createdAt.lt(t)
+          .or(article.createdAt.eq(t).and(article.id.lt(cursorId)));
+    } else {
+      return article.createdAt.gt(t)
+          .or(article.createdAt.eq(t).and(article.id.gt(cursorId)));
+    }
   }
 
   private BooleanExpression keywordContains(String keyword) {

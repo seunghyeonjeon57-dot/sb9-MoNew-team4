@@ -121,11 +121,9 @@ class ArticleControllerTest {
   @Test
   @DisplayName("뉴스 복구 성공")
   void restoreFromS3_Success() throws Exception {
-    // 컨트롤러의 @DateTimeFormat 패턴에 맞춘 포맷
     String from = "2026-04-24T00:00:00";
     String to = "2026-04-25T00:00:00";
 
-    // post -> get으로 변경
     mockMvc.perform(get("/api/articles/restore")
             .param("from", from)
             .param("to", to))
@@ -137,14 +135,12 @@ class ArticleControllerTest {
   @Test
   @DisplayName("뉴스 복구 실패 - 미래 날짜")
   void restoreFromS3_Fail_FutureDate() throws Exception {
-    // 내일 날짜를 컨트롤러가 기대하는 T 포함 포맷으로 생성
     String futureDate = LocalDateTime.now().plusDays(1).withNano(0).toString();
 
-    // post -> get으로 변경
-    // 파라미터명을 'date'에서 'from'으로 변경 (컨트롤러 @RequestParam과 일치)
+
     mockMvc.perform(get("/api/articles/restore")
             .param("from", futureDate)
             .param("to", LocalDateTime.now().withNano(0).toString()))
-        .andExpect(status().isBadRequest()); // InvalidRestoreDateException이 ErrorCode에 따라 400을 뱉는지 확인
+        .andExpect(status().isBadRequest());
   }
 }
