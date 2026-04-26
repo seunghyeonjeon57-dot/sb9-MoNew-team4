@@ -36,7 +36,6 @@ public class BackupService {
   }
   @Transactional
   public void restoreNewsRange(LocalDateTime from, LocalDateTime to) {
-    // 1. 시작 날짜부터 끝 날짜까지 하루 단위로 순회
     LocalDate startDate = from.toLocalDate();
     LocalDate endDate = to.toLocalDate();
 

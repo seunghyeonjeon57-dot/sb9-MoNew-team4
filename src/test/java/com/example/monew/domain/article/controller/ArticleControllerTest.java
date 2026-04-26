@@ -41,8 +41,8 @@ class ArticleControllerTest {
   @MockitoBean
   private NewsRss newsRss;
 
-  private final String USER_ID_HEADER = "Monew-Request-User-ID";
-  private final String TEST_USER_ID = UUID.randomUUID().toString();
+  private static final String USER_ID_HEADER = "Monew-Request-User-ID";
+  private static final String TEST_USER_ID = UUID.randomUUID().toString();
 
   @Test
   @DisplayName("기사 뷰 등록 테스트")
