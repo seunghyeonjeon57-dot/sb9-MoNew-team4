@@ -1,5 +1,14 @@
 package com.example.monew.domain.comment.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
@@ -19,11 +28,10 @@ import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.domain.notification.event.CommentLikedEvent;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
-import com.example.monew.domain.user.entity.User;
-import com.example.monew.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,17 +39,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 public class CommentServiceTest {
@@ -57,13 +55,8 @@ public class CommentServiceTest {
   private ActivityService activityService;
   @Mock
   private UserRepository userRepository;
-
-  @Mock private CommentRepository commentRepository;
-  @Mock private CommentMapper commentMapper;
-  @Mock private ArticleRepository articleRepository;
-  @Mock private CommentLikeRepository commentLikeRepository;
-  @Mock private ApplicationEventPublisher eventPublisher;
-  @Mock private UserRepository userRepository;
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private CommentService commentService;

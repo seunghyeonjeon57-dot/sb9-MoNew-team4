@@ -23,9 +23,6 @@ import com.example.monew.domain.notification.event.CommentLikedEvent;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.repository.UserRepository;
-import com.example.monew.domain.user.entity.User;
-import com.example.monew.domain.user.exception.UserNotFoundException;
-import com.example.monew.domain.user.repository.UserRepository;
 import com.example.monew.global.exception.ErrorCode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -47,7 +44,6 @@ public class CommentService {
   private final ArticleRepository articleRepository;
   private final CommentLikeRepository commentLikeRepository;
   private final ApplicationEventPublisher eventPublisher;
-  private final UserRepository userRepository;
   private final UserRepository userRepository;
   private final ActivityService activityService;
 
