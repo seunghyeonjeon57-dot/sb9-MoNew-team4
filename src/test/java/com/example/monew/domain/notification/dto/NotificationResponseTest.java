@@ -15,8 +15,6 @@ class NotificationResponseTest {
   @Test
   @DisplayName("Notification 엔티티를 NotificationResponse DTO로 올바르게 변환한다.")
   void fromEntity() {
-    // Given
-    // 1. id를 제외하고 빌더로 객체를 생성합니다.
     Notification notification = Notification.builder()
         .userId(UUID.randomUUID())
         .content("테스트 알림")
@@ -24,14 +22,11 @@ class NotificationResponseTest {
         .resourceId(UUID.randomUUID())
         .build();
 
-    // 2. ✅ ReflectionTestUtils를 사용해 강제로 id 값을 주입합니다.
     UUID fakeId = UUID.randomUUID();
     ReflectionTestUtils.setField(notification, "id", fakeId);
 
-    // When
     NotificationResponse response = NotificationResponse.from(notification);
 
-    // Then
     assertThat(response.id()).isEqualTo(notification.getId());
     assertThat(response.content()).isEqualTo(notification.getContent());
     assertThat(response.resourceType()).isEqualTo(notification.getResourceType());

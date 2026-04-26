@@ -199,11 +199,8 @@ public class CommentServiceTest {
   void addLike_Success() {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    UUID commentAuthorId = UUID.randomUUID();
 
     User liker = User.builder().nickname("tester").build();
-
-    UUID articleId = UUID.randomUUID();
 
     User user = User.builder()
         .nickname("tester")
@@ -214,24 +211,21 @@ public class CommentServiceTest {
     CommentEntity comment = CommentEntity.builder()
         .id(commentId)
         .articleId(UUID.randomUUID())
-        .userId(userId) // [수정] userId를 명시적으로 맞춰주는 것이 더 정확합니다.
+        .userId(userId)
         .content("좋아요 받을 댓글")
         .likeCount(0L)
         .build();
 
     ArticleEntity article = ArticleEntity.builder().build();
-    // 중복된 given을 제거하고 깔끔하게 한 번씩만 작성합니다.
+
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(commentRepository.findByIdAndDeletedAtIsNull(commentId)).willReturn(Optional.of(comment));
     given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(false);
     given(userRepository.findById(userId)).willReturn(Optional.of(liker));
-
     given(articleRepository.findById(any(UUID.class))).willReturn(Optional.of(article));
 
-    // when
     commentService.addLike(commentId, userId);
 
-    // then
     verify(eventPublisher, times(1)).publishEvent(any(CommentLikedEvent.class));
     verify(commentLikeRepository, times(1)).save(any(CommentLikeEntity.class));
     assertThat(comment.getLikeCount()).isEqualTo(1L);
@@ -241,9 +235,9 @@ public class CommentServiceTest {
 
     CommentLikedEvent event = captor.getValue();
 
-    assertThat(event.receiverId()).isEqualTo(userId); // 알림을 받는 사람이 댓글 작성자가 맞는지
-    assertThat(event.likerNickname()).isEqualTo("tester"); // 좋아요 누른 사람 닉네임이 맞는지
-    assertThat(event.commentId()).isEqualTo(commentId); // 좋아요가 눌린 댓글 ID가 맞는지
+    assertThat(event.receiverId()).isEqualTo(userId);
+    assertThat(event.likerNickname()).isEqualTo("tester");
+    assertThat(event.commentId()).isEqualTo(commentId);
   }
 
   @Test

@@ -14,7 +14,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq; // 👈 올바른 eq import
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -48,7 +48,6 @@ class NotificationControllerTest {
             .header(USER_ID_HEADER, VALID_USER_ID))
         .andExpect(status().isOk());
 
-    // 조회의 경우 getNotifications 메서드가 호출되었는지 검증
     verify(notificationService, times(1)).getNotifications(any(UUID.class), any(), any(), anyInt());
   }
 
@@ -61,7 +60,6 @@ class NotificationControllerTest {
             .header(USER_ID_HEADER, VALID_USER_ID))
         .andExpect(status().isOk());
 
-    // 단건 확인 서비스 호출 검증
     verify(notificationService, times(1)).confirmNotification(eq(notificationId), any(UUID.class));
   }
 
@@ -72,7 +70,6 @@ class NotificationControllerTest {
             .header(USER_ID_HEADER, VALID_USER_ID))
         .andExpect(status().isOk());
 
-    // ✅ 전체 확인용 서비스 메서드(confirmAllNotifications)로 수정
     verify(notificationService, times(1)).confirmAllNotifications(any(UUID.class));
   }
 
@@ -86,7 +83,6 @@ class NotificationControllerTest {
             .param("limit", "10"))
         .andExpect(status().isOk());
 
-    // 조회 서비스 호출 검증
     verify(notificationService, times(1)).getNotifications(any(UUID.class), any(String.class), any(), anyInt());
   }
 
@@ -99,7 +95,6 @@ class NotificationControllerTest {
             .param("limit", "20"))
         .andExpect(status().isOk());
 
-    // 조회 서비스 호출 검증
     verify(notificationService, times(1)).getNotifications(any(UUID.class), any(String.class), any(), anyInt());
   }
 
@@ -112,7 +107,6 @@ class NotificationControllerTest {
             .param("limit", "20"))
         .andExpect(status().isOk());
 
-    // 조회 서비스 호출 검증
     verify(notificationService, times(1)).getNotifications(any(UUID.class), any(), any(), anyInt());
   }
 }

@@ -37,18 +37,15 @@ class NotificationListenerTest {
   @Test
   @DisplayName("댓글 좋아요 이벤트를 발생시키면 비동기로 DB에 알림이 저장된다")
   void testCommentLikedNotification() {
-    // given
     UUID myUserId = UUID.randomUUID();
     UUID commentId = UUID.randomUUID();
     UUID likerId = UUID.randomUUID();
     CommentLikedEvent event = new CommentLikedEvent(myUserId, commentId, likerId, "테스트유저");
 
-    // when
     transactionTemplate.executeWithoutResult(status -> {
       eventPublisher.publishEvent(event);
     });
 
-    // then
     await().atMost(2, SECONDS).untilAsserted(() ->
         assertThat(notificationRepository.count()).isGreaterThan(0)
     );

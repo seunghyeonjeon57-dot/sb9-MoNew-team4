@@ -23,9 +23,6 @@ import com.example.monew.domain.notification.event.CommentLikedEvent;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.repository.UserRepository;
-import com.example.monew.domain.user.entity.User;
-import com.example.monew.domain.user.exception.UserNotFoundException;
-import com.example.monew.domain.user.repository.UserRepository;
 import com.example.monew.global.exception.ErrorCode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -175,7 +172,7 @@ public class CommentService {
     commentLikeRepository.save(commentLike);
 
     CommentLikeActivityDto activityDto = CommentLikeActivityDto.builder()
-        .id(UUID.randomUUID()) // 활동 자체의 ID
+        .id(UUID.randomUUID())
         .createdAt(LocalDateTime.now())
         .commentId(comment.getId())
         .articleId(comment.getArticleId())
@@ -194,10 +191,10 @@ public class CommentService {
         .orElseThrow(() -> new UserNotFoundException(ErrorCode.USER_NOT_FOUND.getMessage()));
 
     eventPublisher.publishEvent(new CommentLikedEvent(
-        comment.getUserId(), // 알림을 받을 사람 (댓글 작성자)
-        comment.getId(),     // 알림이 발생한 리소스 (댓글 ID)
+        comment.getUserId(),
+        comment.getId(),
         userId,
-        liker.getNickname()  // 좋아요 누른 사람 닉네임 추가
+        liker.getNickname()
     ));
   }
 

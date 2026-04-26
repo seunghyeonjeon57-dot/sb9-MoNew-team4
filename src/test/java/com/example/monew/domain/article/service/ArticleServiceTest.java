@@ -126,38 +126,32 @@ class ArticleServiceTest {
     @Test
     @DisplayName("성공: 관심사(interest)가 있으면 저장 후 알림 이벤트를 발행한다.")
     void success_WithInterest_PublishesEvent() {
-      // given
+
       ArticleEntity article = ArticleEntity.builder()
           .sourceUrl("http://interest.com")
-          .interest("IT") // 관심사 있음
+          .interest("IT")
           .build();
       given(articleRepository.existsBySourceUrl(article.getSourceUrl())).willReturn(false);
 
-      // when
       articleService.saveArticle(article);
 
-      // then
       verify(articleRepository).save(article);
-      // 이벤트가 발행되었는지 검증
       verify(eventPublisher, times(1)).publishEvent(any(ArticleRegisteredEvent.class));
     }
 
     @Test
     @DisplayName("성공: 관심사(interest)가 없으면 저장만 하고 이벤트를 발행하지 않는다.")
     void success_WithoutInterest_NoEvent() {
-      // given
+
       ArticleEntity article = ArticleEntity.builder()
           .sourceUrl("http://no-interest.com")
-          .interest(null) // 관심사 없음
+          .interest(null)
           .build();
       given(articleRepository.existsBySourceUrl(article.getSourceUrl())).willReturn(false);
 
-      // when
       articleService.saveArticle(article);
 
-      // then
       verify(articleRepository).save(article);
-      // 이벤트가 발행되지 않았는지 검증
       verify(eventPublisher, never()).publishEvent(any());
     }
 
