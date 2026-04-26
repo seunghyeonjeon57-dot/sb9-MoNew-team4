@@ -31,7 +31,7 @@ class NotificationTest {
     assertThat(notification.getContent()).isEqualTo(content);
     assertThat(notification.getResourceType()).isEqualTo(resourceType);
     assertThat(notification.getResourceId()).isEqualTo(resourceId);
-    assertThat(notification.isRead()).isFalse();
+    assertThat(notification.isConfirmed()).isFalse();
   }
 
   @Test
@@ -46,9 +46,9 @@ class NotificationTest {
         .build();
 
     // when
-    notification.read();
+    notification.confirm();
 
     // then
-    assertThat(notification.isRead()).isTrue();
+    assertThat(notification.isConfirmed()).isTrue();
   }
 }

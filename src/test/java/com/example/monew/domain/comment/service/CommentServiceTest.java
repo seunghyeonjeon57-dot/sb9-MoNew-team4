@@ -1,5 +1,14 @@
 package com.example.monew.domain.comment.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
@@ -16,27 +25,21 @@ import com.example.monew.domain.comment.exception.CommentNotFoundException;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.notification.event.CommentLikedEvent;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.ArgumentMatchers.eq;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 public class CommentServiceTest {
@@ -52,6 +55,9 @@ public class CommentServiceTest {
   private ActivityService activityService;
   @Mock
   private UserRepository userRepository;
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
+
   @InjectMocks
   private CommentService commentService;
 
@@ -186,6 +192,10 @@ public class CommentServiceTest {
   void addLike_Success() {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
+    UUID commentAuthorId = UUID.randomUUID();
+
+    User liker = User.builder().nickname("tester").build();
+
     UUID articleId = UUID.randomUUID();
 
     User user = User.builder()
@@ -195,6 +205,7 @@ public class CommentServiceTest {
         .build();
 
     CommentEntity comment = CommentEntity.builder()
+        .id(commentId)
         .articleId(UUID.randomUUID())
         .userId(userId) // [수정] userId를 명시적으로 맞춰주는 것이 더 정확합니다.
         .content("좋아요 받을 댓글")
@@ -206,15 +217,26 @@ public class CommentServiceTest {
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(commentRepository.findByIdAndDeletedAtIsNull(commentId)).willReturn(Optional.of(comment));
     given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(false);
+    given(userRepository.findById(userId)).willReturn(Optional.of(liker));
 
     given(articleRepository.findById(any(UUID.class))).willReturn(Optional.of(article));
 
     // when
     commentService.addLike(commentId, userId);
 
+    verify(eventPublisher, times(1)).publishEvent(any(CommentLikedEvent.class));
     // then
     verify(commentLikeRepository, times(1)).save(any(CommentLikeEntity.class));
     assertThat(comment.getLikeCount()).isEqualTo(1L);
+
+    ArgumentCaptor<CommentLikedEvent> captor = ArgumentCaptor.forClass(CommentLikedEvent.class);
+    verify(eventPublisher, times(1)).publishEvent(captor.capture());
+
+    CommentLikedEvent event = captor.getValue();
+
+    assertThat(event.receiverId()).isEqualTo(userId); // 알림을 받는 사람이 댓글 작성자가 맞는지
+    assertThat(event.likerNickname()).isEqualTo("tester"); // 좋아요 누른 사람 닉네임이 맞는지
+    assertThat(event.commentId()).isEqualTo(commentId); // 좋아요가 눌린 댓글 ID가 맞는지
   }
 
   @Test

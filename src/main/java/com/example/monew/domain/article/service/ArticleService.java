@@ -6,6 +6,7 @@ import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
+import com.example.monew.domain.notification.event.ArticleRegisteredEvent;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.global.exception.ErrorCode;
 import jakarta.persistence.EntityManager;
@@ -16,6 +17,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +32,7 @@ public class ArticleService {
   private final ArticleRepository articleRepository;
   private final ArticleMapper articleMapper;
   private final ArticleViewService articleViewService;
+  private final ApplicationEventPublisher eventPublisher;
   private final EntityManager entityManager;
 
   @Transactional
@@ -49,6 +54,14 @@ public class ArticleService {
 
       articleRepository.save(article);
       log.debug("개별 뉴스 저장 완료 - URL: {}", article.getSourceUrl());
+
+      if (article.getInterest() != null && !article.getInterest().isBlank()) {
+        eventPublisher.publishEvent(new ArticleRegisteredEvent(
+            article.getId(),
+            article.getTitle(),
+            article.getInterest()
+        ));
+      }
     } else {
       log.debug("중복 뉴스 스킵 - URL: {}", article.getSourceUrl());
     }

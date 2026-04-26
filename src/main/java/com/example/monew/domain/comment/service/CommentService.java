@@ -19,6 +19,7 @@ import com.example.monew.domain.comment.exception.CommentNotFoundException;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.notification.event.CommentLikedEvent;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.repository.UserRepository;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +43,7 @@ public class CommentService {
   private final CommentMapper commentMapper;
   private final ArticleRepository articleRepository;
   private final CommentLikeRepository commentLikeRepository;
+  private final ApplicationEventPublisher eventPublisher;
   private final UserRepository userRepository;
   private final ActivityService activityService;
 
@@ -183,6 +186,16 @@ public class CommentService {
     activityService.updateRecentLikedComments(userId, activityDto);
 
     log.info("좋아요 추가 완료: userId={}, commentId={}", userId, commentId);
+
+    User liker = userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException(ErrorCode.USER_NOT_FOUND.getMessage()));
+
+    eventPublisher.publishEvent(new CommentLikedEvent(
+        comment.getUserId(), // 알림을 받을 사람 (댓글 작성자)
+        comment.getId(),     // 알림이 발생한 리소스 (댓글 ID)
+        userId,
+        liker.getNickname()  // 좋아요 누른 사람 닉네임 추가
+    ));
   }
 
   @Transactional
