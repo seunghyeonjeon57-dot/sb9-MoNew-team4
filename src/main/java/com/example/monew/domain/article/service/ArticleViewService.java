@@ -8,7 +8,7 @@ import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.article.repository.ArticleViewRepository;
 import com.example.monew.global.exception.ErrorCode;
-import org.springframework.transaction.annotation.Transactional; // jakarta보다 spring용 권장
+import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,11 +26,13 @@ public class ArticleViewService {
     ArticleEntity article = articleRepository.findById(articleId)
         .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
 
+    // 1. 중복 조회 체크
     boolean alreadyViewed = articleViewRepository.existsByArticleEntityIdAndViewedBy(articleId, viewedBy);
     if (alreadyViewed) {
       return buildDto(article, null);
     }
 
+    // 2. 조회수 증가 및 로그 저장
     article.incrementViewCount();
     ArticleViewEntity viewRecord = ArticleViewEntity.builder()
         .article(article)
@@ -40,8 +42,10 @@ public class ArticleViewService {
 
     ArticleViewEntity saved = articleViewRepository.save(viewRecord);
 
+    // 3. 응답 DTO 생성
     ArticleViewDto responseDto = buildDto(article, saved);
 
+    // 4. 활동 서비스 업데이트
     if (viewedBy != null) {
       activityService.updateRecentViewedArticles(viewedBy, responseDto);
     }
