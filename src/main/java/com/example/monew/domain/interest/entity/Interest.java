@@ -1,6 +1,8 @@
 package com.example.monew.domain.interest.entity;
 
+import com.example.monew.domain.interest.exception.InvalidInterestArgumentException;
 import com.example.monew.global.base.BaseEntity;
+import com.example.monew.global.exception.ErrorCode;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,6 +11,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -32,16 +35,20 @@ public class Interest extends BaseEntity {
   @OneToMany(mappedBy = "interest", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<InterestKeyword> keywords = new ArrayList<>();
 
-  @Column(nullable = false)
+  @Column(name = "subscriber_count", nullable = false)
   private long subscriberCount = 0L;
 
   @Builder
   public Interest(String name, List<String> keywords) {
     if (!StringUtils.hasText(name)) {
-      throw new IllegalArgumentException("관심사 이름은 비어 있을 수 없습니다.");
+      throw new InvalidInterestArgumentException(
+          ErrorCode.INTEREST_NAME_BLANK,
+          Map.of("name", String.valueOf(name)));
     }
     if (keywords == null || keywords.isEmpty()) {
-      throw new IllegalArgumentException("키워드는 최소 1개 이상이어야 합니다.");
+      throw new InvalidInterestArgumentException(
+          ErrorCode.INTEREST_KEYWORDS_EMPTY,
+          Map.of("keywordsSize", keywords == null ? 0 : keywords.size()));
     }
     this.name = name;
     replaceKeywords(keywords);
