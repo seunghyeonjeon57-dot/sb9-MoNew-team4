@@ -126,7 +126,6 @@ class ArticleServiceTest {
     @Test
     @DisplayName("성공: 관심사(interest)가 있으면 저장 후 알림 이벤트를 발행한다.")
     void success_WithInterest_PublishesEvent() {
-
       ArticleEntity article = ArticleEntity.builder()
           .sourceUrl("http://interest.com")
           .interest("IT")
@@ -142,7 +141,6 @@ class ArticleServiceTest {
     @Test
     @DisplayName("성공: 관심사(interest)가 없으면 저장만 하고 이벤트를 발행하지 않는다.")
     void success_WithoutInterest_NoEvent() {
-
       ArticleEntity article = ArticleEntity.builder()
           .sourceUrl("http://no-interest.com")
           .interest(null)
@@ -240,6 +238,42 @@ class ArticleServiceTest {
       articleService.saveInChunks(null);
 
       verify(articleRepository, never()).saveAll(any());
+    }
+    @Test
+    @DisplayName("신규 기사 저장 시 interest가 존재하면 ArticleRegisteredEvent 알림 이벤트가 발행된다.")
+    void publishEvent_WhenInterestExists() {
+      ArticleEntity article = ArticleEntity.builder()
+          .id(UUID.randomUUID())
+          .title("테스트 기사")
+          .sourceUrl("https://test.com/1")
+          .interest("IT/과학")
+          .build();
+
+      given(articleRepository.findAllBySourceUrlIn(any())).willReturn(List.of());
+
+      articleService.saveInChunks(List.of(article));
+
+      verify(eventPublisher, times(1)).publishEvent(any(ArticleRegisteredEvent.class));
+    }
+
+    @Test
+    @DisplayName("신규 기사 저장 시 interest가 null이거나 빈 문자열이면 이벤트가 발행되지 않는다.")
+    void doNotPublishEvent_WhenInterestIsBlank() {
+      ArticleEntity nullInterestArticle = ArticleEntity.builder()
+          .sourceUrl("https://test.com/2")
+          .interest(null)
+          .build();
+
+      ArticleEntity blankInterestArticle = ArticleEntity.builder()
+          .sourceUrl("https://test.com/3")
+          .interest("   ")
+          .build();
+
+      given(articleRepository.findAllBySourceUrlIn(any())).willReturn(List.of());
+
+      articleService.saveInChunks(List.of(nullInterestArticle, blankInterestArticle));
+
+      verify(eventPublisher, never()).publishEvent(any(ArticleRegisteredEvent.class));
     }
   }
 

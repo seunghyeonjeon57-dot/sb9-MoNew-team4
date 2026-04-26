@@ -39,17 +39,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import java.util.UUID;
-import org.springframework.context.ApplicationEventPublisher;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.ArgumentMatchers.eq;
 import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
@@ -92,8 +81,8 @@ public class CommentServiceTest {
     ArticleEntity article = ArticleEntity.builder().build();
     User user = User.builder().build();
 
-    given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article)); // 이후에 변경
-    given(userRepository.findById(request.userId())).willReturn(Optional.of(user)); // 추가
+    given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article));
+    given(userRepository.findById(request.userId())).willReturn(Optional.of(user));
     given(commentRepository.save(any(CommentEntity.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -112,7 +101,7 @@ public class CommentServiceTest {
         .content("기사가 없는 유령 댓글")
         .build();
 
-    given(articleRepository.findById(articleId)).willReturn(Optional.empty()); // 이후에 변경
+    given(articleRepository.findById(articleId)).willReturn(Optional.empty());
 
 
     assertThatThrownBy(() -> commentService.registerComment(request))
@@ -143,7 +132,7 @@ public class CommentServiceTest {
   void updateComment_Unauthorized() {
     UUID commentId = UUID.randomUUID();
     UUID ownerId = UUID.randomUUID();
-    UUID requesterId = UUID.randomUUID(); // 다른 사용자
+    UUID requesterId = UUID.randomUUID();
     CommentUpdateRequest request = CommentUpdateRequest.builder()
         .content("수정 내용")
         .build();
@@ -180,7 +169,6 @@ public class CommentServiceTest {
 
     commentService.softDeleteComment(commentId);
 
-    // 논리 삭제이므로 DB에서 지워지는게 아니라 삭제 시간이 기록되어야 함
     assertThat(comment.getDeletedAt()).isNotNull();
   }
 
