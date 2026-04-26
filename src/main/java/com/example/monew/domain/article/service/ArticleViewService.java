@@ -45,7 +45,7 @@ public class ArticleViewService {
     // 3. 응답 DTO 생성
     ArticleViewDto responseDto = buildDto(article, saved);
 
-    // 4. 활동 서비스 업데이트
+    // 4. 최근 본 기사 업데이트
     if (viewedBy != null) {
       activityService.updateRecentViewedArticles(viewedBy, responseDto);
     }
