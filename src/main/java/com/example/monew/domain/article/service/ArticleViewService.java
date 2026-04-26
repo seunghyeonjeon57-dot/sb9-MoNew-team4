@@ -8,7 +8,7 @@ import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.article.repository.ArticleViewRepository;
 import com.example.monew.global.exception.ErrorCode;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional; // jakarta보다 spring용 권장
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,7 +32,6 @@ public class ArticleViewService {
     }
 
     article.incrementViewCount();
-
     ArticleViewEntity viewRecord = ArticleViewEntity.builder()
         .article(article)
         .viewedBy(viewedBy)
@@ -40,8 +39,16 @@ public class ArticleViewService {
         .build();
 
     ArticleViewEntity saved = articleViewRepository.save(viewRecord);
-    return buildDto(article, saved);
+
+    ArticleViewDto responseDto = buildDto(article, saved);
+
+    if (viewedBy != null) {
+      activityService.updateRecentViewedArticles(viewedBy, responseDto);
+    }
+
+    return responseDto;
   }
+
   private ArticleViewDto buildDto(ArticleEntity article, ArticleViewEntity saved) {
     return ArticleViewDto.builder()
         .id(saved != null ? saved.getId() : null)
