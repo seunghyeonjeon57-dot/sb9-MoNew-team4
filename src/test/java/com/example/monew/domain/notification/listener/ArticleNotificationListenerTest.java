@@ -42,7 +42,6 @@ class ArticleNotificationListenerTest {
   @Test
   @DisplayName("기사 등록 이벤트 수신 시, 관심사와 구독자가 모두 존재하면 알림을 생성한다.")
   void handleArticleRegisteredEvent_Success() {
-    // Given
     ArticleRegisteredEvent event = new ArticleRegisteredEvent(
         UUID.randomUUID(), "테스트 기사", "테스트 관심사"
     );
@@ -57,17 +56,14 @@ class ArticleNotificationListenerTest {
     given(subscriptionRepository.findUserIdsByInterestIdIn(anyList()))
         .willReturn(List.of(UUID.randomUUID()));
 
-    // When
     articleNotificationListener.handleArticleRegisteredEvent(event);
 
-    // Then
     verify(notificationService, times(1)).createNotifications(anyList());
   }
 
   @Test
   @DisplayName("관심사는 존재하지만 구독자가 없으면 알림을 생성하지 않는다.")
   void handleArticleRegisteredEvent_NoSubscribers() {
-    // Given
     ArticleRegisteredEvent event = new ArticleRegisteredEvent(
         UUID.randomUUID(), "테스트 기사", "테스트 관심사"
     );
@@ -81,17 +77,14 @@ class ArticleNotificationListenerTest {
     given(subscriptionRepository.findUserIdsByInterestIdIn(anyList()))
         .willReturn(List.of());
 
-    // When
     articleNotificationListener.handleArticleRegisteredEvent(event);
 
-    // Then
     verify(notificationService, never()).createNotifications(anyList());
   }
 
   @Test
   @DisplayName("해당하는 관심사가 존재하지 않으면 아무 작업도 하지 않는다.")
   void handleArticleRegisteredEvent_NoInterest() {
-    // Given
     ArticleRegisteredEvent event = new ArticleRegisteredEvent(
         UUID.randomUUID(), "테스트 기사", "존재하지않는관심사"
     );
@@ -99,10 +92,8 @@ class ArticleNotificationListenerTest {
     given(interestRepository.findByNameAndDeletedAtIsNull(anyString()))
         .willReturn(Optional.empty());
 
-    // When
     articleNotificationListener.handleArticleRegisteredEvent(event);
 
-    // Then
     verify(subscriptionRepository, never()).findUserIdsByInterestIdIn(anyList());
     verify(notificationService, never()).createNotifications(anyList());
   }
