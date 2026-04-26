@@ -20,22 +20,17 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
   long countByUserIdAndConfirmedFalseAndDeletedAtIsNull(UUID userId);
 
+  // 벌크 연산 최적화 (확인 처리)
   @Modifying(clearAutomatically = true, flushAutomatically = true)
-  @Query("UPDATE Notification n SET n.confirmed = true " +
+  @Query("UPDATE Notification n SET n.confirmed = true, n.updatedAt = CURRENT_TIMESTAMP " +
       "WHERE n.userId = :userId AND n.confirmed = false AND n.deletedAt IS NULL")
   int confirmAllByUserId(@Param("userId") UUID userId);
 
-  @Query("SELECT n FROM Notification n " +
-      "WHERE n.userId = :userId " +
-      "AND n.confirmed = false " +
-      "AND n.deletedAt IS NULL " +
+  @Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.confirmed = false AND n.deletedAt IS NULL " +
       "ORDER BY n.createdAt DESC, n.id DESC")
   List<Notification> findFirstPageByUserId(@Param("userId") UUID userId, Pageable pageable);
 
-  @Query("SELECT n FROM Notification n " +
-      "WHERE n.userId = :userId " +
-      "AND n.confirmed = false " +
-      "AND n.deletedAt IS NULL " +
+  @Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.confirmed = false AND n.deletedAt IS NULL " +
       "AND (n.createdAt < :after OR (n.createdAt = :after AND n.id < :cursor)) " +
       "ORDER BY n.createdAt DESC, n.id DESC")
   List<Notification> findNextPageByUserId(

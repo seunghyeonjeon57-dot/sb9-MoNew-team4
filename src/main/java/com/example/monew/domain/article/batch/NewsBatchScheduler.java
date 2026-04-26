@@ -1,37 +1,55 @@
 package com.example.monew.domain.article.batch;
 
-import com.example.monew.domain.article.batch.exception.RestoreFailedException;
-import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
-import com.example.monew.domain.article.batch.service.BackupService;
-import com.example.monew.domain.article.batch.service.S3Service;
 import com.example.monew.domain.article.entity.ArticleEntity;
-import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.article.service.ArticleService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.example.monew.domain.interest.entity.InterestKeyword;
+import com.example.monew.domain.interest.repository.InterestRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class NewsBatchScheduler {
 
-  private final BackupService backupService;
+  private final NewsCollector newsCollector;
+  private final NewsRss newsRss;
+  private final InterestRepository interestRepository;
+  private final ArticleService articleService;
 
+  @Transactional(readOnly = true)
   @Scheduled(cron = "0 0 * * * *")
   public void runNewsBatch() {
-    log.info("뉴스 수집 시작");
-      backupService.backupDailyNews();
-    log.info("뉴스 수집 및 백업 예약 완료");
-  }
+    log.info("=== 뉴스 배치 수집 시작 ===");
 
+    List<String> keywords = interestRepository.findAll().stream()
+        .flatMap(interest -> interest.getKeywords().stream())
+        .map(InterestKeyword::getValue)
+        .distinct()
+        .filter(kw -> kw != null && !kw.isBlank())
+        .toList();
+
+    if (keywords.isEmpty()) {
+      log.warn("수집할 키워드가 없습니다.");
+      return;
+    }
+
+    for (String keyword : keywords) {
+      List<ArticleEntity> naverArticles = newsCollector.fetchNaver(keyword);
+
+      articleService.saveInChunks(naverArticles);
+
+      newsRss.getRss().forEach((pressName, url) -> {
+        List<ArticleEntity> rssArticles = newsCollector.fetchRss(url, pressName, keyword);
+        articleService.saveInChunks(rssArticles);
+      });
+    }
+    log.info("=== 뉴스 수집 및 저장 완료 ===");
+  }
 }

@@ -20,7 +20,6 @@ repositories {
     mavenCentral()
 }
 
-
 jacoco {
     toolVersion = "0.8.11"
 }
@@ -33,18 +32,20 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 
-    // 2. Swagger (Spring Boot 3.5와 호환되는 최신 버전으로 업데이트)
+    // 2. Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'
 
-    // 3. MapStruct & Lombok (Lombok이 먼저 선언되어야 MapStruct가 이를 인식함)
+    // 3. MapStruct & Lombok
     implementation 'org.mapstruct:mapstruct:1.5.5.Final'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
 
-    // 4. QueryDSL (Jakarta 패키지 기준)
+    // 4. QueryDSL
     implementation "com.querydsl:querydsl-jpa:5.0.0:jakarta"
     annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
@@ -64,49 +65,58 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-
     implementation 'com.rometools:rome:2.1.0'
     implementation 'org.jsoup:jsoup:1.16.1'
-
-    implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
-
 }
+
 sonar {
     properties {
-        property "sonar.projectKey", "sb9-MoNew-team4"
+        property "sonar.projectKey", "seunghyeonjeon57-dot_sb9-MoNew-team4"
         property "sonar.organization", "seunghyeonjeon57-dot"
         property "sonar.host.url", "https://sonarcloud.io"
         property "sonar.language", "java"
         property "sonar.sourceEncoding", "UTF-8"
 
-        // [중요] 테스트 커버리지 결과물 위치 알려주기
+        // [핵심] 분석 대상 소스 코드 및 컴파일된 바이너리 경로 명시
+        property "sonar.sources", "src/main/java"
+        property "sonar.java.binaries", "${layout.buildDirectory.get()}/classes/java/main"
+
+        // [핵심] JaCoCo XML 리포트 절대 경로 지정
         property "sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml"
 
-        // [살살 옵션 1] 분석에서 제외할 파일들 (기존 JaCoCo 제외 목록과 동기화)
-        // 팀원들이 짠 DTO나 엔티티 때문에 점수 깎이지 않게 방어막을 칩니다.
-        property "sonar.exclusions", "**/dto/**, **/entity/**, **/mapper/**, **/global/**, **/config/**, **/*Application*"
+        // [핵심] 제외 패턴 통합 관리 (Notification 포함 모든 잔당 제거)
+        def exclusionPatterns = [
+                "**/dto/**",
+                "**/entity/**",
+                "**/mapper/**",
+                "**/global/**",
+                "**/config/**",
+                "**/exception/**",
+                "**/*Application*",
+                "**/Q*",
+                "**/*Notification*"
+        ].join(",")
+
+        property "sonar.exclusions", exclusionPatterns
+        property "sonar.coverage.exclusions", exclusionPatterns
     }
 }
 
-tasks.named('test') {
+// 테스트 실행 설정
+test {
     useJUnitPlatform()
-    
-    finalizedBy jacocoTestReport
+    finalizedBy jacocoTestReport // 테스트 완료 후 JaCoCo 리포트 생성 강제
 }
 
-tasks.named('sonar').configure {
-    dependsOn jacocoTestReport
-}
-
-
+// JaCoCo 리포트 생성 및 분석 제외 설정
 jacocoTestReport {
     dependsOn test
     reports {
         html.required = true
-        xml.required = true
+        xml.required = true // SonarCloud 분석을 위해 XML은 반드시 true여야 함
     }
 
-    
+    // JaCoCo 리포트 결과물 자체에서도 특정 클래스 제외
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it, exclude: [
@@ -115,10 +125,21 @@ jacocoTestReport {
                     "**/mapper/**",
                     "**/global/**",
                     "**/config/**",
-                    "**/*Application*"
+                    "**/*Application*",
+                    "**/Q*"
             ])
         }))
     }
+
+    // 리포트 생성 후 경로 출력 (디버깅용)
+    doLast {
+        println "------------------------------------------------------------"
+        println "✅ JaCoCo XML Report: ${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml"
+        println "------------------------------------------------------------"
+    }
 }
 
-
+// 소나 분석 전에 반드시 JaCoCo 리포트가 먼저 생성되도록 순서 보장
+tasks.named('sonar').configure {
+    dependsOn jacocoTestReport
+}

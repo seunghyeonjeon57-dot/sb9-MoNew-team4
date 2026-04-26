@@ -61,6 +61,7 @@ public class NewsCollector {
               .publishDate(ZonedDateTime.parse(item.pubDate(), naverDateFormatter).toLocalDateTime())
               .interest(keyword)
               .build()
+
       ).toList();
     } catch (Exception e) {
       log.error("네이버 API 수집 실패: {}", e.getMessage(), e);

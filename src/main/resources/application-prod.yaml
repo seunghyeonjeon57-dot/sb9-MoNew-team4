@@ -14,7 +14,20 @@ spring:
 cloud:
   aws:
     s3:
-      bucket: monew-backup-prod
-    credentials:
-      access-key: ${AWS_ACCESS_KEY}
-      secret-key: ${AWS_SECRET_KEY}
+      bucket: ${AWS_S3_BUCKET_NAME} # 직접 적으시는 것보다 변수 처리가 안전합니다
+      credentials:
+        access-key: ${AWS_ACCESS_KEY}
+        secret-key: ${AWS_SECRET_KEY}
+      region:
+        static: ${AWS_REGION}
+      stack:
+        auto: false
+
+    log:
+      s3:
+        bucket: ${AWS_LOG_BUCKET_NAME}
+      credentials:
+        access-key: ${AWS_LOG_ACCESS_KEY}
+        secret-key: ${AWS_LOG_SECRET_KEY}
+      region:
+        static: ${AWS_LOG_REGION}

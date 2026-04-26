@@ -40,7 +40,7 @@ class InterestSubscriptionControllerTest {
   private InterestSubscriptionService service;
 
   @Test
-  @DisplayName("POST /api/interests/{id}/subscriptions: 성공 → 200 + SubscriptionDto")
+  @DisplayName("POST /api/interests/{interestId}/subscriptions: 성공 → 200 + SubscriptionDto")
   void subscribe200() throws Exception {
     UUID interestId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();

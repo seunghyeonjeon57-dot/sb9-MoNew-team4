@@ -1,5 +1,8 @@
 package com.example.monew.domain.article.repository;
 
+import static com.example.monew.domain.article.entity.QArticleEntity.articleEntity;
+import static com.querydsl.jpa.JPAExpressions.selectFrom;
+
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.entity.QArticleEntity;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -16,18 +19,37 @@ import org.springframework.stereotype.Repository;
 public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
   private final JPAQueryFactory queryFactory;
 
-  private final QArticleEntity article = QArticleEntity.articleEntity;
+  private final QArticleEntity article = articleEntity;
+
+  @Override
+  public long softDelete(UUID articleId) {
+    return queryFactory
+        .update(article)
+        .set(article.deletedAt, LocalDateTime.now())
+        .where(article.id.eq(articleId))
+        .execute();
+  }
+
+  @Override
+  public List<ArticleEntity> findAllActive() {
+    return queryFactory
+        .selectFrom(article)
+        .where(article.deletedAt.isNull())
+        .fetch();
+  }
 
 
   public ArticleRepositoryImpl(EntityManager em) {
     this.queryFactory = new JPAQueryFactory(em);
   }
+
+
   @Override
   public List<ArticleEntity> findByCursor(UUID cursor, LocalDateTime after, int size) {
-
     return queryFactory
-        .selectFrom(article)
+        .selectFrom(articleEntity)
         .where(
+            articleEntity.deletedAt.isNull(),
             cursorCondition(cursor, after)
         )
         .orderBy(article.createdAt.desc(), article.id.desc())

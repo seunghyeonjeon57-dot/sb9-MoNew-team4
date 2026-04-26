@@ -87,12 +87,12 @@ public class InterestController {
       @ApiResponse(responseCode = "500", description = "서버 내부 오류",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
-  @PatchMapping("/{id}")
+  @PatchMapping("/{interestId}")
   public ResponseEntity<InterestResponse> updateKeywords(
       @RequestHeader("Monew-Request-User-ID") UUID userId,
-      @PathVariable UUID id,
+      @PathVariable UUID interestId,
       @Valid @RequestBody InterestUpdateRequest request) {
-    return ResponseEntity.ok(interestService.updateKeywords(id, request, userId));
+    return ResponseEntity.ok(interestService.updateKeywords(interestId, request, userId));
   }
 
   @Operation(summary = "관심사 물리 삭제", description = "관심사를 물리 삭제합니다. 구독 레코드도 함께 제거됩니다.")
@@ -103,11 +103,11 @@ public class InterestController {
       @ApiResponse(responseCode = "500", description = "서버 내부 오류",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
-  @DeleteMapping("/{id}")
+  @DeleteMapping("/{interestId}")
   public ResponseEntity<Void> delete(
       @RequestHeader("Monew-Request-User-ID") UUID userId,
-      @PathVariable UUID id) {
-    interestService.delete(id);
+      @PathVariable UUID interestId) {
+    interestService.delete(interestId);
     return ResponseEntity.noContent().build();
   }
 }

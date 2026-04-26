@@ -1,6 +1,7 @@
 package com.example.monew.domain.user.entity;
 
 import com.example.monew.domain.user.entity.type.UserStatus;
+import com.example.monew.domain.user.exception.NickNameBlankException;
 import com.example.monew.global.base.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,7 +48,7 @@ public class User extends BaseEntity {
 
   public void updateNickname(String nickname){
     if(nickname==null || nickname.isBlank()){
-      throw new IllegalArgumentException("닉네임은 공백일 수 없습니다.");
+      throw new NickNameBlankException("닉네임은 공백일 수 없습니다.");
     }
     this.nickname=nickname;
   }

@@ -3,7 +3,6 @@ package com.example.monew.domain.notification.controller;
 import com.example.monew.domain.notification.dto.CursorPageResponseNotificationDto;
 import com.example.monew.domain.notification.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -44,10 +43,11 @@ public class NotificationController {
 
   @Operation(summary = "전체 알림 확인", description = "사용자의 모든 알림을 한번에 확인 처리합니다.")
   @PatchMapping
-  public ResponseEntity<Void> confirmAllNotifications(
+  public ResponseEntity<ConfirmAllNotificationsResponse> confirmAllNotifications(
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
-    notificationService.confirmAllNotifications(userId);
-    return ResponseEntity.ok().build();
+    int updatedCount = notificationService.confirmAllNotifications(userId);
+    return ResponseEntity.ok(new ConfirmAllNotificationsResponse(updatedCount));
   }
+  public record ConfirmAllNotificationsResponse(int updated) {}
 }

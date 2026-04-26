@@ -19,6 +19,29 @@ spring:
     job:
       enabled: false
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: monew
+
+  data:
+    mongodb:
+      uri: ${MONGO_ENDPOINT:mongodb://localhost:27017/monew_db}
+
 logging:
   level:
     org.hibernate.SQL: DEBUG

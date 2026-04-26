@@ -1,5 +1,6 @@
 package com.example.monew.domain.article.service;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.dto.ArticleViewDto;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.entity.ArticleViewEntity;
@@ -8,7 +9,7 @@ import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.article.repository.ArticleViewRepository;
 import com.example.monew.global.exception.ErrorCode;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,7 @@ public class ArticleViewService {
 
   private final ArticleRepository articleRepository;
   private final ArticleViewRepository articleViewRepository;
-
+  private final ActivityService activityService;
   @Transactional
   public ArticleViewDto logView(UUID articleId, UUID viewedBy, String clientIp) {
     ArticleEntity article = articleRepository.findById(articleId)
@@ -35,7 +36,7 @@ public class ArticleViewService {
 
     ArticleViewEntity saved = articleViewRepository.save(viewRecord);
 
-    return ArticleViewDto.builder()
+    ArticleViewDto responseDto = ArticleViewDto.builder()
         .id(saved.getId())
         .viewedBy(saved.getViewedBy())
         .createdAt(saved.getViewedAt())
@@ -48,5 +49,11 @@ public class ArticleViewService {
         .articleViewCount(article.getViewCount())
         .articleCommentCount(0L)
         .build();
+
+    if (viewedBy != null) {
+      activityService.updateRecentViewedArticles(viewedBy, responseDto);
+    }
+
+    return responseDto;
   }
 }

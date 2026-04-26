@@ -4,8 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.util.UUID;
 import com.example.monew.global.base.BaseEntity;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
+
 
 @Entity
 @Table(name = "comments")
@@ -13,8 +12,6 @@ import org.hibernate.annotations.Where;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLDelete(sql = "UPDATE comment SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
-@Where(clause = "deleted_at IS NULL")
 public class CommentEntity extends BaseEntity {
 
   @Id
@@ -27,7 +24,7 @@ public class CommentEntity extends BaseEntity {
   @Column(name = "user_id", nullable = false)
   private UUID userId;
 
-   @Column(nullable = false, length = 500)
+  @Column(nullable = false, length = 500)
   private String content;
 
   @Builder.Default
@@ -49,17 +46,17 @@ public class CommentEntity extends BaseEntity {
 
 
   public void incrementLikeCount() {
-    if(this.likeCount == null) {
+    if (this.likeCount == null) {
       this.likeCount = 0L;
     }
     this.likeCount++;
   }
 
   public void decrementLikeCount() {
-    if(this.likeCount == null || likeCount <= 0) {
+    if (this.likeCount == null || likeCount <= 0) {
       this.likeCount = 0L;
       return;
     }
-    this.likeCount --;
+    this.likeCount--;
   }
 }

@@ -7,9 +7,6 @@ spring:
     username: postgres
     password: monew1234 # 실제 로컬 DB 비밀번호
     driver-class-name: org.postgresql.Driver
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/monew_db
 
 # 로컬에서도 S3 기능을 실환경과 동일하게 테스트하기 위한 설정
 cloud:
@@ -23,3 +20,32 @@ cloud:
       bucket: ${AWS_S3_BUCKET_NAME}
     stack:
       auto: false
+
+    log:
+      credentials:
+        access-key: ${AWS_LOG_ACCESS_KEY}
+        secret-key: ${AWS_LOG_SECRET_KEY}
+      region:
+        static: ${AWS_LOG_REGION}
+      bucket: ${AWS_LOG_BUCKET_NAME}
+
+#news:
+#  api:
+#    naver:
+#      client-id: ${NAVER_CLIENT_ID}
+#      client-secret: ${NAVER_CLIENT_SECRET}
+#      url: "https://openapi.naver.com/v1/search/news.json"
+#  rss:
+#    hankyung: ${RSS_URL_HANKYUNG:https://www.hankyung.com/feed/all-news}
+#    chosun: ${RSS_URL_CHOSUN:https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml}
+#    yonhap: ${RSS_URL_YONHAP:https://www.yna.co.kr/rss/news.xml}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - metrics
+          - prometheus

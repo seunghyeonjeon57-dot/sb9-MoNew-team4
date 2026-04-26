@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.domain.interest.repository.InterestRepository;
@@ -47,6 +48,7 @@ class UserServiceTest {
   @Mock private CommentLikeRepository commentLikeRepository;
   @Mock private CommentRepository commentRepository;
   @Mock private InterestRepository interestRepository;
+  @Mock private ActivityService activityService;
 
   @InjectMocks private UserService userService;
 
@@ -98,6 +100,18 @@ class UserServiceTest {
       assertThat(result.nickname()).isEqualTo("테스트유저");
       verify(userRepository).findActiveByEmail(request.email());
     }
+    @Test
+    @DisplayName("비밀번호 불일치 시 로그인 실패")
+    void login_fail_password_mismatch() {
+      UserLoginRequest request = new UserLoginRequest("test@test.com", "wrong_pw");
+      User user = User.builder().email("test@test.com").password("encoded_pw").build();
+
+      when(userRepository.findActiveByEmail(request.email())).thenReturn(Optional.of(user));
+      when(passwordEncoder.matches(request.password(), user.getPassword())).thenReturn(false);
+
+      assertThatThrownBy(() -> userService.login(request))
+          .isInstanceOf(LoginFailedException.class);
+    }
 
     @Test
     @DisplayName("탈퇴한 유저 혹은 없는 이메일 로그인 실패")
@@ -128,6 +142,18 @@ class UserServiceTest {
       assertThat(user.getNickname()).isEqualTo("새닉네임");
       verify(userRepository).findActiveById(userId);
     }
+    @Test
+    @DisplayName("존재하지 않는 유저 수정 시 실패")
+    void update_fail_notFound() {
+      UUID userId = UUID.randomUUID();
+      UserUpdateRequest request = new UserUpdateRequest("새닉네임");
+
+      when(userRepository.findActiveById(userId)).thenReturn(Optional.empty());
+
+      assertThatThrownBy(() -> userService.updateUser(userId, request))
+          .isInstanceOf(UserNotFoundException.class);
+    }
+
   }
 
   @Nested
@@ -200,6 +226,15 @@ class UserServiceTest {
       
       verify(interestRepository, never()).decrementSubscriberCountAll(any());
       verify(userRepository).deleteById(userId);
+    }
+    @Test
+    @DisplayName("하드 삭제 실패- 존재하지 않는 유저 삭제 시도")
+    void hard_delete_fail(){
+      UUID userId = UUID.randomUUID();
+      when(userRepository.existsById(userId)).thenReturn(false);
+      assertThatThrownBy(()->userService.hardDeleteUser(userId))
+          .isInstanceOf(UserNotFoundException.class)
+          .hasMessageContaining("해당 유저를 찾을 수 없습니다.");
     }
   }
 }

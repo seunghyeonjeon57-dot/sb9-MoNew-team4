@@ -31,3 +31,4 @@ public interface InterestRepository extends JpaRepository<Interest, UUID>, Inter
       + "WHERE i.id IN :ids AND i.subscriberCount > 0")
   int decrementSubscriberCountAll(@Param("ids") Collection<UUID> ids);
 }
+
