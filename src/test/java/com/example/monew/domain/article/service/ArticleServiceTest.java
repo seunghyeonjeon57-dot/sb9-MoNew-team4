@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.dto.ArticleSearchCondition;
+import com.example.monew.domain.article.dto.ArticleViewDto;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
@@ -191,14 +192,17 @@ class ArticleServiceTest {
   class IncrementViewCount {
 
     @Test
-    @DisplayName("조회 수 증가 로직 호출")
+    @DisplayName("조회 수 증가 로직 호출 (ViewService 위임 확인)")
     void success() {
       UUID articleId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
       String clientIp = "127.0.0.1";
 
+      // When
       articleService.incrementViewCount(articleId, userId, clientIp);
 
+      // Then
+      // ArticleViewService의 logView가 호출됐는지만 보면 끝!
       verify(articleViewService, times(1)).logView(articleId, userId, clientIp);
     }
   }

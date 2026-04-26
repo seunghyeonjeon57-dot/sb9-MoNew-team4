@@ -161,8 +161,10 @@ public class ArticleService {
 
   @Transactional
   public void incrementViewCount(UUID articleId, UUID viewedBy, String clientIp) {
-    log.info("조회수 로그 기록 - Article: {}, User: {}, IP: {}", articleId, viewedBy, clientIp);
+    log.info("조회수 로그 기록 요청 - Article: {}, User: {}", articleId, viewedBy);
+
     articleViewService.logView(articleId, viewedBy, clientIp);
+
   }
 
 }

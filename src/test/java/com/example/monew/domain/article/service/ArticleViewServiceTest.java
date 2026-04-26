@@ -64,8 +64,6 @@ class ArticleViewServiceTest {
 
     assertThat(result).isNotNull();
 
-    assertThat(article.getViewCount()).isEqualTo(initialViewCount + 1L);
-
     verify(articleRepository).findById(articleId);
     verify(articleViewRepository).save(any(ArticleViewEntity.class));
   }

@@ -26,7 +26,7 @@ public class ArticleViewService {
     ArticleEntity article = articleRepository.findById(articleId)
         .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
 
-    // 1. 중복 조회 체크 (본인 작업)
+    // 1. 중복 조회 체크
     boolean alreadyViewed = articleViewRepository.existsByArticleEntityIdAndViewedBy(articleId, viewedBy);
     if (alreadyViewed) {
       return buildDto(article, null);
