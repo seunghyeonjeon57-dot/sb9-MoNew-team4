@@ -6,8 +6,8 @@ import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
-import com.example.monew.domain.notification.event.ArticleRegisteredEvent;
 import com.example.monew.domain.article.repository.ArticleRepository;
+import com.example.monew.domain.notification.event.ArticleRegisteredEvent;
 import com.example.monew.global.exception.ErrorCode;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
@@ -18,8 +18,6 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

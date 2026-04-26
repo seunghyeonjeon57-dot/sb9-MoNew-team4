@@ -12,13 +12,11 @@ class NotificationTest {
   @Test
   @DisplayName("알림 엔티티 생성 테스트 (UUID 적용)")
   void createNotificationEntity() {
-    // given
     UUID userId = UUID.randomUUID();
     UUID resourceId = UUID.randomUUID();
     String content = "구독하신 [IT 트렌드] 관련 새 기사가 등록되었습니다.";
     ResourceType resourceType = ResourceType.INTEREST;
 
-    // when
     Notification notification = Notification.builder()
         .userId(userId)
         .content(content)
@@ -26,7 +24,6 @@ class NotificationTest {
         .resourceId(resourceId)
         .build();
 
-    // then
     assertThat(notification.getUserId()).isEqualTo(userId);
     assertThat(notification.getContent()).isEqualTo(content);
     assertThat(notification.getResourceType()).isEqualTo(resourceType);
@@ -37,7 +34,6 @@ class NotificationTest {
   @Test
   @DisplayName("알림 읽음 처리 시 isRead 상태가 true로 변경된다.")
   void readNotification() {
-    // given
     Notification notification = Notification.builder()
         .userId(UUID.randomUUID())
         .content("테스트 알림")
@@ -45,10 +41,8 @@ class NotificationTest {
         .resourceId(UUID.randomUUID())
         .build();
 
-    // when
     notification.confirm();
 
-    // then
     assertThat(notification.isConfirmed()).isTrue();
   }
 }

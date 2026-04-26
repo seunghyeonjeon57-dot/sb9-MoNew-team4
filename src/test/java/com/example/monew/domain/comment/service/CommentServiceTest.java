@@ -1,5 +1,14 @@
 package com.example.monew.domain.comment.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
@@ -22,6 +31,7 @@ import com.example.monew.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,17 +39,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 public class CommentServiceTest {
@@ -81,8 +81,8 @@ public class CommentServiceTest {
     ArticleEntity article = ArticleEntity.builder().build();
     User user = User.builder().build();
 
-    given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article)); // 이후에 변경
-    given(userRepository.findById(request.userId())).willReturn(Optional.of(user)); // 추가
+    given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article));
+    given(userRepository.findById(request.userId())).willReturn(Optional.of(user));
     given(commentRepository.save(any(CommentEntity.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -101,7 +101,7 @@ public class CommentServiceTest {
         .content("기사가 없는 유령 댓글")
         .build();
 
-    given(articleRepository.findById(articleId)).willReturn(Optional.empty()); // 이후에 변경
+    given(articleRepository.findById(articleId)).willReturn(Optional.empty());
 
 
     assertThatThrownBy(() -> commentService.registerComment(request))
@@ -132,7 +132,7 @@ public class CommentServiceTest {
   void updateComment_Unauthorized() {
     UUID commentId = UUID.randomUUID();
     UUID ownerId = UUID.randomUUID();
-    UUID requesterId = UUID.randomUUID(); // 다른 사용자
+    UUID requesterId = UUID.randomUUID();
     CommentUpdateRequest request = CommentUpdateRequest.builder()
         .content("수정 내용")
         .build();
@@ -169,7 +169,6 @@ public class CommentServiceTest {
 
     commentService.softDeleteComment(commentId);
 
-    // 논리 삭제이므로 DB에서 지워지는게 아니라 삭제 시간이 기록되어야 함
     assertThat(comment.getDeletedAt()).isNotNull();
   }
 
@@ -199,11 +198,8 @@ public class CommentServiceTest {
   void addLike_Success() {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    UUID commentAuthorId = UUID.randomUUID();
 
     User liker = User.builder().nickname("tester").build();
-
-    UUID articleId = UUID.randomUUID();
 
     User user = User.builder()
         .nickname("tester")
@@ -214,24 +210,21 @@ public class CommentServiceTest {
     CommentEntity comment = CommentEntity.builder()
         .id(commentId)
         .articleId(UUID.randomUUID())
-        .userId(userId) // [수정] userId를 명시적으로 맞춰주는 것이 더 정확합니다.
+        .userId(userId)
         .content("좋아요 받을 댓글")
         .likeCount(0L)
         .build();
 
     ArticleEntity article = ArticleEntity.builder().build();
-    // 중복된 given을 제거하고 깔끔하게 한 번씩만 작성합니다.
+
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(commentRepository.findByIdAndDeletedAtIsNull(commentId)).willReturn(Optional.of(comment));
     given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(false);
     given(userRepository.findById(userId)).willReturn(Optional.of(liker));
-
     given(articleRepository.findById(any(UUID.class))).willReturn(Optional.of(article));
 
-    // when
     commentService.addLike(commentId, userId);
 
-    // then
     verify(eventPublisher, times(1)).publishEvent(any(CommentLikedEvent.class));
     verify(commentLikeRepository, times(1)).save(any(CommentLikeEntity.class));
     assertThat(comment.getLikeCount()).isEqualTo(1L);
@@ -241,9 +234,9 @@ public class CommentServiceTest {
 
     CommentLikedEvent event = captor.getValue();
 
-    assertThat(event.receiverId()).isEqualTo(userId); // 알림을 받는 사람이 댓글 작성자가 맞는지
-    assertThat(event.likerNickname()).isEqualTo("tester"); // 좋아요 누른 사람 닉네임이 맞는지
-    assertThat(event.commentId()).isEqualTo(commentId); // 좋아요가 눌린 댓글 ID가 맞는지
+    assertThat(event.receiverId()).isEqualTo(userId);
+    assertThat(event.likerNickname()).isEqualTo("tester");
+    assertThat(event.commentId()).isEqualTo(commentId);
   }
 
   @Test

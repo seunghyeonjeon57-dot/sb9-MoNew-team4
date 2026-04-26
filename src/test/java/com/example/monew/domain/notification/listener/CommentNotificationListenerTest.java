@@ -30,16 +30,14 @@ class CommentNotificationListenerTest {
   void handleCommentLikedEvent() {
     // Given
     CommentLikedEvent event = new CommentLikedEvent(
-        UUID.randomUUID(), // receiverId
-        UUID.randomUUID(), // commentId
-        UUID.randomUUID(), // likerId
-        "tester"           // likerNickname
+        UUID.randomUUID(),
+        UUID.randomUUID(),
+        UUID.randomUUID(),
+        "tester"
     );
 
-    // When
     commentNotificationListener.handleCommentLikedEvent(event);
 
-    // Then
     verify(notificationService, times(1)).createNotification(any(NotificationRequest.class));
   }
 }
