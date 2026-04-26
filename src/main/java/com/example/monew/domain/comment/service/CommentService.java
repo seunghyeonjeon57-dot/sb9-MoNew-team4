@@ -1,7 +1,11 @@
 package com.example.monew.domain.comment.service;
 
+import com.example.monew.domain.activity.dto.CommentLikeActivityDto;
+import com.example.monew.domain.activity.service.ActivityService;
+import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.repository.ArticleRepository;
+import com.example.monew.domain.activity.dto.CommentActivityDto;
 import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.dto.CommentRegisterRequest;
 import com.example.monew.domain.comment.dto.CommentUpdateRequest;
@@ -15,6 +19,9 @@ import com.example.monew.domain.comment.exception.CommentNotFoundException;
 import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
+import com.example.monew.domain.user.entity.User;
+import com.example.monew.domain.user.exception.UserNotFoundException;
+import com.example.monew.domain.user.repository.UserRepository;
 import com.example.monew.global.exception.ErrorCode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,17 +41,36 @@ public class CommentService {
   private final CommentMapper commentMapper;
   private final ArticleRepository articleRepository;
   private final CommentLikeRepository commentLikeRepository;
+  private final UserRepository userRepository;
+  private final ActivityService activityService;
 
   @Transactional
   public CommentDto registerComment(CommentRegisterRequest request) {
+
     log.info("댓글 등록 시도: articleId={}", request.articleId());
-    articleRepository.findById(request.articleId())
+    ArticleEntity article = articleRepository.findById(request.articleId())
         .orElseThrow(() -> {
           log.warn("댓글 등록 실패: 존재하지 않은 기사 articleId={}", request.articleId());
           return new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
         });
 
+    User user = userRepository.findById(request.userId())
+        .orElseThrow(() -> new UserNotFoundException("유저를 찾을 수 없습니다."));
+
     CommentEntity comment = commentRepository.save(request.toEntity());
+
+    CommentActivityDto activityDto = CommentActivityDto.builder()
+        .id(comment.getId())
+        .articleId(request.articleId())
+        .articleTitle(article.getTitle())
+        .userId(request.userId())
+        .userNickname(user.getNickname())
+        .content(comment.getContent())
+        .likeCount(comment.getLikeCount())
+        .createdAt(comment.getCreatedAt())
+        .build();
+
+    activityService.updateRecentComments(request.userId(), activityDto);
 
     log.info("댓글 등록 완료: commentId={}", comment.getId());
     return commentMapper.toDto(comment, null, false);
@@ -128,6 +154,12 @@ public class CommentService {
       throw new CommentDuplicateLike(ErrorCode.DUPLICATE_LIKE);
     }
 
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException("유저를 찾을 수 없습니다."));
+
+    ArticleEntity article = articleRepository.findById(comment.getArticleId())
+        .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
+
     comment.incrementLikeCount();
 
     CommentLikeEntity commentLike = CommentLikeEntity.builder()
@@ -135,6 +167,20 @@ public class CommentService {
         .userId(userId)
         .build();
     commentLikeRepository.save(commentLike);
+
+    CommentLikeActivityDto activityDto = CommentLikeActivityDto.builder()
+        .id(UUID.randomUUID()) // 활동 자체의 ID
+        .createdAt(LocalDateTime.now())
+        .commentId(comment.getId())
+        .articleId(comment.getArticleId())
+        .articleTitle(article.getTitle())
+        .commentUserId(comment.getUserId())
+        .commentUserNickname(user.getNickname())
+        .commentContent(comment.getContent())
+        .commentLikeCount(comment.getLikeCount())
+        .commentCreatedAt(comment.getCreatedAt())
+        .build();
+    activityService.updateRecentLikedComments(userId, activityDto);
 
     log.info("좋아요 추가 완료: userId={}, commentId={}", userId, commentId);
   }

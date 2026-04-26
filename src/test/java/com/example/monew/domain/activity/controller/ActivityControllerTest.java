@@ -1,4 +1,4 @@
-package com.example.monew.domain.activityManagement.controller;
+package com.example.monew.domain.activity.controller;
 
 
 import static org.mockito.BDDMockito.given;
@@ -6,8 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.monew.domain.activityManagement.dto.UserActivityDto;
-import com.example.monew.domain.activityManagement.service.ActivityService;
+import com.example.monew.domain.activity.dto.UserActivityDto;
+import com.example.monew.domain.activity.service.ActivityService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;

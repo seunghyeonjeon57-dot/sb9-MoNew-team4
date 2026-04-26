@@ -1,10 +1,10 @@
 package com.example.monew.domain.article.service;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.dto.ArticleViewDto;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.entity.ArticleViewEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
-import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.article.repository.ArticleViewRepository;
 import com.example.monew.global.exception.ErrorCode;
@@ -19,6 +19,7 @@ public class ArticleViewService {
 
   private final ArticleRepository articleRepository;
   private final ArticleViewRepository articleViewRepository;
+  private final ActivityService activityService;
 
   @Transactional
   public ArticleViewDto logView(UUID articleId, UUID viewedBy, String clientIp) {
@@ -56,5 +57,4 @@ public class ArticleViewService {
         .articleCommentCount(0L)
         .build();
   }
-
 }

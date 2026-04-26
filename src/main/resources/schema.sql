@@ -29,7 +29,7 @@ CREATE TABLE interest_keywords
 (
     id          UUID PRIMARY KEY,
     interest_id UUID        NOT NULL,
-    value       VARCHAR(50) NOT NULL,
+    keyword_value VARCHAR(50) NOT NULL,
 
     CONSTRAINT fk_keyword_interest FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE
 );

@@ -33,7 +33,7 @@ public class InterestSubscriptionController {
       description = "요청자(Monew-Request-User-ID)가 해당 관심사를 구독합니다. 중복 구독은 409를 반환합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "구독 성공"),
-      @ApiResponse(responseCode = "404", description = "관심사 또는 사용자 정보 없음 (INTEREST_NOT_FOUND / USER_NOT_FOUND)",
+      @ApiResponse(responseCode = "404", description = "관심사 또는 사용자 정보 없음 (INTEREST_NOT_FOUND / SUBSCRIBER_NOT_FOUND)",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "409", description = "이미 구독 중 (DUPLICATE_SUBSCRIPTION)",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),

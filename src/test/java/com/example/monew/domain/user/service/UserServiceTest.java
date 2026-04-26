@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.domain.interest.repository.InterestRepository;
@@ -47,6 +48,7 @@ class UserServiceTest {
   @Mock private CommentLikeRepository commentLikeRepository;
   @Mock private CommentRepository commentRepository;
   @Mock private InterestRepository interestRepository;
+  @Mock private ActivityService activityService;
 
   @InjectMocks private UserService userService;
 

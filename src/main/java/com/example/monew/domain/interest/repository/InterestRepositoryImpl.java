@@ -77,19 +77,23 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
     if (cursorId == null && after == null) {
       return null;
     }
-    if (cursorId != null) {
-      Interest anchor = queryFactory.selectFrom(interest)
-          .where(interest.id.eq(cursorId).and(interest.deletedAt.isNull()))
-          .fetchOne();
-      if (anchor != null) {
-        return fullKeyset(orderBy, direction, anchor);
-      }
-      if (after != null) {
-        return timestampKeyset(after, cursorId);
-      }
-      return null;
+    if (cursorId == null) {
+      return interest.createdAt.gt(after);
     }
-    return interest.createdAt.gt(after);
+    Interest anchor = findCursorAnchor(cursorId);
+    if (anchor != null) {
+      return fullKeyset(orderBy, direction, anchor);
+    }
+    if (after != null) {
+      return timestampKeyset(after, cursorId);
+    }
+    return null;
+  }
+
+  private Interest findCursorAnchor(UUID cursorId) {
+    return queryFactory.selectFrom(interest)
+        .where(interest.id.eq(cursorId).and(interest.deletedAt.isNull()))
+        .fetchOne();
   }
 
   private BooleanExpression fullKeyset(String orderBy, String direction, Interest anchor) {
