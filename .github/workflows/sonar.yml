@@ -18,9 +18,7 @@ jobs:
         ports:
           - 27017:27017
 
-    if: >
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+
 
     steps:
       - uses: actions/checkout@v4
@@ -67,7 +65,6 @@ jobs:
             -Dspring.profiles.active=test \
             -Dspring.batch.jdbc.initialize-schema=never \
             -Dspring.batch.job.enabled=false \
-            -Dsonar.exclusions="**/NewsBackupBatchConfig.java" \
             --info --stacktrace
 
       - name: Display Test Error Details

@@ -1,5 +1,6 @@
 package com.example.monew.domain.user.service;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.domain.interest.repository.InterestRepository;
@@ -36,6 +37,7 @@ public class UserService {
   private final CommentLikeRepository commentLikeRepository;
   private final NotificationRepository notificationRepository;
   private final InterestRepository interestRepository;
+  private final ActivityService activityService;
 
 
   @Transactional
@@ -48,6 +50,9 @@ public class UserService {
     user.updatePassword(passwordEncoder.encode(request.password()));
 
     userRepository.save(user);
+
+    UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getNickname(), user.getCreatedAt());
+    activityService.updateUser(user.getId(), userDto);
     log.info("새로운 유저 가입 완료: ID={}, Email={}", user.getId(), user.getEmail());
   }
 
@@ -94,6 +99,7 @@ public class UserService {
         .orElseThrow(() -> new UserNotFoundException("이미 탈퇴했거나 존재하지 않는 유저입니다."));
 
     user.withdraw();
+    activityService.softDeleteUserActivity(id);
     log.info("유저 논리 삭제 완료 (ID={}): 탈퇴 시점={}", id, user.getDeletedAt());
   }
 
@@ -124,6 +130,7 @@ public class UserService {
     subscriptionRepository.deleteAllByUserId(userId);
     commentRepository.deleteAllByUserId(userId);
     userRepository.deleteById(userId);
+    activityService.deleteUserActivity(userId);
 
     log.info("유저 및 연관 데이터 전체 물리 삭제 완료: ID={}", userId);
   }

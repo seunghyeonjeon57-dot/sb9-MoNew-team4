@@ -19,9 +19,12 @@ public enum ErrorCode {
   INTEREST_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 관심사를 찾을 수 없습니다."),
   SIMILAR_INTEREST_NAME(HttpStatus.CONFLICT, "이미 80% 이상 유사한 관심사 이름이 존재합니다."),
   INTEREST_NAME_IMMUTABLE(HttpStatus.BAD_REQUEST, "관심사 이름은 수정할 수 없습니다."),
+  INTEREST_NAME_BLANK(HttpStatus.BAD_REQUEST, "관심사 이름은 비어 있을 수 없습니다."),
+  INTEREST_KEYWORDS_EMPTY(HttpStatus.BAD_REQUEST, "키워드는 최소 1개 이상이어야 합니다."),
   INVALID_SORT_PARAMETER(HttpStatus.BAD_REQUEST, "허용되지 않은 정렬 파라미터입니다."),
   DUPLICATE_SUBSCRIPTION(HttpStatus.CONFLICT, "이미 해당 관심사를 구독 중입니다."),
   SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "구독 정보를 찾을 수 없습니다."),
+  SUBSCRIBER_NOT_FOUND(HttpStatus.NOT_FOUND, "구독 대상 사용자를 찾을 수 없습니다."),
 
 
   //Article 도메인

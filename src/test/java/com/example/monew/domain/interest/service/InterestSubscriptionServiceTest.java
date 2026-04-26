@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.entity.Subscription;
@@ -37,6 +38,9 @@ class InterestSubscriptionServiceTest {
 
   @Mock
   private SubscriptionRepository subscriptionRepository;
+
+  @Mock
+  private ActivityService activityService;
 
   @InjectMocks
   private InterestSubscriptionService service;

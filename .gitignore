@@ -54,3 +54,6 @@ application-*.properties
 #로그폴더
 logs/
 *.log
+
+# PR 초안 임시 파일
+pr-draft-*.md
