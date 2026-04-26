@@ -1,426 +1,650 @@
-# Interest 도메인 코드 리뷰 & 미구현 항목 구현 가이드
+# Interest 도메인 코드 리뷰
 
-> 작성일: 2026-04-16  
-> 기준 브랜치: `develop`  
-> 작성자: 이종호 (MON-26)  
-> 목적: Interest 도메인 구현 완료 후 코드 리뷰 결과와 후속 작업 가이드를 팀에 공유
-
----
-
-## 1. 구현 완료 현황 (I1~I6)
-
-기능 요구사항 I1~I6 전체가 구현 완료되었으며, **68개 테스트 전체 통과** 상태입니다.
-
-| 요구사항 | HTTP | 엔드포인트 | 상태 | 핵심 구현 포인트 |
-|---------|------|-----------|------|----------------|
-| I1 관심사 등록 | POST | `/api/interests` | ✅ | `SimilarityUtils` Levenshtein 80% 유사도 차단, `@Valid`, 201 반환 |
-| I2 목록 조회 | GET | `/api/interests` | ✅ | keyword/sortBy/direction/cursor/size 파라미터, `CursorPageResponse<T>` 반환 |
-| I3 키워드 수정 | PATCH | `/api/interests/{id}` | ✅ | `@Valid`, soft delete 필터, 200 반환 |
-| I4 관심사 삭제 | DELETE | `/api/interests/{id}` | ✅ | `markDeleted()`, 구독 cascade 삭제, 204 반환 |
-| I5 구독 | POST | `/api/interests/{id}/subscriptions` | ✅ | DB unique constraint 기반 중복 방지, 원자적 카운터 증감, 201 반환 |
-| I6 구독취소 | DELETE | `/api/interests/{id}/subscriptions` | ✅ | 원자적 카운터 감소, 204 반환 |
-
-### 테스트 계층 구성 (68개)
-
-| 계층 | 파일 | 테스트 수 | 검증 내용 |
-|------|------|---------|---------|
-| Unit (Service) | `InterestServiceTest` | 18 | 유사도 차단, 키워드 필터, 정렬, 커서 페이지네이션 |
-| Unit (Subscription) | `InterestSubscriptionServiceTest` | 6 | 구독 생성/취소, 중복 방지, 카운터 |
-| JPA Slice | `InterestRepositoryTest` | 3 | soft delete 필터 쿼리 |
-| JPA Slice | `SubscriptionRepositoryTest` | 4 | 중복 체크, 일괄 삭제 |
-| Web Slice | `InterestControllerTest` | 20 | 응답 구조, 상태코드, 예외 매핑 |
-| Web Slice | `InterestSubscriptionControllerTest` | 9 | 구독/취소 API, 헤더 누락, 중복 |
-| Entity | `InterestTest` | 5 | 엔티티 생성, 키워드 교체, 논리 삭제 |
-| Entity | `SubscriptionTest` | 2 | 엔티티 생성, null ID 거부 |
-| Exception | `InterestExceptionsTest` | 6 | ErrorCode 매핑, details 검증 |
-| Integration | `InterestApiIntegrationTest` | 4 | 전체 플로우, 80% 유사도 정책, 에러 시나리오 |
-
-### 핵심 설계 결정
-
-- **커서 방식**: 마지막 아이템 UUID string (null/빈 문자열 → 첫 페이지). 이름은 정렬 기준에 따라 중복 가능하므로 UUID 사용.
-- **in-memory 필터/정렬**: 관심사 수가 제한적이므로 DB 쿼리 없이 메모리 처리. 수가 크게 늘어날 경우 DB 쿼리로 전환 고려.
-- **N+1 방지**: `subscribedByMe` 처리 시 `subscriptionRepository.findInterestIdsByUserIdAndInterestIdIn()` 단일 벌크 IN 쿼리 사용.
-- **원자적 카운터**: `subscriberCount` 증감은 JPQL `UPDATE` 쿼리로 원자적 처리 (낙관적 락 없이 동시성 안전).
+> 작성일: 2026-04-24
+> 기준 브랜치: `develop`
+> 검증 방식: 7개 병렬 에이전트 교차 검증 (Entity·Repository·Service·Subscription·Controller/DTO·예외·컨벤션)
+> 목적: 현재 구현 상태를 팀원이 이해할 수 있도록 레이어별로 정리
 
 ---
 
-## 2. 컨벤션 위반 사항
+## 1. 구현 현황 요약
 
-### P2 — 컨트롤러 2개 분리 (팀 컨벤션 논의 필요)
+Swagger 스펙 기준 Interest 도메인 API 6개 전부 구현 완료. 현재 **89개 테스트 통과** 상태.
 
-**파일**: `InterestController.java` + `InterestSubscriptionController.java`  
-**컨벤션 출처**: `docs/monew-team-convention.md` §2.2 — *"도메인 하나에 컨트롤러 하나"*
-
-구독 엔드포인트(`/api/interests/{id}/subscriptions`)가 별도 컨트롤러로 분리되어 있습니다.  
-중첩 URL 구조상 분리가 실용적이지만 팀 컨벤션 위반입니다.
-
-**선택지**:
-
-| 방안 | 장점 | 단점 |
-|------|------|------|
-| `InterestController`에 통합 | 컨벤션 준수 | `@RequestMapping` 충돌 → 메서드별 전체 경로 명시 필요 |
-| 현행 유지 (2개 분리) | 코드 구조 명확 | 컨벤션 위반 |
-
-팀에서 합의 후 통일 필요.
+| 엔드포인트 | HTTP | 상태 |
+|-----------|------|------|
+| `/api/interests` | POST | ✅ 완료 |
+| `/api/interests` | GET (커서 페이지네이션) | ✅ 완료 |
+| `/api/interests/{id}` | PATCH (키워드 수정) | ✅ 완료 |
+| `/api/interests/{id}` | DELETE | ✅ 완료 |
+| `/api/interests/{id}/subscriptions` | POST | ✅ 완료 |
+| `/api/interests/{id}/subscriptions` | DELETE | ✅ 완료 |
 
 ---
 
-### P3 — `InterestSubscriptionController` 필드명 `service`
+## 2. 패키지 구조
 
-**파일**: `InterestSubscriptionController.java:23`  
-**컨벤션**: 역할 접미사 필수
-
-```java
-// 현재 (위반 — 역할 접미사 없음)
-private final InterestSubscriptionService service;
-
-// 수정 후
-private final InterestSubscriptionService interestSubscriptionService;
+```
+domain/interest/
+├── controller/
+│   ├── InterestController.java           # CRUD 4개 엔드포인트
+│   └── InterestSubscriptionController.java  # 구독/취소 2개 엔드포인트
+├── dto/
+│   ├── InterestCreateRequest.java
+│   ├── InterestUpdateRequest.java
+│   ├── InterestResponse.java
+│   ├── SubscriptionResponse.java
+│   └── CursorPageResponse.java           # 제네릭 커서 페이지 응답
+├── entity/
+│   ├── Interest.java                     # 관심사 (BaseEntity 상속)
+│   ├── InterestKeyword.java              # 키워드 (일대다 자식)
+│   └── Subscription.java                # 구독 (BaseEntity 상속)
+├── exception/
+│   ├── DuplicateSubscriptionException.java
+│   ├── InterestNameImmutableException.java
+│   ├── InterestNotFoundException.java
+│   ├── InvalidSortParameterException.java
+│   ├── SimilarInterestNameException.java
+│   ├── SubscriberNotFoundException.java
+│   └── SubscriptionNotFoundException.java
+├── repository/
+│   ├── InterestRepository.java           # JPA + 커스텀 인터페이스 결합
+│   ├── InterestRepositoryCustom.java     # CursorPage 반환 정의
+│   ├── InterestRepositoryImpl.java       # QueryDSL keyset 구현
+│   └── SubscriptionRepository.java
+└── service/
+    ├── InterestService.java              # 관심사 CRUD + 목록 조회
+    └── InterestSubscriptionService.java  # 구독/취소
 ```
 
-수정 시 동일 파일 내 `service.subscribe(...)`, `service.unsubscribe(...)` 참조도 함께 변경.
-
 ---
 
-### P3 — `Interest` 엔티티 생성자의 `IllegalArgumentException` 직접 사용
+## 3. Entity 레이어
 
-**파일**: `Interest.java:38-43`
+### 3.1 Interest
 
 ```java
-// 현재 — MonewException 패턴 우회
-public Interest(String name, List<String> keywords) {
-    if (!StringUtils.hasText(name)) {
-        throw new IllegalArgumentException("관심사 이름은 비어 있을 수 없습니다.");
-    }
-    if (keywords == null || keywords.isEmpty()) {
-        throw new IllegalArgumentException("키워드는 최소 1개 이상이어야 합니다.");
-    }
-    ...
+@Entity @Table(name = "interests")
+@Getter @NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Interest extends BaseEntity {
+
+    @Id @Column(columnDefinition = "uuid")
+    private UUID id = UUID.randomUUID();
+
+    @Column(nullable = false, unique = true, length = 50)
+    private String name;
+
+    @OneToMany(mappedBy = "interest", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<InterestKeyword> keywords = new ArrayList<>();
+
+    @Column(nullable = false)
+    private long subscriberCount = 0L;
+
+    @Builder
+    public Interest(String name, List<String> keywords) { ... }
+
+    public void replaceKeywords(List<String> newKeywords) { ... }
 }
 ```
 
-**현재 동작**: `@Valid` Bean Validation이 컨트롤러에서 먼저 차단하므로 엔티티 생성자까지 도달하지 않음. 따라서 기능 동작에는 이상 없음.  
-**잠재적 문제**: 배치 작업이나 테스트에서 엔티티를 직접 생성할 때 `IllegalArgumentException`이 `GlobalException`의 400 핸들러로 처리되지만, 팀의 `MonewException` 패턴과 불일치.  
-**권장**: 기능 우선 개발 이후 리팩터링 시 정리.
+**설계 포인트**
+
+- `BaseEntity` 상속으로 `createdAt`, `updatedAt`, `deletedAt` 자동 관리
+- `id = UUID.randomUUID()` 필드 선언 시 초기화 → JPA persist 전에 이미 UUID 보유
+- `@NoArgsConstructor(access = PROTECTED)` → 외부에서 기본 생성자 직접 호출 불가, JPA 프록시만 허용
+- `keywords` 컬렉션은 `CascadeType.ALL` + `orphanRemoval = true` → `replaceKeywords()` 호출 시 기존 키워드 자동 삭제 후 신규 등록
+- `subscriberCount`는 엔티티 setter 없이 Repository 레이어 JPQL UPDATE 쿼리로만 변경 (원자성 보장)
+
+**주의할 점**
+
+Builder 생성자 내부에서 `IllegalArgumentException`을 직접 던집니다.
+
+```java
+// Interest.java:41, 44
+if (!StringUtils.hasText(name)) {
+    throw new IllegalArgumentException("관심사 이름은 비어 있을 수 없습니다.");
+}
+```
+
+컨트롤러 `@Valid`가 먼저 차단하므로 런타임 동작에는 문제 없지만, 팀의 `MonewException` 계약과 불일치합니다. 엔티티를 직접 생성하는 배치나 테스트 코드에서 이 예외가 나오면 `GlobalException`의 `IllegalArgumentException` 핸들러(→ 400)로 처리됩니다.
 
 ---
 
-### P3 — `updateKeywords` 응답의 `subscribedByMe` 하드코딩
-
-**파일**: `InterestService.java:137`
+### 3.2 InterestKeyword
 
 ```java
-// 현재 — 항상 false 반환
-return InterestResponse.from(interest, false);
+@Entity @Table(name = "interest_keywords")
+public class InterestKeyword {
+    @Column(name = "keyword_value", nullable = false)
+    private String value;
+}
 ```
 
-**문제**: 키워드 수정 후 응답에서 구독 중인 사용자도 `subscribedByMe = false`를 받음.  
-**수정 방법**:
+> ⚠️ **스키마 불일치 주의**
+> `@Column(name = "keyword_value")`로 선언됐지만 `src/main/resources/schema.sql`의 컬럼명은 `value`입니다.
+> `test` 프로파일은 `ddl-auto: create`여서 Hibernate가 엔티티 기준으로 테이블을 새로 만들기 때문에 테스트는 통과합니다.
+> `dev` 환경에서 schema.sql을 직접 적용하면 컬럼명 불일치로 쿼리 오류가 발생할 수 있습니다.
+> 수정: `@Column(name = "keyword_value")` → `@Column(name = "value")`
+
+---
+
+### 3.3 Subscription
 
 ```java
-// InterestController.updateKeywords() — userId 서비스로 전달
-@PatchMapping("/{id}")
-public ResponseEntity<InterestResponse> updateKeywords(
-    @RequestHeader("Monew-Request-User-ID") UUID userId,
-    @PathVariable UUID id,
-    @Valid @RequestBody InterestUpdateRequest request) {
-  return ResponseEntity.ok(interestService.updateKeywords(id, request, userId)); // userId 추가
+@Entity @Table(name = "subscriptions")
+public class Subscription extends BaseEntity {
+    @Id UUID id = UUID.randomUUID();
+    @Column(name = "interest_id") UUID interestId;
+    @Column(name = "user_id")    UUID userId;
 }
+```
 
-// InterestService.updateKeywords() — userId 파라미터 추가
+- schema.sql에 `CONSTRAINT uk_user_interest UNIQUE (user_id, interest_id)` 선언 → DB 수준 중복 구독 방지
+- 연관관계 없이 FK를 UUID로만 보관 → Interest/User 엔티티 로드 없이 경량 처리 가능
+
+---
+
+## 4. Repository 레이어
+
+### 4.1 InterestRepository
+
+```java
+public interface InterestRepository extends JpaRepository<Interest, UUID>,
+                                            InterestRepositoryCustom {
+
+    Optional<Interest> findByNameAndDeletedAtIsNull(String name);
+    List<Interest> findAllByDeletedAtIsNull();
+    Optional<Interest> findByIdAndDeletedAtIsNull(UUID id);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Interest i SET i.subscriberCount = i.subscriberCount + 1 WHERE i.id = :id")
+    void incrementSubscriberCount(@Param("id") UUID id);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Interest i SET i.subscriberCount = i.subscriberCount - 1 WHERE i.id = :id")
+    void decrementSubscriberCount(@Param("id") UUID id);
+}
+```
+
+**설계 포인트**
+
+- `findByIdAndDeletedAtIsNull`: soft delete 필터를 쿼리 메서드명에 명시. `findById` 단독 사용 금지.
+- `incrementSubscriberCount`에 `clearAutomatically = true` 설정 → UPDATE 후 1차 캐시 자동 evict. 이를 설정하지 않으면 JPQL UPDATE 후 같은 트랜잭션에서 `findById`를 호출해도 캐시의 old 값을 반환하는 버그가 발생합니다. (MON-125 이슈에서 발견, TDD로 수정)
+
+---
+
+### 4.2 InterestRepositoryImpl (QueryDSL Keyset 페이지네이션)
+
+이 구현이 Interest 도메인의 가장 핵심 로직입니다.
+
+```java
+@Override
+public CursorPage findByCursor(
+    String keywordArg, String orderBy, String direction,
+    UUID cursorId, LocalDateTime after, int limit) {
+
+    // 1. 기본 필터: soft delete 제외 + 키워드 검색
+    BooleanBuilder base = new BooleanBuilder();
+    base.and(interest.deletedAt.isNull());
+
+    // 2. 커서 조건 추가 (첫 페이지 = 커서 없음)
+    BooleanExpression cursorWhere = buildCursorWhere(orderBy, direction, cursorId, after);
+    if (cursorWhere != null) { pageWhere.and(cursorWhere); }
+
+    // 3. limit + 1개 조회 → hasNext 판단
+    List<Interest> rows = queryFactory.selectFrom(interest)
+        .where(pageWhere)
+        .orderBy(buildOrder(orderBy, direction))
+        .limit(limit + 1L)
+        .fetch();
+
+    // 4. 전체 카운트 (필터 조건만, 커서 조건 제외)
+    long total = queryFactory.select(interest.count()).from(interest).where(base).fetchOne();
+
+    boolean hasNext = rows.size() > limit;
+    List<Interest> content = hasNext ? rows.subList(0, limit) : rows;
+    return new CursorPage(content, total, hasNext);
+}
+```
+
+**Keyset 정렬 기준 3단계 복합키**
+
+단순 `createdAt` 커서는 동시에 등록된 관심사가 있으면 같은 페이지에 중복 노출될 수 있습니다. 이를 방지하기 위해 3단계 복합키를 사용합니다.
+
+```
+정렬: [primary(name or subscriberCount)] → [createdAt ASC] → [id ASC]
+```
+
+```java
+// fullKeyset() — subscriberCount DESC 기준 예시
+if ("subscriberCount".equals(orderBy)) {
+    long av = anchor.getSubscriberCount();
+    return interest.subscriberCount.lt(av)                          // primary
+        .or(interest.subscriberCount.eq(av).and(interest.createdAt.gt(ac)))  // tie-break 1
+        .or(interest.subscriberCount.eq(av).and(interest.createdAt.eq(ac))
+            .and(interest.id.gt(aid)));                             // tie-break 2
+}
+```
+
+**커서 fallback 처리**
+
+`cursorId`가 있지만 해당 관심사가 삭제된 경우, `buildCursorWhere`가 anchor를 찾지 못합니다. 이때 `after(LocalDateTime)` 파라미터가 있으면 timestamp 기반 keyset으로 fallback합니다.
+
+```java
+if (cursorId != null) {
+    Interest anchor = queryFactory.selectFrom(interest)
+        .where(interest.id.eq(cursorId).and(interest.deletedAt.isNull()))
+        .fetchOne();
+    if (anchor != null)  return fullKeyset(orderBy, direction, anchor);
+    if (after != null)   return timestampKeyset(after, cursorId);  // fallback
+    return null;
+}
+```
+
+**키워드 검색 구현**
+
+이름 포함 검색 OR 키워드 서브쿼리 존재 검색을 결합합니다.
+
+```java
+private BooleanExpression keywordCondition(String kw) {
+    return interest.name.containsIgnoreCase(kw)
+        .or(JPAExpressions.selectOne()
+            .from(keyword)
+            .where(keyword.interest.id.eq(interest.id)
+                .and(keyword.value.containsIgnoreCase(kw)))
+            .exists());
+}
+```
+
+---
+
+### 4.3 SubscriptionRepository
+
+```java
+@Query("SELECT s.interestId FROM Subscription s WHERE s.userId = :userId AND s.interestId IN :interestIds")
+Set<UUID> findInterestIdsByUserIdAndInterestIdIn(@Param("userId") UUID userId,
+                                                  @Param("interestIds") Collection<UUID> interestIds);
+```
+
+목록 조회에서 `subscribedByMe` 필드를 채울 때 이 쿼리를 사용합니다. N+1 대신 단일 IN 쿼리로 현재 페이지의 모든 관심사에 대한 구독 여부를 한 번에 가져옵니다.
+
+```java
+// InterestService.subscribedIdsFor()
+private Set<UUID> subscribedIdsFor(UUID userId, List<Interest> filtered) {
+    if (userId == null || filtered.isEmpty()) return Set.of();
+    Collection<UUID> ids = filtered.stream().map(Interest::getId).toList();
+    return subscriptionRepository.findInterestIdsByUserIdAndInterestIdIn(userId, ids);
+}
+```
+
+---
+
+## 5. Service 레이어
+
+### 5.1 InterestService
+
+**관심사 생성 — 유사도 차단 로직**
+
+생성 요청이 들어오면 두 단계 검사를 순서대로 수행합니다.
+
+```java
+// 1단계: 정확히 같은 이름 존재 시 즉시 거부
+interestRepository.findByNameAndDeletedAtIsNull(request.name())
+    .ifPresent(existing -> {
+        throw new SimilarInterestNameException(
+            Map.of("existing", existing.getName(), "similarity", 1.0));
+    });
+
+// 2단계: 전체 활성 관심사와 Levenshtein 유사도 비교
+List<Interest> actives = interestRepository.findAllByDeletedAtIsNull();
+for (Interest existing : actives) {
+    double similarity = SimilarityUtils.similarity(existing.getName(), request.name());
+    if (similarity >= SIMILARITY_THRESHOLD) { // 0.8
+        throw new SimilarInterestNameException(...);
+    }
+}
+```
+
+`SimilarityUtils.similarity()`는 Levenshtein 거리를 정규화한 값 (0.0~1.0)을 반환합니다. 80% 이상 유사하면 `SimilarInterestNameException` (409 CONFLICT) 발생.
+
+**관심사 목록 조회 흐름**
+
+```
+1. validateSortParams() — orderBy/direction 허용값 체크 (위반 시 400)
+2. parseCursorUuid()     — cursor 문자열 → UUID 변환 (잘못된 형식 시 400)
+3. findByCursor()        — QueryDSL keyset 조회 (limit+1)
+4. subscribedIdsFor()    — IN 쿼리로 구독 여부 벌크 조회
+5. InterestResponse.from() — 엔티티 → DTO 변환 (subscribedByMe 주입)
+6. CursorPageResponse 조립 — nextCursor, nextAfter, hasNext 계산
+```
+
+**관심사 삭제 흐름**
+
+```java
 @Transactional
-public InterestResponse updateKeywords(UUID interestId, InterestUpdateRequest request, UUID userId) {
+public void delete(UUID interestId) {
     Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
-        .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
-    interest.replaceKeywords(request.keywords());
-    boolean subscribed = userId != null &&
-        subscriptionRepository.existsByInterestIdAndUserId(interestId, userId);
-    return InterestResponse.from(interest, subscribed);
+        .orElseThrow(() -> new InterestNotFoundException(...));
+    subscriptionRepository.deleteAllByInterestId(interestId); // 구독 레코드 먼저 삭제
+    interestRepository.delete(interest);                       // 관심사 삭제
 }
 ```
 
-**영향 범위**: `InterestController`, `InterestService`, `InterestServiceTest`, `InterestControllerTest`
+관심사 삭제 전 해당 관심사의 구독 레코드를 먼저 삭제하여 FK 제약 위반을 방지합니다. 현재는 물리 삭제(hard delete)입니다. Swagger 스펙의 operationId도 `hardDelete`로 명시되어 있습니다.
 
 ---
 
-### P3 — Swagger/OpenAPI 어노테이션 없음
+### 5.2 InterestSubscriptionService
 
-**파일**: `InterestController.java`, `InterestSubscriptionController.java`  
-**현황**: 모든 엔드포인트에 `@Operation`, `@ApiResponse`, `@Parameter` 없음  
-**영향**: Swagger UI(`/swagger-ui/index.html`)에서 API 설명·파라미터·응답코드 정보 없음
-
-구현 예시 (`InterestController`):
-
-```java
-@Operation(summary = "관심사 목록 조회", description = "키워드 부분일치 검색, 정렬(name/subscriberCount), 커서 페이지네이션 지원")
-@ApiResponses({
-    @ApiResponse(responseCode = "200", description = "조회 성공"),
-    @ApiResponse(responseCode = "400", description = "정렬 파라미터 오류 (INVALID_SORT_PARAMETER)")
-})
-@GetMapping
-public ResponseEntity<CursorPageResponse<InterestResponse>> list(
-    @Parameter(description = "검색 키워드 (이름·키워드 부분일치, 대소문자 무시)")
-    @RequestParam(required = false) String keyword,
-    @Parameter(description = "정렬 기준: name | subscriberCount (기본: name)")
-    @RequestParam(required = false) String sortBy,
-    @Parameter(description = "정렬 방향: asc | desc (기본: asc)")
-    @RequestParam(required = false) String direction,
-    @Parameter(description = "커서 값 (마지막 아이템 UUID, 빈 문자열 = 첫 페이지)")
-    @RequestParam(required = false) String cursor,
-    @Parameter(description = "페이지 크기 (기본: 20)")
-    @RequestParam(defaultValue = "20") int size,
-    @Parameter(description = "요청자 ID (선택 — 없으면 subscribedByMe 항상 false)")
-    @RequestHeader(value = "Monew-Request-User-ID", required = false) UUID userId) {
-  ...
-}
-```
-
-엔드포인트별 필요 어노테이션 요약:
-
-| 엔드포인트 | summary | 응답코드 |
-|-----------|---------|---------|
-| GET /api/interests | 관심사 목록 조회 | 200, 400 |
-| POST /api/interests | 관심사 등록 | 201, 400, 409 |
-| PATCH /api/interests/{id} | 키워드 수정 | 200, 400, 404 |
-| DELETE /api/interests/{id} | 관심사 삭제 | 204, 404 |
-| POST /api/interests/{id}/subscriptions | 관심사 구독 | 201, 404, 409 |
-| DELETE /api/interests/{id}/subscriptions | 구독 취소 | 204, 404 |
-
----
-
-## 3. 미구현 항목 구현 가이드
-
-### [미구현 1] MongoDB UserActivity 구독 연동 (T7 심화)
-
-**기술 요구사항 T7**: 사용자 활동 시 UserActivity MongoDB document 선제 갱신  
-**영향 파일**: `domain/interest/service/InterestSubscriptionService.java`
-
-#### 현재 코드
+**구독 등록 — DB 제약 기반 중복 방지**
 
 ```java
 @Transactional
 public SubscriptionResponse subscribe(UUID interestId, UUID userId) {
-    // ... 구독 저장 + 카운터 증가
-    // ❌ MongoDB UserActivity 업데이트 없음
-    return SubscriptionResponse.from(saved);
-}
+    Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
+        .orElseThrow(() -> new InterestNotFoundException(...));
 
-@Transactional
-public void unsubscribe(UUID interestId, UUID userId) {
-    // ... 구독 삭제 + 카운터 감소
-    // ❌ MongoDB UserActivity 업데이트 없음
-}
-```
+    Subscription saved;
+    try {
+        saved = subscriptionRepository.saveAndFlush(new Subscription(interestId, userId));
+    } catch (DataIntegrityViolationException e) {
+        translateIntegrityViolation(interestId, userId, e); // 제약명으로 분기
+        throw e;
+    }
 
-#### 구현 방법
-
-**선행 조건**: `UserActivity` MongoDB 도메인 구현 필요 (`domain/activity/` 또는 `domain/user/activity/`)
-
-`UserActivity` document 구조 (T7 요구사항):
-```java
-@Document(collection = "user_activities")
-public class UserActivity {
-    @Id
-    private UUID userId;
-    private List<SubscribedInterest> subscribedInterests; // 구독 관심사 목록
-    private List<CommentActivity> recentComments;         // 최근 댓글 10개
-    private List<LikeActivity> recentLikes;               // 최근 좋아요 10개
-    private List<ArticleView> recentArticles;             // 최근 본 기사 10개
+    interestRepository.incrementSubscriberCount(interest.getId());
+    return SubscriptionResponse.of(saved, interest);
 }
 ```
 
-`InterestSubscriptionService` 수정:
 ```java
-@Service
+private void translateIntegrityViolation(UUID interestId, UUID userId, DataIntegrityViolationException e) {
+    String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+    if (msg.contains("uk_user_interest")) {
+        throw new DuplicateSubscriptionException(Map.of("interestId", interestId, "userId", userId));
+    }
+    if (msg.contains("fk_sub_user")) {
+        throw new SubscriberNotFoundException(Map.of("userId", userId));
+    }
+}
+```
+
+`saveAndFlush` 직후 `DataIntegrityViolationException`이 발생하면 DB 제약 이름으로 분기합니다.
+- `uk_user_interest` 위반 → `DuplicateSubscriptionException` (409)
+- `fk_sub_user` 위반 → `SubscriberNotFoundException` (404)
+
+---
+
+## 6. Controller 레이어
+
+### 6.1 InterestController
+
+```java
+@RestController
+@RequestMapping("/api/interests")
 @RequiredArgsConstructor
-public class InterestSubscriptionService {
+@Tag(name = "interests")
+public class InterestController {
 
-    private final InterestRepository interestRepository;
-    private final SubscriptionRepository subscriptionRepository;
-    private final UserActivityService userActivityService; // 추가
+    @GetMapping
+    @Operation(summary = "관심사 목록 조회")
+    public ResponseEntity<CursorPageResponse<InterestResponse>> list(
+        @RequestParam(required = false) String keyword,
+        @RequestParam String orderBy,
+        @RequestParam String direction,
+        @RequestParam(required = false) String cursor,
+        @RequestParam(required = false) LocalDateTime after,
+        @RequestParam int limit,
+        @RequestHeader(value = "Monew-Request-User-ID", required = false) UUID userId) { ... }
 
-    @Transactional
-    public SubscriptionResponse subscribe(UUID interestId, UUID userId) {
-        Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
-            .orElseThrow(...);
+    @PostMapping
+    public ResponseEntity<InterestResponse> create(
+        @Valid @RequestBody InterestCreateRequest request) { ... } // 201 반환
 
-        Subscription saved;
-        try {
-            saved = subscriptionRepository.saveAndFlush(new Subscription(interestId, userId));
-        } catch (DataIntegrityViolationException e) {
-            throw new DuplicateSubscriptionException(...);
-        }
+    @PatchMapping("/{id}")
+    public ResponseEntity<InterestResponse> updateKeywords(
+        @RequestHeader("Monew-Request-User-ID") UUID userId,
+        @PathVariable UUID id,
+        @Valid @RequestBody InterestUpdateRequest request) { ... }
 
-        interestRepository.incrementSubscriberCount(interest.getId());
-
-        // ✅ MongoDB UserActivity 구독 관심사 추가
-        userActivityService.addSubscribedInterest(userId, interest);
-
-        return SubscriptionResponse.from(saved);
-    }
-
-    @Transactional
-    public void unsubscribe(UUID interestId, UUID userId) {
-        Subscription sub = subscriptionRepository.findByInterestIdAndUserId(interestId, userId)
-            .orElseThrow(...);
-
-        subscriptionRepository.delete(sub);
-        interestRepository.decrementSubscriberCount(interestId);
-
-        // ✅ MongoDB UserActivity 구독 관심사 제거
-        userActivityService.removeSubscribedInterest(userId, interestId);
-    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+        @RequestHeader("Monew-Request-User-ID") UUID userId,
+        @PathVariable UUID id) { ... } // 204 반환
 }
 ```
 
-**주의사항**:
-- PostgreSQL 트랜잭션 커밋 후 MongoDB 업데이트 실행 → 두 저장소 간 원자성 보장 불가
-- 단순 구현: 동기 호출 (현재 학습 프로젝트 수준에서 권장)
-- 고급 구현: `@TransactionalEventListener(phase = AFTER_COMMIT)`로 PostgreSQL 커밋 후 MongoDB 업데이트
-- UserActivity document 없는 경우 `upsert` 처리 필수 (신규 사용자)
+`@Valid`로 Request DTO 검증 후 서비스에 위임하는 구조. 모든 엔드포인트에 `@Operation`, `@ApiResponses` 적용 완료.
+
+`@PathVariable UUID id` — 변수명이 `id`이지만 URL 경로 변수명은 `{id}` → Spring이 이름으로 매핑하므로 런타임 동작은 정상입니다. 다만 Swagger 스펙에서 path variable 이름은 `interestId`이므로 문서 일치성을 위해 `@PathVariable("id") UUID interestId` 또는 변수명을 `interestId`로 통일하는 것이 좋습니다.
+
+### 6.2 InterestSubscriptionController
+
+구독/취소 전용 컨트롤러. URL이 `/api/interests/{interestId}/subscriptions`이므로 `InterestController`의 `@RequestMapping("/api/interests")`와 충돌을 피하기 위해 분리됐습니다. 팀 컨벤션 "도메인 하나에 컨트롤러 하나"와 형식상 불일치하지만, 중첩 리소스 URL 구조상 실용적인 선택입니다.
 
 ---
 
-### [미구현 2] Notification 알림 트리거 연동
+## 7. DTO 레이어
 
-**기능 요구사항**: 구독 관심사에 신규 기사 등록 시 알림 생성  
-**알림 메시지**: `"[관심사명]와 관련된 기사가 N건 등록되었습니다."`  
-**트리거 포인트**: Article 수집 배치(`ArticleCollectionJob`)에서 기사 저장 후 호출
+### 7.1 요청 DTO
 
-#### Interest 도메인에서 필요한 인터페이스
+**InterestCreateRequest**
+```java
+public record InterestCreateRequest(
+    @NotBlank @Size(min = 1, max = 50) String name,
+    @NotEmpty @Size(min = 1, max = 10) List<@NotBlank String> keywords
+) {}
+```
 
-`SubscriptionRepository`에 구독자 ID 조회 메서드 추가 필요:
+**InterestUpdateRequest**
+```java
+public record InterestUpdateRequest(
+    @Null String name,         // name 수정 불가 — null 아니면 400
+    @NotEmpty @Size(min = 1, max = 10) List<@NotBlank String> keywords
+) {}
+```
+
+`@Null`을 name 필드에 사용하는 패턴이 인상적입니다. 클라이언트가 name을 보내면 Bean Validation이 즉시 거부합니다. 서비스에서 별도로 체크하는 것보다 선언적이고 명확합니다.
+
+### 7.2 응답 DTO
+
+MapStruct 미사용. 정적 팩토리 패턴 `from()` / `of()`로 엔티티 → DTO 변환.
 
 ```java
-// SubscriptionRepository.java에 추가
-@Query("SELECT s.userId FROM Subscription s WHERE s.interestId = :interestId")
-List<UUID> findUserIdsByInterestId(@Param("interestId") UUID interestId);
+// InterestResponse.java
+public static InterestResponse from(Interest interest, boolean subscribedByMe) {
+    return new InterestResponse(
+        interest.getId(),
+        interest.getName(),
+        interest.getKeywords().stream().map(InterestKeyword::getValue).toList(),
+        interest.getSubscriberCount(),
+        subscribedByMe
+    );
+}
 ```
 
-#### Article 배치에서 호출할 흐름
+`CursorPageResponse<T>`는 현재 `domain/interest/dto/`에 있습니다. 다른 도메인이 커서 페이지네이션을 도입할 때 `global/dto/`로 이동을 고려해야 합니다.
 
-```
-ArticleCollectionJob
-  → 기사 저장 (articleRepository.save)
-  → 해당 관심사 구독자 ID 조회 (subscriptionRepository.findUserIdsByInterestId)
-  → 구독자별 Notification 생성 (notificationService.createNotification)
-```
+---
 
-**NotificationService 인터페이스** (최건위 담당 MON-80과 연동):
+## 8. 예외 처리 계층
+
+모든 비즈니스 실패는 `MonewException → ErrorCode → GlobalException` 단일 경로를 따릅니다.
+
+**Interest 도메인 ErrorCode 목록**
+
+- `INTEREST_NOT_FOUND` → 404
+- `SIMILAR_INTEREST_NAME` → 409
+- `INTEREST_NAME_IMMUTABLE` → 400
+- `INVALID_SORT_PARAMETER` → 400
+- `DUPLICATE_SUBSCRIPTION` → 409
+- `SUBSCRIPTION_NOT_FOUND` → 404
+
+모든 예외 클래스는 `MonewException`을 상속하며, 생성 시 `details Map`에 진단 정보를 담습니다.
+
 ```java
-// 기사 등록 알림 생성 예시 (NotificationService)
-public void notifyNewArticles(UUID interestId, String interestName, int articleCount, List<UUID> subscriberIds) {
-    String message = String.format("[%s]와 관련된 기사가 %d건 등록되었습니다.", interestName, articleCount);
-    for (UUID userId : subscriberIds) {
-        createNotification(userId, message, ResourceType.INTEREST, interestId);
-    }
+throw new SimilarInterestNameException(
+    Map.of("existing", existing.getName(), "similarity", similarity));
+```
+
+응답 바디 예시:
+```json
+{
+  "code": "SIMILAR_INTEREST_NAME",
+  "message": "이미 유사한 관심사 이름이 존재합니다.",
+  "details": { "existing": "인공지능", "similarity": 0.87 },
+  "timestamp": "2026-04-24T10:00:00"
 }
 ```
 
 ---
 
-### [미구현 3] CursorPageResponse 위치 이동 (전체 도메인 적용 시)
+## 9. 테스트 구조
 
-**현재 위치**: `domain/interest/dto/CursorPageResponse.java`  
-**문제**: Interest 전용 패키지에 있어 다른 도메인에서 임포트 시 패키지 의존성 오염
+총 89개 테스트. 4개 레이어 모두 커버.
 
-**권장 이동 경로**: `global/dto/CursorPageResponse.java`
+| 레이어 | 파일 | 테스트 수 | 어노테이션 |
+|--------|------|---------|----------|
+| Entity Unit | InterestTest | 8 | 순수 JUnit |
+| Entity Unit | SubscriptionTest | 5 | 순수 JUnit |
+| Exception Unit | InterestExceptionsTest | 6 | 순수 JUnit |
+| JPA Slice | InterestRepositoryTest | 7 | @DataJpaTest |
+| JPA Slice | InterestRepositoryImplTest | 14 | @DataJpaTest |
+| JPA Slice | SubscriptionRepositoryTest | 6 | @DataJpaTest |
+| Service Unit | InterestServiceTest | 15 | @ExtendWith(MockitoExtension) |
+| Service Unit | InterestSubscriptionServiceTest | 7 | @ExtendWith(MockitoExtension) |
+| Web Slice | InterestControllerTest | 18 | @WebMvcTest |
+| Web Slice | InterestSubscriptionControllerTest | 8 | @WebMvcTest |
+| Integration | InterestApiIntegrationTest | 10 | @SpringBootTest |
 
-**이동 절차**:
-1. `src/main/java/com/example/monew/global/dto/CursorPageResponse.java` 생성 (내용 동일)
-2. 기존 `domain/interest/dto/CursorPageResponse.java` 삭제
-3. 아래 파일 임포트 경로 변경:
-   - `InterestController.java`
-   - `InterestService.java`
-   - `InterestControllerTest.java`
-   - `InterestServiceTest.java`
-   - `InterestApiIntegrationTest.java`
-4. `./gradlew test --tests "com.example.monew.domain.interest.*"` 재실행 확인
+**WebMvcTest 설정 체크포인트**
 
-**참고**: Article 도메인의 `CursorPageResponseArticleDto`는 `nextAfter(LocalDateTime)` 추가 필드가 있어 구조가 다름 → 현행 유지, `CursorPageResponse<T>`로 통합 불가.
+모든 WebMvcTest에 `@Import(GlobalException.class)` 적용 완료. 이를 빠뜨리면 예외 응답이 핸들러가 없어서 500으로 떨어지므로 예외 계약 검증이 의미 없어집니다.
 
----
+**JPA Slice flush/clear 패턴**
 
-### [미구현 4] MDC 로깅 인터셉터 (T3)
-
-**기술 요구사항 T3**: 모든 요청에 `requestId`, `clientIp` MDC 세팅 + 응답 헤더 `MoNew-Request-ID` 포함  
-**Interest 도메인 직접 관련 없음** — 공통 인터셉터로 구현
-
-**구현 위치**: `global/interceptor/MdcLoggingInterceptor.java`
+리포지토리 테스트에서 `flushAutomatically=true` 옵션이 있는 JPQL UPDATE를 검증할 때, 이 패턴이 일관되게 적용됩니다.
 
 ```java
-@Component
-public class MdcLoggingInterceptor implements HandlerInterceptor {
-
-    @Override
-    public boolean preHandle(HttpServletRequest request,
-                             HttpServletResponse response,
-                             Object handler) {
-        String requestId = UUID.randomUUID().toString();
-        MDC.put("requestId", requestId);
-        MDC.put("clientIp", request.getRemoteAddr());
-        MDC.put("requestMethod", request.getMethod());
-        MDC.put("requestUrl", request.getRequestURI());
-        response.setHeader("MoNew-Request-ID", requestId);
-        return true;
-    }
-
-    @Override
-    public void afterCompletion(HttpServletRequest request,
-                                HttpServletResponse response,
-                                Object handler, Exception ex) {
-        MDC.clear();
-    }
-}
+interestRepository.incrementSubscriberCount(saved.getId()); // JPQL UPDATE
+em.flush();
+em.clear(); // 1차 캐시 제거 — 이후 findById는 DB 재조회
+Interest refreshed = interestRepository.findByIdAndDeletedAtIsNull(saved.getId()).orElseThrow();
+assertThat(refreshed.getSubscriberCount()).isEqualTo(1L);
 ```
 
-**WebMvcConfigurer 등록**:
-```java
-@Configuration
-@RequiredArgsConstructor
-public class WebMvcConfig implements WebMvcConfigurer {
+`clear()` 없이 `findById`를 바로 호출하면 1차 캐시의 오래된 값이 반환됩니다. (MON-125에서 이 버그를 TDD로 발견)
 
-    private final MdcLoggingInterceptor mdcLoggingInterceptor;
+**TDD 커밋 패턴**
 
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(mdcLoggingInterceptor)
-                .addPathPatterns("/api/**");
-    }
-}
+모든 기능이 `[Red-Unit] → [Green-Unit] → [Test-Integration]` 패턴으로 커밋됨. 예시:
 ```
-
-**logback-spring.xml 패턴 예시**:
-```xml
-<pattern>[%X{requestId}] [%X{clientIp}] %d{HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+[MON-125] [Red-Unit]   Test: incrementSubscriberCount 후 findById 1차 캐시 stale 재현
+[MON-125] [Green-Unit] Fix: clearAutomatically = true 옵션 추가
 ```
 
 ---
 
-## 4. 작업 우선순위 요약
+## 10. 발견된 이슈
 
-| 우선순위 | 항목 | 담당 | 난이도 | 선행 조건 |
-|---------|------|------|--------|---------|
-| **P2** | `updateKeywords` subscribedByMe 수정 | 이종호 | 낮음 | 없음 |
-| **P2** | Swagger 어노테이션 추가 | 이종호 | 낮음 | 없음 |
-| **P2** | 필드명 `service` → `interestSubscriptionService` | 이종호 | 낮음 | 없음 |
-| **P2** | `CursorPageResponse` global 이동 | 이종호 | 중간 | 전체 테스트 재실행 |
-| **P3** | MDC 로깅 인터셉터 | 공통 | 중간 | 없음 |
-| **P3** | MongoDB UserActivity 구독 연동 | 이종호 | 높음 | UserActivity 도메인 구현 |
-| **P3** | Notification 알림 트리거 | 최건위+이종호 | 높음 | MON-80 NotificationService |
+### P1 — InterestKeyword 컬럼명 불일치
+
+- 파일
+  - `InterestKeyword.java` 25행
+  - `schema.sql` 32행
+
+- 현재 코드
+  - `@Column(name = "keyword_value")` — 엔티티 선언
+  - `value VARCHAR(50)` — schema.sql 실제 컬럼명
+
+- 영향
+  - `test` 프로파일은 `ddl-auto: create`이므로 테스트는 통과
+  - `dev`에서 schema.sql로 DB를 초기화하면 컬럼명 불일치로 INSERT/SELECT 오류 가능
+
+- 수정
+  - `@Column(name = "keyword_value")` → `@Column(name = "value")`
 
 ---
 
-## 5. 검증 커맨드
+### P2 — MON-146: Swagger 스펙에 409 응답 누락
 
-```bash
-# Interest 도메인 전체 테스트
-./gradlew test --tests "com.example.monew.domain.interest.*"
+- 파일
+  - `InterestSubscriptionController.java` (구독 POST 엔드포인트)
+  - `docs/monew-swagger.json`
 
-# 전체 빌드 + 테스트
-./gradlew clean test
+- 현황
+  - 구현: `DuplicateSubscriptionException` → 409 DUPLICATE_SUBSCRIPTION 정상 반환
+  - Swagger 스펙: 200 / 404 / 500만 명시 (409 누락)
+  - 테스트 주석으로 알려진 이슈 처리 중 (InterestSubscriptionServiceTest.java 121행)
 
-# 커버리지 확인
-./gradlew jacocoTestReport
-# 결과: build/reports/jacoco/test/html/index.html
-```
+- 수정
+  - swagger.json 해당 endpoint responses에 409 추가
+
+---
+
+### P3 — PathVariable 이름과 Swagger 스펙 불일치
+
+- 파일
+  - `InterestController.java` 93행 (`@PathVariable UUID id`)
+  - `InterestController.java` 109행 (`@PathVariable UUID id`)
+
+- 현황
+  - 컨트롤러 변수명은 `id`, Swagger 스펙의 path variable 이름은 `interestId`
+  - Spring이 URL 패턴 `/{id}`으로 바인딩하므로 런타임 동작은 정상
+
+- 수정 옵션
+  - `@PathVariable UUID id` → `@PathVariable UUID interestId`로 변수명 통일
+
+---
+
+### P3 — SubscriptionRepository 인터페이스에 @Transactional 선언
+
+- 파일
+  - `SubscriptionRepository.java` 32~38행
+
+- 현황
+  - `deleteAllByInterestId()`와 `deleteAllByUserId()`에 `@Transactional` 적용
+  - 이 메서드들은 이미 `@Transactional` 서비스에서 호출되므로 동작에 문제 없음
+  - 팀 컨벤션: 트랜잭션은 서비스 레이어에서 관리, 리포지토리 인터페이스에는 배치하지 않음
+
+- 수정
+  - 리포지토리의 `@Transactional` 제거, 서비스에서 트랜잭션 보장
+
+---
+
+### P3 — buildCursorWhere() 조건 중첩 깊이
+
+- 파일
+  - `InterestRepositoryImpl.java` 75~93행
+
+- 현황
+  - if 블록 최대 깊이 3단계 (컨벤션 권고: 2단계 이하)
+  - 커서 조건 분기 특성상 자연스러운 구조지만, early return 리팩터링으로 줄일 수 있음
+
+- 리팩터링 방향 예시
+  ```java
+  private BooleanExpression buildCursorWhere(...) {
+      if (cursorId == null && after == null) return null;
+      if (cursorId == null) return interest.createdAt.gt(after);
+
+      Interest anchor = queryFactory.selectFrom(interest)
+          .where(interest.id.eq(cursorId).and(interest.deletedAt.isNull()))
+          .fetchOne();
+      if (anchor != null) return fullKeyset(orderBy, direction, anchor);
+      if (after != null)  return timestampKeyset(after, cursorId);
+      return null;
+  }
+  ```
+
+---
+
+## 11. 잘 구현된 점 하이라이트
+
+- QueryDSL keyset 3단계 복합키 페이지네이션: 동률 레코드도 안정적으로 처리
+- `clearAutomatically = true` 옵션으로 JPQL UPDATE 후 1차 캐시 오염 방지 (MON-125)
+- `findByIdAndDeletedAtIsNull` 패턴 일관 적용: `findById` 단독 사용 없음
+- N+1 방지 IN 쿼리: `subscribedByMe` 처리 시 단일 쿼리로 현재 페이지 전체 처리
+- `DataIntegrityViolationException` 제약명 분기로 DB 레벨 중복 방지와 비즈니스 예외 연결
+- `@Transactional(readOnly = true)` 읽기 메서드 일관 적용
+- WebMvcTest 전체에 `@Import(GlobalException.class)` 적용
+- 89개 테스트 TDD Red-Green 패턴 및 엣지 케이스 커버 (커서 fallback, 동률, 공백 키워드 등)
