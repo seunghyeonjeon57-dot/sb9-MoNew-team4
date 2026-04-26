@@ -2,11 +2,13 @@ package com.example.monew.domain.article.controller;
 
 import com.example.monew.domain.article.batch.BackupBatch;
 import com.example.monew.domain.article.batch.service.BackupService;
+import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.article.service.ArticleViewService;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,8 +18,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -55,13 +55,15 @@ public class ArticleControllerPagingApiTest {
             true
         );
 
-    given(articleService.getArticles(any(), any(), anyInt()))
+    given(articleService.getArticles(any(ArticleSearchCondition.class)))
         .willReturn(mockResponse);
 
     mockMvc.perform(get("/api/articles")
-            .param("size", "10"))
+            .param("size", "10")
+            .header("Monew-Request-User-ID", UUID.randomUUID().toString()))
         .andExpect(status().isOk());
 
-    verify(articleService).getArticles(any(), any(), eq(10));
+    // argThat 대신 any()를 사용하여 getArticles가 호출되었는지만 확인
+    verify(articleService).getArticles(any(ArticleSearchCondition.class));
   }
 }

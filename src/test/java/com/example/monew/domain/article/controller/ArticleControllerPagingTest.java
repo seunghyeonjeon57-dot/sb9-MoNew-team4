@@ -1,6 +1,7 @@
 package com.example.monew.domain.article.controller;
 
 import com.example.monew.domain.article.dto.ArticleDto;
+import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.service.ArticleService;
 import org.junit.jupiter.api.DisplayName;
@@ -44,10 +45,13 @@ class ArticleControllerPagingTest {
         true
     );
 
-    given(articleService.getArticles(any(), any(), anyInt())).willReturn(mockResponse);
+    given(articleService.getArticles(any(ArticleSearchCondition.class))).willReturn(mockResponse);
 
-    CursorPageResponseArticleDto result = articleController.getArticleList(null, null, 2).getBody();
+    ArticleSearchCondition condition = ArticleSearchCondition.builder()
+        .size(2)
+        .build();
 
+    CursorPageResponseArticleDto result = articleController.getArticleList(UUID.randomUUID(), condition).getBody();
     assertThat(result).isNotNull();
     assertThat(result.content()).hasSize(2);
     assertThat(result.hasNext()).isTrue();

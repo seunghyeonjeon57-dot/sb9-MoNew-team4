@@ -3,8 +3,10 @@ package com.example.monew.domain.article.controller;
 import com.example.monew.domain.article.batch.BackupBatch;
 import com.example.monew.domain.article.batch.NewsRss;
 import com.example.monew.domain.article.batch.service.BackupService;
+import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.article.service.ArticleViewService;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,12 +41,16 @@ class ArticleControllerTest {
   @MockitoBean
   private NewsRss newsRss;
 
+  private static final String USER_ID_HEADER = "Monew-Request-User-ID";
+  private static final String TEST_USER_ID = UUID.randomUUID().toString();
+
   @Test
   @DisplayName("기사 뷰 등록 테스트")
   void incrementArticleViewTest() throws Exception {
     UUID articleId = UUID.randomUUID();
 
-    mockMvc.perform(post("/api/articles/{articleId}/article-views", articleId))
+    mockMvc.perform(post("/api/articles/{articleId}/article-views", articleId)
+            .header(USER_ID_HEADER, TEST_USER_ID)) // 헤더 추가
         .andExpect(status().isOk());
 
     verify(articleViewService).logView(eq(articleId), any(UUID.class), any(String.class));
@@ -54,18 +60,19 @@ class ArticleControllerTest {
   @DisplayName("기사 목록 조회 테스트")
   void getArticleListTest() throws Exception {
     mockMvc.perform(get("/api/articles")
-            .param("size", "10"))
+            .header(USER_ID_HEADER, TEST_USER_ID)
+            .param("limit", "10"))
         .andExpect(status().isOk());
 
-    verify(articleService).getArticles(any(), any(), eq(10));
+    verify(articleService).getArticles(any(ArticleSearchCondition.class));
   }
-
   @Test
   @DisplayName("기사 상세 조회 테스트")
   void getArticleDetailTest() throws Exception {
     UUID articleId = UUID.randomUUID();
 
-    mockMvc.perform(get("/api/articles/{articleId}", articleId))
+    mockMvc.perform(get("/api/articles/{articleId}", articleId)
+            .header(USER_ID_HEADER, TEST_USER_ID))
         .andExpect(status().isOk());
 
     verify(articleService).getArticleDetail(articleId);
@@ -114,22 +121,26 @@ class ArticleControllerTest {
   @Test
   @DisplayName("뉴스 복구 성공")
   void restoreFromS3_Success() throws Exception {
-    String date = java.time.LocalDate.now().toString();
+    String from = "2026-04-24T00:00:00";
+    String to = "2026-04-25T00:00:00";
 
-    mockMvc.perform(post("/api/articles/restore")
-            .param("date", date))
+    mockMvc.perform(get("/api/articles/restore")
+            .param("from", from)
+            .param("to", to))
         .andExpect(status().isOk());
 
-    verify(backupService).restoreNews(any());
+    verify(backupService).restoreNewsRange(any(LocalDateTime.class), any(LocalDateTime.class));
   }
 
   @Test
-  @DisplayName("뉴스 복구 실패")
+  @DisplayName("뉴스 복구 실패 - 미래 날짜")
   void restoreFromS3_Fail_FutureDate() throws Exception {
-    String futureDate = java.time.LocalDate.now().plusDays(1).toString();
+    String futureDate = LocalDateTime.now().plusDays(1).withNano(0).toString();
 
-    mockMvc.perform(post("/api/articles/restore")
-            .param("date", futureDate))
+
+    mockMvc.perform(get("/api/articles/restore")
+            .param("from", futureDate)
+            .param("to", LocalDateTime.now().withNano(0).toString()))
         .andExpect(status().isBadRequest());
   }
 }

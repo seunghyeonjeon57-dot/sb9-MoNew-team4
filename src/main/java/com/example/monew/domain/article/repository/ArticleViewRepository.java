@@ -10,4 +10,5 @@ import org.springframework.stereotype.Repository;
 public interface ArticleViewRepository extends JpaRepository<ArticleViewEntity, UUID> {
   void deleteByArticleEntity(ArticleEntity articleEntity);
 
+  boolean existsByArticleEntityIdAndViewedBy(UUID articleId, UUID viewedBy);
 }

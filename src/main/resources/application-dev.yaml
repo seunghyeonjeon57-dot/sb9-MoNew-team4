@@ -7,6 +7,9 @@ spring:
     username: postgres
     password: monew1234 # 실제 로컬 DB 비밀번호
     driver-class-name: org.postgresql.Driver
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/monew_db
 
 # 로컬에서도 S3 기능을 실환경과 동일하게 테스트하기 위한 설정
 cloud:

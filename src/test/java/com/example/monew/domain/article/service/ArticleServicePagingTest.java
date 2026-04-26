@@ -1,6 +1,7 @@
 package com.example.monew.domain.article.service;
 
 import com.example.monew.domain.article.dto.ArticleDto;
+import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.domain.article.repository.ArticleRepository;
@@ -44,13 +45,17 @@ class ArticleServicePagingTest {
 
     when(a2.getId()).thenReturn(id2);
 
-    when(articleRepository.findByCursor(null, null, 2))
+    when(articleRepository.findByCursor(any(ArticleSearchCondition.class)))
         .thenReturn(new ArrayList<>(List.of(a1, a2, a3)));
 
     when(articleMapper.toDto(any(), eq(false)))
         .thenReturn(mock(ArticleDto.class));
 
-    var result = articleService.getArticles(null, null, 2);
+    ArticleSearchCondition condition = ArticleSearchCondition.builder()
+        .size(2)
+        .build();
+
+    var result = articleService.getArticles(condition);
 
     assertThat(result.content().size()).isEqualTo(2);
     assertThat(result.hasNext()).isTrue();

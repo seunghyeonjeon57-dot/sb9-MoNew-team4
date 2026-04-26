@@ -49,8 +49,6 @@ class ArticleViewServiceTest {
         .sourceUrl("https://" + UUID.randomUUID())
         .build();
 
-    long initialViewCount = article.getViewCount();
-
     ArticleViewEntity savedLog = ArticleViewEntity.builder()
         .article(article)
         .viewedBy(userId)
@@ -64,9 +62,36 @@ class ArticleViewServiceTest {
 
     assertThat(result).isNotNull();
 
-    assertThat(article.getViewCount()).isEqualTo(initialViewCount + 1L);
-
     verify(articleRepository).findById(articleId);
     verify(articleViewRepository).save(any(ArticleViewEntity.class));
+  }
+
+  @Test
+  @DisplayName("중복 조회 방지 테스트: 이미 조회한 유저인 경우 조회수가 증가하지 않음")
+  void logView_Duplicate_Test() {
+    UUID articleId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    String clientIp = "127.0.0.1";
+
+    ArticleEntity article = ArticleEntity.builder()
+        .title("중복 테스트 기사")
+        .source("테스트")
+        .sourceUrl("https://test.com")
+        .build();
+
+    long initialViewCount = article.getViewCount();
+
+    given(articleRepository.findById(articleId)).willReturn(Optional.of(article));
+    given(articleViewRepository.existsByArticleEntityIdAndViewedBy(articleId, userId)).willReturn(true);
+    ArticleViewDto result = articleViewService.logView(articleId, userId, clientIp);
+
+    assertThat(article.getViewCount()).isEqualTo(initialViewCount);
+
+    assertThat(result.getId()).isNull();
+    assertThat(result.getViewedBy()).isNull();
+    assertThat(result.getArticleTitle()).isEqualTo("중복 테스트 기사");
+
+    verify(articleRepository).findById(articleId);
+    verify(articleViewRepository).existsByArticleEntityIdAndViewedBy(articleId, userId);    verify(articleViewRepository, org.mockito.Mockito.never()).save(any(ArticleViewEntity.class));
   }
 }

@@ -3,6 +3,7 @@ package com.example.monew.domain.article.controller;
 import com.example.monew.domain.article.batch.BackupBatch;
 import com.example.monew.domain.article.batch.service.BackupService;
 import com.example.monew.domain.article.dto.ArticleDto;
+import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.dto.CursorPageResponseArticleDto;
 import com.example.monew.domain.article.exception.InvalidCursorException;
 import com.example.monew.domain.article.exception.InvalidRestoreDateException;
@@ -44,15 +45,14 @@ public class ArticleController {
 
   @GetMapping
   public ResponseEntity<CursorPageResponseArticleDto> getArticleList(
-      @RequestParam(required = false) UUID cursor,
-      @RequestParam(required = false)
-      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
-      @RequestParam(defaultValue = "10") int size
+      @RequestHeader("Monew-Request-User-ID") UUID userId,
+      @org.springdoc.core.annotations.ParameterObject
+      @ModelAttribute ArticleSearchCondition condition
   ) {
-    if (size > 100) {
+    if (condition.getSize() > 100) {
       throw new InvalidCursorException(ErrorCode.INVALID_INPUT_VALUE);
     }
-    return ResponseEntity.ok(articleService.getArticles(cursor, after, size));
+    return ResponseEntity.ok(articleService.getArticles(condition));
   }
 
   @Operation(summary = "뉴스 기사 단건 조회", description = "뉴스 기사 ID로 뉴스 기사 단건을 조회합니다.")
@@ -65,6 +65,7 @@ public class ArticleController {
 
   @GetMapping("/{articleId}")
   public ResponseEntity<ArticleDto> getArticleDetail(
+      @RequestHeader("Monew-Request-User-ID") UUID userId,
       @PathVariable UUID articleId
   ) {
     return ResponseEntity.ok(articleService.getArticleDetail(articleId));
@@ -79,11 +80,12 @@ public class ArticleController {
   @PostMapping("/{articleId}/article-views")
   public ResponseEntity<Void> incrementArticleView(
       @PathVariable UUID articleId,
+      @RequestHeader("Monew-Request-User-ID") UUID userId,
       HttpServletRequest request
   ) {
     String clientIp = request.getRemoteAddr();
-    UUID viewedBy = UUID.randomUUID();
-    articleViewService.logView(articleId, viewedBy, clientIp);
+
+    articleViewService.logView(articleId, userId, clientIp);
     return ResponseEntity.ok().build();
   }
 
@@ -118,16 +120,17 @@ public class ArticleController {
       @ApiResponse(responseCode = "200", description = "복구 성공"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
-  @PostMapping("/restore")
+  @GetMapping("/restore")
   public ResponseEntity<String> restoreFromS3(
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate date
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime from,
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime to
   ) {
-    if (date.isAfter(java.time.LocalDate.now())) {
+    if (from.isAfter(LocalDateTime.now()) || to.isAfter(LocalDateTime.now())) {
       throw new InvalidRestoreDateException(ErrorCode.INVALID_INPUT_VALUE);
     }
 
-    backupService.restoreNews(date);
-    return ResponseEntity.ok(date + " 자 데이터 S3 복구 프로세스 완료");
+    backupService.restoreNewsRange(from, to);
+    return ResponseEntity.ok(from + " ~ " + to + " 기간 데이터 S3 복구 프로세스 완료");
   }
 
 

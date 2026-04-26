@@ -6,11 +6,9 @@ import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -38,7 +36,6 @@ public class S3Service {
 
     s3Client.putObject(putObjectRequest, RequestBody.fromString(content, StandardCharsets.UTF_8));
   }
-
   public File download(String key) {
     try {
       File tempFile;
@@ -62,7 +59,6 @@ public class S3Service {
           .key(key)
           .build();
 
-
       tempFile.deleteOnExit();
       s3Client.getObject(getObjectRequest, tempFile.toPath());
 
@@ -71,7 +67,7 @@ public class S3Service {
     } catch (NoSuchKeyException e) {
       log.warn("S3 파일 없음 key={}", key);
       throw new S3FileNotFoundException(key);
-    } catch (Exception e) { // S3Exception, SdkClientException 등을 포괄적으로 처리
+    } catch (Exception e) {
       log.error("S3 파일 다운로드 중 에러 발생 key={}", key, e);
       throw new S3DownloadException(key, e);
     }

@@ -1,7 +1,9 @@
 package com.example.monew.domain.article.batch.service;
 
+import com.example.monew.domain.article.batch.exception.RestoreFailedException;
 import jakarta.transaction.Transactional;
 import java.io.File;
+import java.time.LocalDateTime;
 import lombok.SneakyThrows;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParametersBuilder;
@@ -32,7 +34,19 @@ public class BackupService {
     jobLauncher.run(backupJob, jobParameters);
 
   }
+  public void restoreNewsRange(LocalDateTime from, LocalDateTime to) {
+    LocalDate startDate = from.toLocalDate();
+    LocalDate endDate = to.toLocalDate();
 
+    for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+      try {
+        log.info("{} 날짜 데이터 복구 시작", date);
+        restoreNews(date);
+      } catch (Exception e) {
+        log.error("{} 날짜 복구 중 실패. 다음 날짜로 넘어갑니다.", date, e);
+      }
+    }
+  }
   @Transactional
   public void restoreNews(LocalDate targetDate) {
     try {
@@ -48,6 +62,7 @@ public class BackupService {
 
     } catch (Exception e) {
       log.error("복구 배치 실행 실패", e);
+      throw new RestoreFailedException(targetDate + " 날짜 기사 복구 중 오류 발생", e);
     }
   }
 

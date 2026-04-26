@@ -1,5 +1,6 @@
 package com.example.monew.batch;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -8,6 +9,7 @@ import com.example.monew.domain.article.batch.service.BackupService;
 import com.example.monew.domain.article.batch.service.S3Service;
 import java.io.File;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,8 +57,48 @@ class BackupServiceTest {
   void restoreNews_Fail_Catch() throws Exception {
     given(s3Service.download(anyString())).willThrow(new RuntimeException("S3 에러"));
 
-    backupService.restoreNews(LocalDate.now());
+    assertThatThrownBy(() -> backupService.restoreNews(LocalDate.now()))
+        .isInstanceOf(com.example.monew.domain.article.batch.exception.RestoreFailedException.class);
 
     verify(jobLauncher, never()).run(any(), any());
   }
+
+  @Test
+  @DisplayName("범위 복구(restoreNewsRange) 성공 - 여러 날짜 정상 호출 확인")
+  void restoreNewsRange_Success() throws Exception {
+    LocalDateTime from = LocalDateTime.of(2026, 4, 24, 0, 0);
+    LocalDateTime to = LocalDateTime.of(2026, 4, 25, 23, 59);
+
+    File mockFile = mock(File.class);
+    given(mockFile.getAbsolutePath()).willReturn("/tmp/test.json");
+    given(s3Service.download(anyString())).willReturn(mockFile);
+
+    // [실행]
+    backupService.restoreNewsRange(from, to);
+
+    verify(jobLauncher, times(2)).run(any(Job.class), any(JobParameters.class));
+    verify(s3Service, times(2)).download(anyString());
+  }
+
+  @Test
+  @DisplayName("범위 복구 중 특정 날짜 실패 시에도 다음 날짜 계속 진행 확인")
+  void restoreNewsRange_PartialFail() throws Exception {
+    LocalDateTime from = LocalDateTime.of(2026, 4, 24, 0, 0);
+    LocalDateTime to = LocalDateTime.of(2026, 4, 25, 23, 59);
+
+    given(s3Service.download("backups/2026-04-24.json"))
+        .willThrow(new RuntimeException("S3 다운로드 실패"));
+
+    File mockFile = mock(File.class);
+    given(mockFile.getAbsolutePath()).willReturn("/tmp/test.json");
+    given(s3Service.download("backups/2026-04-25.json")).willReturn(mockFile);
+
+    backupService.restoreNewsRange(from, to);
+
+
+    verify(jobLauncher, times(1)).run(any(Job.class), any(JobParameters.class));
+    verify(s3Service, times(2)).download(anyString()); // 다운로드 시도는 둘 다 함
+  }
+
+
 }
