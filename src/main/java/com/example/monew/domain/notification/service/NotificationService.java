@@ -88,7 +88,7 @@ public class NotificationService {
 
     long totalElements = (cursorUuid == null) ? notificationRepository.countByUserIdAndConfirmedFalseAndDeletedAtIsNull(userId) : 0;
 
-    return new CursorPageResponseNotificationDto(content, nextCursor, nextAfter, content.size(), totalElements, hasNext);
+    return new CursorPageResponseNotificationDto(content, nextCursor, nextAfter, limit, totalElements, hasNext);
   }
 
   @Transactional
