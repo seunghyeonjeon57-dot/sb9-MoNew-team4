@@ -49,8 +49,6 @@ class ArticleViewServiceTest {
         .sourceUrl("https://" + UUID.randomUUID())
         .build();
 
-    long initialViewCount = article.getViewCount();
-
     ArticleViewEntity savedLog = ArticleViewEntity.builder()
         .article(article)
         .viewedBy(userId)
