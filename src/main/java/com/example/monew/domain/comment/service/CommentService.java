@@ -1,5 +1,9 @@
 package com.example.monew.domain.comment.service;
 
+import com.example.monew.domain.activity.dto.CommentActivityDto;
+import com.example.monew.domain.activity.dto.CommentLikeActivityDto;
+import com.example.monew.domain.activity.service.ActivityService;
+import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.comment.dto.CommentDto;
@@ -43,7 +47,6 @@ public class CommentService {
   private final ArticleRepository articleRepository;
   private final CommentLikeRepository commentLikeRepository;
   private final ApplicationEventPublisher eventPublisher;
-  private final UserRepository userRepository;
   private final UserRepository userRepository;
   private final ActivityService activityService;
 

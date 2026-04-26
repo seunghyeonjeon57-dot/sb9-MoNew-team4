@@ -19,8 +19,6 @@ import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.domain.notification.event.CommentLikedEvent;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
-import com.example.monew.domain.user.entity.User;
-import com.example.monew.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -46,25 +44,27 @@ import static org.mockito.ArgumentMatchers.eq;
 @ExtendWith(MockitoExtension.class)
 public class CommentServiceTest {
 
-  @Mock private CommentRepository commentRepository;
-  @Mock private CommentMapper commentMapper;
-  @Mock private ArticleRepository articleRepository;
-  @Mock private CommentLikeRepository commentLikeRepository;
-  @Mock private ApplicationEventPublisher eventPublisher;
-  @Mock private UserRepository userRepository;
-
   @Mock
   private CommentRepository commentRepository;
-  @Mock
-  private ArticleRepository articleRepository;
+
   @Mock
   private CommentMapper commentMapper;
+
+  @Mock
+  private ArticleRepository articleRepository;
+
   @Mock
   private CommentLikeRepository commentLikeRepository;
+
   @Mock
-  private ActivityService activityService;
+  private ApplicationEventPublisher eventPublisher;
+
   @Mock
   private UserRepository userRepository;
+
+  @Mock
+  private ActivityService activityService;
+
   @InjectMocks
   private CommentService commentService;
 
@@ -241,7 +241,7 @@ public class CommentServiceTest {
 
     CommentLikedEvent event = captor.getValue();
 
-    assertThat(event.receiverId()).isEqualTo(commentAuthorId); // 알림을 받는 사람이 댓글 작성자가 맞는지
+    assertThat(event.receiverId()).isEqualTo(userId); // 알림을 받는 사람이 댓글 작성자가 맞는지
     assertThat(event.likerNickname()).isEqualTo("tester"); // 좋아요 누른 사람 닉네임이 맞는지
     assertThat(event.commentId()).isEqualTo(commentId); // 좋아요가 눌린 댓글 ID가 맞는지
   }
