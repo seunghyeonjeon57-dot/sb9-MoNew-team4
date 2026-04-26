@@ -247,6 +247,48 @@ class ArticleServiceTest {
 
       verify(articleRepository, never()).saveAll(any());
     }
+    @Test
+    @DisplayName("신규 기사 저장 시 interest가 존재하면 ArticleRegisteredEvent 알림 이벤트가 발행된다.")
+    void publishEvent_WhenInterestExists() {
+      // given
+      ArticleEntity article = ArticleEntity.builder()
+          .id(UUID.randomUUID())
+          .title("테스트 기사")
+          .sourceUrl("https://test.com/1")
+          .interest("IT/과학")
+          .build();
+
+      given(articleRepository.findAllBySourceUrlIn(any())).willReturn(List.of());
+
+      // when
+      articleService.saveInChunks(List.of(article));
+
+      // then
+      verify(eventPublisher, times(1)).publishEvent(any(ArticleRegisteredEvent.class));
+    }
+
+    @Test
+    @DisplayName("신규 기사 저장 시 interest가 null이거나 빈 문자열이면 이벤트가 발행되지 않는다.")
+    void doNotPublishEvent_WhenInterestIsBlank() {
+      // given
+      ArticleEntity nullInterestArticle = ArticleEntity.builder()
+          .sourceUrl("https://test.com/2")
+          .interest(null) // null 세팅
+          .build();
+
+      ArticleEntity blankInterestArticle = ArticleEntity.builder()
+          .sourceUrl("https://test.com/3")
+          .interest("   ") // 빈 문자열 세팅
+          .build();
+
+      given(articleRepository.findAllBySourceUrlIn(any())).willReturn(List.of());
+
+      // when
+      articleService.saveInChunks(List.of(nullInterestArticle, blankInterestArticle));
+
+      // then
+      verify(eventPublisher, never()).publishEvent(any(ArticleRegisteredEvent.class));
+    }
   }
 
   @Nested
