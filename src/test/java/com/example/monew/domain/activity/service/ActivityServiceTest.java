@@ -243,10 +243,10 @@ public class ActivityServiceTest {
     assertThat(queryObject.get("_id")).isEqualTo(userId);
 
     Document updateObject = capturedUpdate.getUpdateObject();
-    assertThat(updateObject.containsKey("$addToSet")).isTrue();
+    assertThat(updateObject).containsKey("$addToSet");
 
-    Document setObject = (Document) updateObject.get("$addToSet");
-    assertThat(setObject.containsKey("subscriptions")).isTrue();
+    Document addToSetObject = (Document) updateObject.get("$addToSet");
+    assertThat(addToSetObject).containsKey("subscriptions");
   }
 
   @Test

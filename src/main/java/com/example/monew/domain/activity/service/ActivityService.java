@@ -60,7 +60,7 @@ public class ActivityService {
         .email(user.getEmail())
         .nickname(user.getNickname())
         .createdAt(user.getCreatedAt())
-        .subscriptions(document.getSubscribedInterests())
+        .subscriptions(document.getSubscriptions())
         .comments(document.getRecentComments())
         .commentLikes(document.getRecentLikes())
         .articleViews(document.getRecentArticles())
@@ -133,7 +133,7 @@ public class ActivityService {
     try{
       Query query = new Query(Criteria.where("_id").is(userId));
 
-      Update update = new Update().addToSet("subscribedInterests", subscriptionResponse);
+      Update update = new Update().addToSet("subscriptions", subscriptionResponse);
 
       mongoTemplate.upsert(query, update, UserActivityDocument.class);
       log.info("MongoDB 활동 내역 업데이트 성공: userId={}", userId);
