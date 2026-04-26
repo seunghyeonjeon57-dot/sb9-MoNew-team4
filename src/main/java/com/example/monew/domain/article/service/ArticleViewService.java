@@ -25,7 +25,14 @@ public class ArticleViewService {
     ArticleEntity article = articleRepository.findById(articleId)
         .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
 
-    article.incrementViewCount(); // 기사 엔티티에
+    boolean alreadyViewed = articleViewRepository.existsByArticleAndViewedBy(article, viewedBy);
+
+    if (alreadyViewed) {
+      // 이미 본 경우: DB 저장 없이 기존 정보로 DTO 생성 (ID 등 로그 정보는 null 처리)
+      return buildDto(article, null);
+    }
+
+    article.incrementViewCount();
 
     ArticleViewEntity viewRecord = ArticleViewEntity.builder()
         .article(article)
@@ -34,11 +41,13 @@ public class ArticleViewService {
         .build();
 
     ArticleViewEntity saved = articleViewRepository.save(viewRecord);
-
+    return buildDto(article, saved);
+  }
+  private ArticleViewDto buildDto(ArticleEntity article, ArticleViewEntity saved) {
     return ArticleViewDto.builder()
-        .id(saved.getId())
-        .viewedBy(saved.getViewedBy())
-        .createdAt(saved.getViewedAt())
+        .id(saved != null ? saved.getId() : null)
+        .viewedBy(saved != null ? saved.getViewedBy() : null)
+        .createdAt(saved != null ? saved.getViewedAt() : null)
         .articleId(article.getId())
         .source(article.getSource())
         .sourceUrl(article.getSourceUrl())
@@ -49,4 +58,5 @@ public class ArticleViewService {
         .articleCommentCount(0L)
         .build();
   }
+
 }
