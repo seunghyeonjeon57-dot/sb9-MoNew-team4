@@ -25,10 +25,8 @@ public class ArticleViewService {
     ArticleEntity article = articleRepository.findById(articleId)
         .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
 
-    boolean alreadyViewed = articleViewRepository.existsByArticleAndViewedBy(article, viewedBy);
-
+    boolean alreadyViewed = articleViewRepository.existsByArticleEntityIdAndViewedBy(articleId, viewedBy);
     if (alreadyViewed) {
-      // 이미 본 경우: DB 저장 없이 기존 정보로 DTO 생성 (ID 등 로그 정보는 null 처리)
       return buildDto(article, null);
     }
 

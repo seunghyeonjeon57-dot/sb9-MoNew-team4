@@ -82,8 +82,7 @@ class ArticleViewServiceTest {
     long initialViewCount = article.getViewCount();
 
     given(articleRepository.findById(articleId)).willReturn(Optional.of(article));
-    given(articleViewRepository.existsByArticleAndViewedBy(article, userId)).willReturn(true);
-
+    given(articleViewRepository.existsByArticleEntityIdAndViewedBy(articleId, userId)).willReturn(true);
     ArticleViewDto result = articleViewService.logView(articleId, userId, clientIp);
 
     assertThat(article.getViewCount()).isEqualTo(initialViewCount);
@@ -93,7 +92,6 @@ class ArticleViewServiceTest {
     assertThat(result.getArticleTitle()).isEqualTo("중복 테스트 기사");
 
     verify(articleRepository).findById(articleId);
-    verify(articleViewRepository).existsByArticleAndViewedBy(article, userId);
-    verify(articleViewRepository, org.mockito.Mockito.never()).save(any(ArticleViewEntity.class));
+    verify(articleViewRepository).existsByArticleEntityIdAndViewedBy(articleId, userId);    verify(articleViewRepository, org.mockito.Mockito.never()).save(any(ArticleViewEntity.class));
   }
 }
