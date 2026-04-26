@@ -162,6 +162,16 @@ public class ArticleService {
     if (!newArticles.isEmpty()) {
       articleRepository.saveAll(newArticles);
       log.info("신규 뉴스 {}건 일괄 저장 완료", newArticles.size());
+
+      newArticles.forEach(article -> {
+        if (article.getInterest() != null && !article.getInterest().isBlank()) {
+          eventPublisher.publishEvent(new ArticleRegisteredEvent(
+              article.getId(),
+              article.getTitle(),
+              article.getInterest()
+          ));
+        }
+      });
     }
   }
 
