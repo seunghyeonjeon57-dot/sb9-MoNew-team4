@@ -87,7 +87,7 @@ class InterestControllerTest {
   }
 
   @Test
-  @DisplayName("PATCH /api/interests/{id}: 키워드 수정 → 200 + 응답 + userId 서비스 전달")
+  @DisplayName("PATCH /api/interests/{interestId}: 키워드 수정 → 200 + 응답 + userId 서비스 전달")
   void patch200() throws Exception {
     UUID id = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
@@ -109,7 +109,7 @@ class InterestControllerTest {
   }
 
   @Test
-  @DisplayName("PATCH /api/interests/{id}: 미존재 → 404 INTEREST_NOT_FOUND")
+  @DisplayName("PATCH /api/interests/{interestId}: 미존재 → 404 INTEREST_NOT_FOUND")
   void patch404() throws Exception {
     UUID id = UUID.randomUUID();
     when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class), any(UUID.class)))
@@ -126,7 +126,7 @@ class InterestControllerTest {
   }
 
   @Test
-  @DisplayName("PATCH /api/interests/{id}: name 포함 → 400 INVALID_REQUEST (Bean Validation @Null 위반)")
+  @DisplayName("PATCH /api/interests/{interestId}: name 포함 → 400 INVALID_REQUEST (Bean Validation @Null 위반)")
   void patchNameImmutable400() throws Exception {
     UUID id = UUID.randomUUID();
 
@@ -144,7 +144,7 @@ class InterestControllerTest {
   }
 
   @Test
-  @DisplayName("DELETE /api/interests/{id}: 성공 → 204")
+  @DisplayName("DELETE /api/interests/{interestId}: 성공 → 204")
   void delete204() throws Exception {
     UUID id = UUID.randomUUID();
 
@@ -156,7 +156,7 @@ class InterestControllerTest {
   }
 
   @Test
-  @DisplayName("DELETE /api/interests/{id}: 미존재 → 404 INTEREST_NOT_FOUND")
+  @DisplayName("DELETE /api/interests/{interestId}: 미존재 → 404 INTEREST_NOT_FOUND")
   void delete404() throws Exception {
     UUID id = UUID.randomUUID();
     doThrow(new InterestNotFoundException(Map.of("interestId", id.toString())))
@@ -318,7 +318,7 @@ class InterestControllerTest {
   }
 
   @Test
-  @DisplayName("PATCH /api/interests/{id}: 헤더 누락 → 400 MISSING_REQUEST_HEADER")
+  @DisplayName("PATCH /api/interests/{interestId}: 헤더 누락 → 400 MISSING_REQUEST_HEADER")
   void patchMissingHeader400() throws Exception {
     String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML")));
 
@@ -331,7 +331,7 @@ class InterestControllerTest {
   }
 
   @Test
-  @DisplayName("DELETE /api/interests/{id}: 헤더 누락 → 400 MISSING_REQUEST_HEADER")
+  @DisplayName("DELETE /api/interests/{interestId}: 헤더 누락 → 400 MISSING_REQUEST_HEADER")
   void deleteMissingHeader400() throws Exception {
     mockMvc.perform(delete("/api/interests/" + UUID.randomUUID()))
         .andExpect(status().isBadRequest())

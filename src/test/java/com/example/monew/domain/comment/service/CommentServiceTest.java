@@ -1,5 +1,6 @@
 package com.example.monew.domain.comment.service;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.repository.ArticleRepository;
@@ -16,6 +17,8 @@ import com.example.monew.domain.comment.mapper.CommentMapper;
 import com.example.monew.domain.comment.repository.CommentLikeRepository;
 import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.domain.notification.event.CommentLikedEvent;
+import com.example.monew.domain.user.entity.User;
+import com.example.monew.domain.user.repository.UserRepository;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
@@ -50,6 +53,18 @@ public class CommentServiceTest {
   @Mock private ApplicationEventPublisher eventPublisher;
   @Mock private UserRepository userRepository;
 
+  @Mock
+  private CommentRepository commentRepository;
+  @Mock
+  private ArticleRepository articleRepository;
+  @Mock
+  private CommentMapper commentMapper;
+  @Mock
+  private CommentLikeRepository commentLikeRepository;
+  @Mock
+  private ActivityService activityService;
+  @Mock
+  private UserRepository userRepository;
   @InjectMocks
   private CommentService commentService;
 
@@ -64,14 +79,16 @@ public class CommentServiceTest {
         .build();
 
     ArticleEntity article = ArticleEntity.builder().build();
+    User user = User.builder().build();
+
     given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article)); // 이후에 변경
+    given(userRepository.findById(request.userId())).willReturn(Optional.of(user)); // 추가
     given(commentRepository.save(any(CommentEntity.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
     commentService.registerComment(request);
     verify(commentRepository, times(1)).save(any(CommentEntity.class));
   }
-
 
   @Test
   @DisplayName("존재하지 않는 기사 ID로 댓글을 등록하면 예외가 발생한다.")
@@ -92,7 +109,6 @@ public class CommentServiceTest {
         .hasMessage("해당 기사를 찾을 수 없습니다.");
   }
 
-
   @Test
   @DisplayName("존재하지 않는 댓글을 수정하려고 하면 예외가 발생한다.")
   void updateComment_NotFound() {
@@ -104,7 +120,6 @@ public class CommentServiceTest {
         .build();
 
     given(commentRepository.findByIdAndDeletedAtIsNull(fakeCommentId)).willReturn(Optional.empty());
-
 
 
     assertThatThrownBy(() -> commentService.updateComment(fakeCommentId, userId, request))
@@ -137,7 +152,6 @@ public class CommentServiceTest {
         .hasMessage("댓글 작성자만 삭제할 수 있습니다.");
   }
 
-
   @Test
   @DisplayName("댓글 삭제 시 논리 삭제(Soft Delete) 처리가 되어야 한다.")
   void deleteComment_SoftDelete() {
@@ -167,7 +181,6 @@ public class CommentServiceTest {
 
     commentService.softDeleteAllByUserId(userId);
 
-
     verify(commentRepository, times(1)).softDeleteAllByUserId(userId);
   }
 
@@ -181,7 +194,6 @@ public class CommentServiceTest {
     verify(commentRepository, times(1)).deleteAllByUserId(userId);
   }
 
-
   @Test
   @DisplayName("댓글에 좋아요를 누르면 좋아요 테이블에 기록이 남고, 댓글의 좋아요 수가 1 증가한다.")
   void addLike_Success() {
@@ -191,21 +203,35 @@ public class CommentServiceTest {
 
     User liker = User.builder().nickname("tester").build();
 
+    UUID articleId = UUID.randomUUID();
+
+    User user = User.builder()
+        .nickname("tester")
+        .email("test@test.com")
+        .password("pw")
+        .build();
+
     CommentEntity comment = CommentEntity.builder()
         .id(commentId)
         .articleId(UUID.randomUUID())
-        .userId(commentAuthorId)
+        .userId(userId) // [수정] userId를 명시적으로 맞춰주는 것이 더 정확합니다.
         .content("좋아요 받을 댓글")
         .likeCount(0L)
         .build();
 
+    ArticleEntity article = ArticleEntity.builder().build();
+    // 중복된 given을 제거하고 깔끔하게 한 번씩만 작성합니다.
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(commentRepository.findByIdAndDeletedAtIsNull(commentId)).willReturn(Optional.of(comment));
-
     given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).willReturn(false);
     given(userRepository.findById(userId)).willReturn(Optional.of(liker));
 
+    given(articleRepository.findById(any(UUID.class))).willReturn(Optional.of(article));
+
+    // when
     commentService.addLike(commentId, userId);
 
+    // then
     verify(eventPublisher, times(1)).publishEvent(any(CommentLikedEvent.class));
     verify(commentLikeRepository, times(1)).save(any(CommentLikeEntity.class));
     assertThat(comment.getLikeCount()).isEqualTo(1L);
@@ -219,7 +245,6 @@ public class CommentServiceTest {
     assertThat(event.likerNickname()).isEqualTo("tester"); // 좋아요 누른 사람 닉네임이 맞는지
     assertThat(event.commentId()).isEqualTo(commentId); // 좋아요가 눌린 댓글 ID가 맞는지
   }
-
 
   @Test
   @DisplayName("이미 좋아요를 누른 댓글에 다시 좋아요를 누르면 예외가 발생한다.")
@@ -242,7 +267,6 @@ public class CommentServiceTest {
         .isInstanceOf(CommentDuplicateLike.class)
         .hasMessage("이미 좋아요를 누른 댓글입니다.");
   }
-
 
   @Test
   @DisplayName("뉴스 기사 별 댓글 조회 시 좋아요 순 정렬과 커서 페이징이 정상 동작한다.")
@@ -306,7 +330,6 @@ public class CommentServiceTest {
 
     assertThat(response.nextCursor()).isEqualTo(expectedNextCursor);
   }
-
 
   @Test
   @DisplayName("뉴스 기사 별 댓글 조회 시 날짜 순 정렬과 커서 페이징이 정상 동작한다.")

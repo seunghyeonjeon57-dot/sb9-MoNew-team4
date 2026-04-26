@@ -38,6 +38,10 @@ management:
     tags:
       application: monew
 
+  data:
+    mongodb:
+      uri: ${MONGO_ENDPOINT:mongodb://localhost:27017/monew_db}
+
 logging:
   level:
     org.hibernate.SQL: DEBUG

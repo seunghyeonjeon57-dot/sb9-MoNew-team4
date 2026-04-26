@@ -3,6 +3,8 @@ package com.example.monew.domain.interest.entity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.example.monew.domain.interest.exception.InvalidInterestArgumentException;
+import com.example.monew.global.exception.ErrorCode;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,40 +54,45 @@ class InterestTest {
   }
 
   @Test
-  @DisplayName("name이 blank이면 IllegalArgumentException")
+  @DisplayName("name이 blank이면 InvalidInterestArgumentException + INTEREST_NAME_BLANK")
   void blankNameRejected() {
     assertThatThrownBy(() -> new Interest(" ", List.of("AI")))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(InvalidInterestArgumentException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INTEREST_NAME_BLANK);
   }
 
   @Test
-  @DisplayName("keywords가 비어 있으면 IllegalArgumentException")
+  @DisplayName("keywords가 비어 있으면 InvalidInterestArgumentException + INTEREST_KEYWORDS_EMPTY")
   void emptyKeywordsRejected() {
     assertThatThrownBy(() -> new Interest("인공지능", List.of()))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(InvalidInterestArgumentException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INTEREST_KEYWORDS_EMPTY);
   }
 
   // 아래 세 테스트는 생성자 검증 테스트(blankNameRejected / emptyKeywordsRejected)와
   // 경로가 동일하지만, @Builder 가 생성자 레벨을 벗어나 클래스 레벨로 이동할 경우
   // 검증 우회 경로가 생기는 회귀를 잡기 위한 안전장치로 유지한다.
   @Test
-  @DisplayName("빌더 — name이 blank이면 IllegalArgumentException")
+  @DisplayName("빌더 — name이 blank이면 InvalidInterestArgumentException")
   void builderBlankNameRejected() {
     assertThatThrownBy(() -> Interest.builder().name(" ").keywords(List.of("AI")).build())
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(InvalidInterestArgumentException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INTEREST_NAME_BLANK);
   }
 
   @Test
-  @DisplayName("빌더 — keywords가 비어 있으면 IllegalArgumentException")
+  @DisplayName("빌더 — keywords가 비어 있으면 InvalidInterestArgumentException")
   void builderEmptyKeywordsRejected() {
     assertThatThrownBy(() -> Interest.builder().name("인공지능").keywords(List.of()).build())
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(InvalidInterestArgumentException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INTEREST_KEYWORDS_EMPTY);
   }
 
   @Test
-  @DisplayName("빌더 — keywords가 null이면 IllegalArgumentException")
+  @DisplayName("빌더 — keywords가 null이면 InvalidInterestArgumentException")
   void builderNullKeywordsRejected() {
     assertThatThrownBy(() -> Interest.builder().name("인공지능").keywords(null).build())
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(InvalidInterestArgumentException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INTEREST_KEYWORDS_EMPTY);
   }
 }
