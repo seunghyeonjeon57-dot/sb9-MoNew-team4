@@ -77,7 +77,7 @@ public class ActivityServiceTest {
     assertThat(result.email()).isEqualTo(expectedEmail);
     assertThat(result.nickname()).isEqualTo(expectedNickname);
 
-    assertThat(result.subscribedInterests()).isEmpty();
+    assertThat(result.subscriptions()).isEmpty();
     assertThat(result.comments()).isEmpty();
     assertThat(result.commentLikes()).isEmpty();
     assertThat(result.articleViews()).isEmpty();
@@ -243,10 +243,10 @@ public class ActivityServiceTest {
     assertThat(queryObject.get("_id")).isEqualTo(userId);
 
     Document updateObject = capturedUpdate.getUpdateObject();
-    assertThat(updateObject.containsKey("$addToSet")).isTrue();
+    assertThat(updateObject).containsKey("$addToSet");
 
-    Document setObject = (Document) updateObject.get("$addToSet");
-    assertThat(setObject.containsKey("subscribedInterests")).isTrue();
+    Document addToSetObject = (Document) updateObject.get("$addToSet");
+    assertThat(addToSetObject).containsKey("subscriptions");
   }
 
   @Test

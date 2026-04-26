@@ -19,6 +19,10 @@ spring:
     job:
       enabled: false
 
+  data:
+    mongodb:
+      uri: ${MONGO_ENDPOINT:mongodb://localhost:27017/monew_db}
+
 management:
   endpoints:
     web:
@@ -37,10 +41,6 @@ management:
   metrics:
     tags:
       application: monew
-
-  data:
-    mongodb:
-      uri: ${MONGO_ENDPOINT:mongodb://localhost:27017/monew_db}
 
 logging:
   level:

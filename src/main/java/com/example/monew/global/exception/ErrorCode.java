@@ -43,7 +43,7 @@ public enum ErrorCode {
   COMMENT_CONTENT_BLANK(HttpStatus.BAD_REQUEST, "댓글 내용은 비어있을 수 없습니다."),
   DUPLICATE_LIKE(HttpStatus.CONFLICT, "이미 좋아요를 누른 댓글입니다."),
   LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "좋아요를 누르지 않은 댓글입니다."),
-  // NOTIFICATION (도메인 추가)
+  // NOTIFICATION 도메인
   NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 알림을 찾을 수 없습니다.");
 
   private final HttpStatus status;
