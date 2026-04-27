@@ -56,7 +56,9 @@ dependencies {
     runtimeOnly 'com.h2database:h2'
     implementation 'me.paulschwarz:spring-dotenv:4.0.0'
     implementation 'software.amazon.awssdk:s3:2.20.10'
-    implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.0.0'
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.0.0'// 기존 implementation 'org.flywaydb:flyway-core' 를 지우고 아래 두 줄로 교체
+    implementation 'org.flywaydb:flyway-core:10.10.0'
+    implementation 'org.flywaydb:flyway-database-postgresql:10.10.0'
 
     // 6. Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
