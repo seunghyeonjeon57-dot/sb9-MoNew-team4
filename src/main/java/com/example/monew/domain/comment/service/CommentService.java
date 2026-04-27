@@ -95,6 +95,8 @@ public class CommentService {
 
     comment.updateContent(request.content());
 
+    activityService.updateRecentCommentsInactivity(userId, commentId, request.content());
+
     log.info("댓글 수정 완료: commentId={}", commentId);
     return commentMapper.toDto(comment, null, false);
   }

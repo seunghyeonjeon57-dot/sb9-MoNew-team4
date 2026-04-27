@@ -175,4 +175,21 @@ public class ActivityService {
       log.warn("MongoDB 관심사 구독 취소 반영 실패: userId={}, interestId={}, error={}", userId, interestId, e.getMessage());
     }
   }
+
+
+  public void updateRecentCommentsInactivity(UUID userId, UUID commentId, String newComment) {
+    try{
+      Query query = new Query(Criteria.where("_id")
+          .is(userId)
+          .and("recentComments.id")
+          .is(commentId));
+
+      Update update = new Update().set("recentComments.$.content", newComment);
+
+      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+      log.warn("MongoDB 활동 내역 댓글 수정 동기화 실패: userId={}, commentId={}", userId, commentId);
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 댓글 수정 동기화 실패: userId={}, commentId={}, error={}", userId, commentId, e.getMessage());
+    }
+  }
 }
