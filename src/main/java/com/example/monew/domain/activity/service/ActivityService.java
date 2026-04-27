@@ -175,4 +175,21 @@ public class ActivityService {
       log.warn("MongoDB 관심사 구독 취소 반영 실패: userId={}, interestId={}, error={}", userId, interestId, e.getMessage());
     }
   }
+
+  public void commentLikeCountInRecentComments(UUID userId, UUID commentId, Long newLikeCount) {
+    try {
+      Query query = new Query(Criteria.where("_id").is(userId)
+          .and("recentComments.id").is(commentId));
+
+      Update update = new Update().set("recentComments.$.likeCount", newLikeCount);
+
+      var result = mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+
+      if (result.getModifiedCount() > 0) {
+        log.info("MongoDB 내가 쓴 댓글 좋아요 수 동기화 성공: commentId={}", commentId);
+      }
+    } catch (Exception e) {
+      log.warn("MongoDB 내가 쓴 댓글 좋아요 수 동기화 실패: commentId={}, error={}", commentId, e.getMessage());
+    }
+  }
 }
