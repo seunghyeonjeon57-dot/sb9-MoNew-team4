@@ -187,9 +187,22 @@ public class ActivityService {
       Update update = new Update().set("recentComments.$.content", newComment);
 
       mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
-      log.warn("MongoDB 활동 내역 댓글 수정 동기화 실패: userId={}, commentId={}", userId, commentId);
+      log.info("MongoDB 활동 내역 댓글 수정 동기화 성공: userId={}, commentId={}", userId, commentId);
     } catch (Exception e) {
       log.warn("MongoDB 활동 내역 댓글 수정 동기화 실패: userId={}, commentId={}, error={}", userId, commentId, e.getMessage());
+    }
+  }
+
+  public void removeRecentLikedComments(UUID userId, UUID commentId){
+    try{
+      Query query = new Query(Criteria.where("_id").is(userId));
+
+      Update update = new Update().pull("recentLikes", new org.bson.Document("commentId", commentId));
+
+      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+      log.info("MongoDB 활동 내역 좋아요 삭제 성공: userId={}, commentId={}", userId, commentId);
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 좋아요 삭제 실패: userId={}, commentId={}, error={}", userId, commentId, e.getMessage());
     }
   }
 }
