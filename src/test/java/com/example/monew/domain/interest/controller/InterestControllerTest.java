@@ -107,7 +107,7 @@ class InterestControllerTest {
   @DisplayName("PATCH /api/interests/{interestId}: 키워드 수정 → 200 + 서비스에 userId null 전달")
   void patch200() throws Exception {
     UUID id = UUID.randomUUID();
-    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class), eq(null)))
+    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class)))
         .thenReturn(new InterestResponse(id, "인공지능", List.of("ML", "DL"), 0L, false));
 
     String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML", "DL")));
@@ -119,14 +119,14 @@ class InterestControllerTest {
         .andExpect(jsonPath("$.keywords[0]").value("ML"))
         .andExpect(jsonPath("$.subscribedByMe").value(false));
 
-    verify(interestService).updateKeywords(eq(id), any(InterestUpdateRequest.class), eq(null));
+    verify(interestService).updateKeywords(eq(id), any(InterestUpdateRequest.class));
   }
 
   @Test
   @DisplayName("PATCH /api/interests/{interestId}: 미존재 → 404 INTEREST_NOT_FOUND")
   void patch404() throws Exception {
     UUID id = UUID.randomUUID();
-    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class), eq(null)))
+    when(interestService.updateKeywords(eq(id), any(InterestUpdateRequest.class)))
         .thenThrow(new InterestNotFoundException(Map.of("interestId", id.toString())));
 
     String body = objectMapper.writeValueAsString(Map.of("keywords", List.of("ML")));

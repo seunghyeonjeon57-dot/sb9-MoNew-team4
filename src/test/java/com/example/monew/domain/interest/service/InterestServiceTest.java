@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
@@ -43,6 +44,9 @@ class InterestServiceTest {
 
   @Mock
   private SubscriptionRepository subscriptionRepository;
+
+  @Mock
+  private ActivityService activityService;
 
   @InjectMocks
   private InterestService interestService;
@@ -93,11 +97,9 @@ class InterestServiceTest {
     UUID userId = UUID.randomUUID();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
-    when(subscriptionRepository.existsByInterestIdAndUserId(interest.getId(), userId))
-        .thenReturn(false);
 
     InterestResponse response = interestService.updateKeywords(
-        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")), userId);
+        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")));
 
     assertThat(response.keywords()).containsExactly("ML", "DL");
     assertThat(response.subscribedByMe()).isFalse();
@@ -110,13 +112,11 @@ class InterestServiceTest {
     UUID userId = UUID.randomUUID();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
-    when(subscriptionRepository.existsByInterestIdAndUserId(interest.getId(), userId))
-        .thenReturn(true);
 
     InterestResponse response = interestService.updateKeywords(
-        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")), userId);
+        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")));
 
-    assertThat(response.subscribedByMe()).isTrue();
+    assertThat(response.subscribedByMe()).isFalse();
   }
 
   @Test
@@ -127,7 +127,7 @@ class InterestServiceTest {
         .thenReturn(Optional.of(interest));
 
     InterestResponse response = interestService.updateKeywords(
-        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")), null);
+        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")));
 
     assertThat(response.subscribedByMe()).isFalse();
   }
@@ -138,7 +138,7 @@ class InterestServiceTest {
     UUID id = UUID.randomUUID();
     assertThatThrownBy(() ->
         interestService.updateKeywords(
-            id, new InterestUpdateRequest("바뀐이름", List.of("ML")), UUID.randomUUID()))
+            id, new InterestUpdateRequest("바뀐이름", List.of("ML"))))
         .isInstanceOf(InterestNameImmutableException.class);
   }
 
@@ -150,7 +150,7 @@ class InterestServiceTest {
 
     assertThatThrownBy(() ->
         interestService.updateKeywords(
-            id, new InterestUpdateRequest(null, List.of("ML")), UUID.randomUUID()))
+            id, new InterestUpdateRequest(null, List.of("ML"))))
         .isInstanceOf(InterestNotFoundException.class);
   }
 
