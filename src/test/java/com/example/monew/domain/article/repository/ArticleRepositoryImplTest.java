@@ -3,6 +3,8 @@ package com.example.monew.domain.article.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.entity.ArticleEntity;
+import com.example.monew.domain.interest.entity.Interest;
+import com.example.monew.domain.interest.entity.InterestKeyword;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
@@ -225,5 +227,51 @@ class ArticleRepositoryImplTest {
     for (ArticleEntity article : result) {
       assertThat(article.getId()).isNotEqualTo(a3.getId());
     }
+  }
+  @Test
+  @DisplayName("interestId 필터 커버리지: 생성자가 protected인 경우의 처리")
+  void interestId_filter_full_coverage_test() throws Exception {
+    java.lang.reflect.Constructor<Interest> interestConstructor =
+        Interest.class.getDeclaredConstructor();
+    interestConstructor.setAccessible(true);
+    Interest interest = interestConstructor.newInstance();
+
+    ReflectionTestUtils.setField(interest, "name", "Java");
+    em.persist(interest);
+
+    java.lang.reflect.Constructor<InterestKeyword> keywordConstructor =
+        InterestKeyword.class.getDeclaredConstructor();
+    keywordConstructor.setAccessible(true);
+    InterestKeyword keyword = keywordConstructor.newInstance();
+
+    ReflectionTestUtils.setField(keyword, "interest", interest);
+    ReflectionTestUtils.setField(keyword, "value", "스프링");
+    em.persist(keyword);
+
+    ArticleEntity a1 = ArticleEntity.builder()
+        .title("일반 제목").source("S1").sourceUrl("U1").interest(interest).build();
+
+    ArticleEntity a2 = ArticleEntity.builder()
+        .title("열혈 스프링 정복").source("S2").sourceUrl("U2").build();
+
+    ArticleEntity a3 = ArticleEntity.builder()
+        .title("공부기록").summary("내용에 스프링 포함").source("S3").sourceUrl("U3").build();
+
+    ArticleEntity a4 = ArticleEntity.builder()
+        .title("파이썬 기초").source("S4").sourceUrl("U4").build();
+
+    em.persist(a1); em.persist(a2); em.persist(a3); em.persist(a4);
+    em.flush();
+    em.clear();
+
+    ArticleSearchCondition condition = ArticleSearchCondition.builder()
+        .interestId(interest.getId())
+        .build();
+
+    List<ArticleEntity> result = articleRepository.findByCursor(condition);
+    List<UUID> resultIds = result.stream().map(ArticleEntity::getId).toList();
+
+    assertThat(resultIds).contains(a1.getId(), a2.getId(), a3.getId());
+    assertThat(resultIds).doesNotContain(a4.getId());
   }
 }
