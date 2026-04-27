@@ -8,6 +8,9 @@ import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.domain.article.repository.ArticleRepository;
+import com.example.monew.domain.comment.dto.CommentDto;
+import com.example.monew.domain.comment.mapper.CommentMapper;
+import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.domain.notification.event.ArticleRegisteredEvent;
 import com.example.monew.global.exception.ErrorCode;
 import jakarta.persistence.EntityManager;
@@ -34,7 +37,6 @@ public class ArticleService {
   private final ApplicationEventPublisher eventPublisher;
   private final EntityManager entityManager;
 
-  @Transactional
   public ArticleDto getArticleDetail(UUID id) {
     log.info("뉴스 상세 조회 요청 - ID: {}", id);
     ArticleEntity article = articleRepository.findById(id)
@@ -44,7 +46,6 @@ public class ArticleService {
           return new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
         });
     if (article.getInterest() != null) {
-      article.getInterest().getKeywords().size();
       log.debug("관심사 키워드 {}건 로딩 완료", article.getInterest().getKeywords().size());
     }
     return articleMapper.toDto(article, false);
