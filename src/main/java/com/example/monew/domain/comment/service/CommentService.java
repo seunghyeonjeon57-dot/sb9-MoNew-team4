@@ -227,6 +227,7 @@ public class CommentService {
         comment.getLikeCount()
     );
 
+    activityService.removeCommentLikeInActivity(userId, commentId);
     commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
 
     log.info("좋아요 취소 완료: userId={}, commentId={}", userId, commentId);

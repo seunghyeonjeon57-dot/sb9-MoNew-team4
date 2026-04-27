@@ -192,4 +192,17 @@ public class ActivityService {
       log.warn("MongoDB 내가 쓴 댓글 좋아요 수 동기화 실패: commentId={}, error={}", commentId, e.getMessage());
     }
   }
+
+  public void removeCommentLikeInActivity(UUID userId, UUID commentId) {
+    try {
+      Query query = new Query(Criteria.where("_id").is(userId));
+
+      Update update = new Update().pull("recentLikes", Query.query(Criteria.where("commentId").is(commentId)));
+
+      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+      log.info("MongoDB 내 활동 내역(좋아요) 삭제 성공: userId={}, commentId={}", userId, commentId);
+    } catch (Exception e) {
+      log.warn("MongoDB 내 활동 내역 삭제 실패: userId={}, error={}", userId, e.getMessage());
+    }
+  }
 }
