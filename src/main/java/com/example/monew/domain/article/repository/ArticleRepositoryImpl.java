@@ -30,7 +30,6 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
     this.em = em;
   }
 
-
   @Override
   public long softDelete(UUID articleId) {
     return queryFactory
@@ -68,17 +67,14 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
   private BooleanBuilder allFilters(ArticleSearchCondition condition) {
     BooleanBuilder builder = new BooleanBuilder();
 
-    // 1. 관심사 ID가 선택되었을 때 (카테고리 클릭)
+
     if (condition.getInterestId() != null) {
-      // 관심사에 등록된 키워드 중 하나라도 기사 제목/요약에 포함되어 있는지 확인
-      // "관심사 키워드 리스트"로 기사를 검색하는 로직
+
       QInterest interest = QInterest.interest;
 
       builder.and(
-          article.interest.id.eq(condition.getInterestId()) // 직접 연결된 기사
+          article.interest.id.eq(condition.getInterestId())
               .or(
-                  // 기사 제목/요약이 해당 관심사의 '어떤 키워드'라도 포함하는지 (동적 검색)
-                  // 이 부분이 선우님이 말씀하신 "하위 키워드까지 같이 검색"하는 로직입니다.
                   JPAExpressions.selectOne()
                       .from(interest)
                       .where(interest.id.eq(condition.getInterestId())
