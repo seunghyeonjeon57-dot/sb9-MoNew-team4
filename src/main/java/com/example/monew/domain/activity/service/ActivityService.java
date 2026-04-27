@@ -205,4 +205,17 @@ public class ActivityService {
       log.warn("MongoDB 활동 내역 좋아요 삭제 실패: userId={}, commentId={}, error={}", userId, commentId, e.getMessage());
     }
   }
+
+  public void updateSubscribeInActivity(UUID userId, SubscriptionResponse subscriptionResponse) {
+    try{
+      Query query = new Query(Criteria.where("_id").is(userId).and("subscribedInterests.interestId").is(subscriptionResponse.id()));
+
+      Update update = new Update().set("subscribedInterests.$", subscriptionResponse);
+
+      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+      log.info("MongoDB 활동 내역 관심사 수정 성공: userId={}, subscribeId={}", userId, subscriptionResponse.id());
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 관심사 수정 실패: userId={}, , subscribeId={}, error={}", userId, subscriptionResponse.id(), e.getMessage());
+    }
+  }
 }

@@ -11,11 +11,13 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.entity.Interest;
+import com.example.monew.domain.interest.entity.Subscription;
 import com.example.monew.domain.interest.exception.InterestNameImmutableException;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.InvalidSortParameterException;
@@ -43,6 +45,9 @@ class InterestServiceTest {
 
   @Mock
   private SubscriptionRepository subscriptionRepository;
+
+  @Mock
+  private ActivityService activityService;
 
   @InjectMocks
   private InterestService interestService;
@@ -93,8 +98,8 @@ class InterestServiceTest {
     UUID userId = UUID.randomUUID();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
-    when(subscriptionRepository.existsByInterestIdAndUserId(interest.getId(), userId))
-        .thenReturn(false);
+    when(subscriptionRepository.findByInterestIdAndUserId(interest.getId(), userId))
+        .thenReturn(Optional.empty());
 
     InterestResponse response = interestService.updateKeywords(
         interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")), userId);
@@ -108,10 +113,16 @@ class InterestServiceTest {
   void updateKeywords_subscriber_returnsSubscribedByMeTrue() {
     Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
     UUID userId = UUID.randomUUID();
+
+    Subscription dummySubscription = Subscription.builder()
+        .interestId(interest.getId())
+        .userId(userId)
+        .build();
+
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
-    when(subscriptionRepository.existsByInterestIdAndUserId(interest.getId(), userId))
-        .thenReturn(true);
+    when(subscriptionRepository.findByInterestIdAndUserId(interest.getId(), userId))
+        .thenReturn(Optional.of(dummySubscription));
 
     InterestResponse response = interestService.updateKeywords(
         interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")), userId);
