@@ -1,5 +1,7 @@
 package com.example.monew.domain.interest.service;
 
+import com.example.monew.domain.activity.service.ActivityService;
+import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
@@ -33,6 +35,7 @@ public class InterestService {
 
   private final InterestRepository interestRepository;
   private final SubscriptionRepository subscriptionRepository;
+  private final ActivityService activityService;
 
   @Transactional
   public InterestResponse create(InterestCreateRequest request) {
@@ -115,8 +118,7 @@ public class InterestService {
   }
 
   @Transactional
-  public InterestResponse updateKeywords(
-      UUID interestId, InterestUpdateRequest request, UUID userId) {
+  public InterestResponse updateKeywords(UUID interestId, InterestUpdateRequest request) {
     if (request.name() != null) {
       throw new InterestNameImmutableException(
           Map.of("interestId", interestId.toString(), "rejectedName", request.name()));
@@ -124,8 +126,9 @@ public class InterestService {
     Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
     interest.replaceKeywords(request.keywords());
-    boolean subscribedByMe = userId != null
-        && subscriptionRepository.existsByInterestIdAndUserId(interestId, userId);
-    return InterestResponse.from(interest, subscribedByMe);
+
+    activityService.updateInterestKeywords(interestId, request.keywords());
+
+    return InterestResponse.from(interest, false);
   }
 }

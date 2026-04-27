@@ -6,6 +6,8 @@ import com.example.monew.domain.article.dto.ArticleViewDto;
 import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.exception.UserNotFoundException;
+import com.mongodb.client.model.UpdateOptions;
+import java.util.List;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import java.util.UUID;
@@ -173,6 +175,22 @@ public class ActivityService {
 
     } catch (Exception e) {
       log.warn("MongoDB 관심사 구독 취소 반영 실패: userId={}, interestId={}, error={}", userId, interestId, e.getMessage());
+    }
+  }
+  public void updateInterestKeywords(UUID interestId, List<String> newKeywords) {
+    try {
+      Query query = new Query(Criteria.where("subscriptions.interestId").is(interestId));
+
+      Update update = new Update()
+          .set("subscriptions.$[elem].interestKeywords", newKeywords);
+
+      update.filterArray(Criteria.where("elem.interestId").is(interestId));
+
+      var result = mongoTemplate.updateMulti(query, update, UserActivityDocument.class);
+
+      log.info("MongoDB 일괄 업데이트 성공: {}건", result.getModifiedCount());
+    } catch (Exception e) {
+      log.error("MongoDB 전체 동기화 실패", e);
     }
   }
 }
