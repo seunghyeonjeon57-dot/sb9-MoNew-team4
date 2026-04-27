@@ -18,6 +18,7 @@ import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +35,7 @@ import org.springframework.data.mongodb.core.query.UpdateDefinition;
 import org.bson.Document;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.example.monew.domain.activity.document.UserActivityDocument;
 import com.example.monew.domain.activity.repository.UserActivityRepository;
@@ -286,5 +288,121 @@ public class ActivityServiceTest {
     assertDoesNotThrow(() -> activityService.removeSubscription(userId, interestId));
 
     verify(mongoTemplate, times(1)).updateFirst(any(Query.class), any(Update.class), eq(UserActivityDocument.class));
+  }
+
+  @Test
+  @DisplayName("MongoDB 댓글 수정 동기화 성공 케이스")
+  void updateRecentCommentsInactivity_Success() {
+    UUID userId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
+    String newComment = "수정된 댓글 내용";
+
+    activityService.updateRecentCommentsInactivity(userId, commentId, newComment);
+
+    verify(mongoTemplate, times(1)).updateFirst(
+        any(Query.class),
+        any(Update.class),
+        eq(UserActivityDocument.class)
+    );
+  }
+
+  @Test
+  @DisplayName("MongoDB 처리 중 예외 발생 시 예외 처리 확인")
+  void updateRecentCommentsInactivity_Exception() {
+    UUID userId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
+    String newComment = "수정된 댓글 내용";
+
+    doThrow(new RuntimeException("DB 에러")).when(mongoTemplate)
+        .updateFirst(any(Query.class), any(Update.class), eq(UserActivityDocument.class));
+
+    activityService.updateRecentCommentsInactivity(userId, commentId, newComment);
+  }
+
+  @Test
+  @DisplayName("MongoDB 좋아요 삭제(pull) 동기화 성공")
+  void removeRecentLikedComments_Success() {
+    UUID userId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
+
+    activityService.removeRecentLikedComments(userId, commentId);
+
+    verify(mongoTemplate, times(1)).updateFirst(
+        any(Query.class),
+        any(Update.class),
+        eq(UserActivityDocument.class)
+    );
+  }
+
+  @Test
+  @DisplayName("MongoDB 좋아요 삭제 중 예외 발생 시 로그 기록 확인")
+  void removeRecentLikedComments_Exception() {
+    UUID userId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
+
+    doThrow(new RuntimeException("DB Connection Fail")).when(mongoTemplate)
+        .updateFirst(any(Query.class), any(Update.class), eq(UserActivityDocument.class));
+
+    activityService.removeRecentLikedComments(userId, commentId);
+
+    verify(mongoTemplate, times(1)).updateFirst(
+        any(Query.class),
+        any(UpdateDefinition.class),
+        eq(UserActivityDocument.class));
+  }
+
+  @Test
+  @DisplayName("사용자 활동 내역 논리 삭제 성공 테스트")
+  void softDeleteUserActivity_Success() {
+    UUID userId = UUID.randomUUID();
+    long expectedDeletedCount = 1L;
+
+    when(userActivityRepository.softDeleteAllByUserId(userId)).thenReturn(expectedDeletedCount);
+
+    activityService.softDeleteUserActivity(userId);
+
+    verify(userActivityRepository, times(1)).softDeleteAllByUserId(userId);
+  }
+
+  @Test
+  @DisplayName("사용자 활동 내역 논리 삭제 중 예외 발생 시 로그 확인")
+  void softDeleteUserActivity_Exception() {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    when(userActivityRepository.softDeleteAllByUserId(userId))
+        .thenThrow(new RuntimeException("DB 삭제 오류"));
+
+    assertDoesNotThrow(() -> activityService.softDeleteUserActivity(userId));
+
+    verify(userActivityRepository, times(1)).softDeleteAllByUserId(userId);
+  }
+
+  @Test
+  @DisplayName("MongoDB 관심사 수정 시 $ 연산자를 통한 업데이트 확인")
+  void updateSubscribeInActivity_Success() {
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+    SubscriptionResponse response = new SubscriptionResponse(
+        UUID.randomUUID(),
+        interestId,
+        "테스트관심사",
+        List.of("키워드1", "키워드2"),
+        100L,
+        LocalDateTime.now()
+    );
+
+    activityService.updateSubscribeInActivity(userId, response);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
+
+    verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    assertThat(queryCaptor.getValue().getQueryObject().get("subscriptions.interestId")).isEqualTo(interestId);
+
+    String updateObj = updateCaptor.getValue().getUpdateObject().toString();
+    assertThat(updateObj).contains("$set");
+    assertThat(updateObj).contains("subscriptions.$.interestName");
   }
 }
