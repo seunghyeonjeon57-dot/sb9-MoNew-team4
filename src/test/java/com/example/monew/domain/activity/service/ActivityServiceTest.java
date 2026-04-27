@@ -17,6 +17,7 @@ import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
+import com.mongodb.client.result.UpdateResult;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,6 +35,7 @@ import org.springframework.data.mongodb.core.query.UpdateDefinition;
 import org.bson.Document;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.example.monew.domain.activity.document.UserActivityDocument;
 import com.example.monew.domain.activity.repository.UserActivityRepository;
@@ -286,5 +288,49 @@ public class ActivityServiceTest {
     assertDoesNotThrow(() -> activityService.removeSubscription(userId, interestId));
 
     verify(mongoTemplate, times(1)).updateFirst(any(Query.class), any(Update.class), eq(UserActivityDocument.class));
+  }
+
+  @Test
+  @DisplayName("댓글 좋아요 수 동기화 성공 시 로그 확인")
+  void commentLikeCountInRecentComments_Success() {
+    UUID userId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
+    Long newLikeCount = 10L;
+
+    UpdateResult mockResult = mock(UpdateResult.class);
+    when(mockResult.getModifiedCount()).thenReturn(1L);
+    when(mongoTemplate.updateFirst(any(Query.class), any(UpdateDefinition.class), eq(UserActivityDocument.class)))
+        .thenReturn(mockResult);
+
+    activityService.commentLikeCountInRecentComments(userId, commentId, newLikeCount);
+
+    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
+    verify(mongoTemplate).updateFirst(any(Query.class), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    String updateObj = updateCaptor.getValue().getUpdateObject().toString();
+    assertThat(updateObj).contains("$set");
+    assertThat(updateObj).contains("likeCount=" + newLikeCount);
+  }
+
+  @Test
+  @DisplayName("MongoDB 내 활동 내역 좋아요 삭제(pull) 확인")
+  void removeCommentLikeInActivity_Success() {
+    UUID userId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
+
+    activityService.removeCommentLikeInActivity(userId, commentId);
+
+    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
+    verify(mongoTemplate).updateFirst(any(Query.class), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    var updateObj = updateCaptor.getValue().getUpdateObject();
+
+    var pullDoc = (org.bson.Document) updateObj.get("$pull");
+    var recentLikesQuery = (Query) pullDoc.get("recentLikes");
+
+    var queryObject = recentLikesQuery.getQueryObject();
+    var commentIdValue = queryObject.get("commentId");
+
+    assertThat(commentIdValue).isEqualTo(commentId); // UUID 객체끼리 직접 비교
   }
 }
