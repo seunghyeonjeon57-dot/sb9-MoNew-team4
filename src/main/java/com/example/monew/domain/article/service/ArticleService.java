@@ -43,22 +43,27 @@ public class ArticleService {
           log.warn("뉴스 조회 실패 - 존재하지 않거나 삭제된 ID: {}", id);
           return new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
         });
-
+    if (article.getInterest() != null) {
+      article.getInterest().getKeywords().size();
+      log.debug("관심사 키워드 {}건 로딩 완료", article.getInterest().getKeywords().size());
+    }
     return articleMapper.toDto(article, false);
   }
 
   @Transactional
   public void saveArticle(ArticleEntity article) {
     if (!articleRepository.existsBySourceUrl(article.getSourceUrl())) {
-
       articleRepository.save(article);
       log.debug("개별 뉴스 저장 완료 - URL: {}", article.getSourceUrl());
 
-      if (article.getInterest() != null && !article.getInterest().isBlank()) {
+      if (article.getInterest() != null &&
+          article.getInterest().getName() != null &&
+          !article.getInterest().getName().isBlank()) {
+
         eventPublisher.publishEvent(new ArticleRegisteredEvent(
             article.getId(),
             article.getTitle(),
-            article.getInterest()
+            article.getInterest().getName()
         ));
       }
     } else {
@@ -157,19 +162,23 @@ public class ArticleService {
         .collect(Collectors.toSet());
 
     List<ArticleEntity> newArticles = articles.stream()
-        .filter(article -> !existingUrls.contains(article.getSourceUrl()))
+        .filter(a -> !existingUrls.contains(a.getSourceUrl()))
         .toList();
 
     if (!newArticles.isEmpty()) {
       articleRepository.saveAll(newArticles);
+
       log.info("신규 뉴스 {}건 일괄 저장 완료", newArticles.size());
 
       newArticles.forEach(article -> {
-        if (article.getInterest() != null && !article.getInterest().isBlank()) {
+        if (article.getInterest() != null &&
+            article.getInterest().getName() != null &&
+            !article.getInterest().getName().isBlank()){
+
           eventPublisher.publishEvent(new ArticleRegisteredEvent(
               article.getId(),
               article.getTitle(),
-              article.getInterest()
+              article.getInterest().getName()
           ));
         }
       });

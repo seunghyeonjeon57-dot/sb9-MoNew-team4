@@ -23,8 +23,8 @@ public class NewsBatchScheduler {
   private final InterestRepository interestRepository;
   private final ArticleService articleService;
 
-  @Transactional(readOnly = true)
-  @Scheduled(cron = "0 0 * * * *")
+  @Transactional
+  @Scheduled(cron = "0 0/15 * * * *")
   public void runNewsBatch() {
     log.info("=== 뉴스 배치 수집 시작 ===");
 

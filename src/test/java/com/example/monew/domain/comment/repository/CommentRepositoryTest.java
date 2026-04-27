@@ -9,6 +9,8 @@ import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.comment.dto.CommentDto;
 import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.comment.entity.CommentLikeEntity;
+import com.example.monew.domain.interest.entity.Interest;
+import com.example.monew.domain.interest.repository.InterestRepository;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -38,6 +40,9 @@ public class CommentRepositoryTest {
   private CommentLikeRepository commentLikeRepository;
   @Autowired
   private EntityManager em;
+
+  @Autowired
+  private InterestRepository interestRepository;
 
   @Test
   @DisplayName("댓글 엔티티를 DB에 저장하고 조회할 수 있다.")
@@ -154,9 +159,15 @@ public class CommentRepositoryTest {
   @Test
   @DisplayName("특정 기사의 댓글 목록을 좋아요 순으로 커서 페이징 조회한다")
   void findCommentsByArticleId_OrderByLikes() {
+
+    Interest itInterest = interestRepository.save(Interest.builder()
+        .name("IT")
+        .keywords(List.of("Java", "Spring"))
+        .build());
+
     User user = User.builder()
         .nickname("테스트닉네임")
-        .email("test2@test.com")
+        .email("test_" + UUID.randomUUID() + "@test.com")
         .password("password")
         .build();
     userRepository.save(user);
@@ -167,7 +178,7 @@ public class CommentRepositoryTest {
         .title("기사 제목")
         .publishDate(LocalDateTime.now())
         .summary("요약")
-        .interest("IT")
+        .interest(itInterest)
         .build();
     articleRepository.save(article);
 
@@ -213,6 +224,12 @@ public class CommentRepositoryTest {
   @Test
   @DisplayName("특정 기사의 댓글 목록을 최신순으로 커서 페이징 조회한다")
   void findCommentsByArticleId_OrderByDate() {
+
+    Interest itInterest = interestRepository.save(Interest.builder()
+        .name("IT")
+        .keywords(List.of("Java", "Spring"))
+        .build());
+
     User user = User.builder()
         .nickname("테스트닉네임2")
         .email("test2@test.com")
@@ -226,7 +243,7 @@ public class CommentRepositoryTest {
         .title("기사 제목2")
         .publishDate(LocalDateTime.now())
         .summary("요약")
-        .interest("IT")
+        .interest(itInterest)
         .build();
     articleRepository.save(article);
 
@@ -283,12 +300,18 @@ public class CommentRepositoryTest {
   @Test
   @DisplayName("특정 기사의 댓글 목록을 최신순으로 커서 페이징 조회한다 (다음 페이지)")
   void findCommentsByArticleId_OrderByDate_WithCursor() {
+
+    Interest itInterest = interestRepository.save(Interest.builder()
+        .name("IT")
+        .keywords(List.of("Java", "Spring"))
+        .build());
+
     User user = User.builder().nickname("유저").email("u@test.com").password("p").build();
     userRepository.save(user);
 
     ArticleEntity article = ArticleEntity.builder()
         .source("출").sourceUrl("u" + UUID.randomUUID()).title("기").publishDate(LocalDateTime.now())
-        .summary("요").interest("IT").build();
+        .summary("요").interest(itInterest).build();
     articleRepository.save(article);
 
     CommentEntity c1 = CommentEntity.builder().articleId(article.getId()).userId(user.getId()).content("오래된").likeCount(0L).build();
@@ -321,8 +344,14 @@ public class CommentRepositoryTest {
   @Test
   @DisplayName("특정 기사의 댓글 목록을 좋아요 순으로 커서 페이징 조회한다 (다음 페이지)")
   void findCommentsByArticleId_OrderByLikes_ReturnsNextPage() {
+
+    Interest itInterest = interestRepository.save(Interest.builder()
+        .name("IT")
+        .keywords(List.of("Java", "Spring"))
+        .build());
+
     User user = userRepository.save(User.builder().nickname("유저").email("like@test.com").password("p").build());
-    ArticleEntity article = articleRepository.save(ArticleEntity.builder().source("출").sourceUrl("l" + UUID.randomUUID()).title("기").publishDate(LocalDateTime.now()).interest("IT").build());
+    ArticleEntity article = articleRepository.save(ArticleEntity.builder().source("출").sourceUrl("l" + UUID.randomUUID()).title("기").publishDate(LocalDateTime.now()).interest(itInterest).build());
 
     CommentEntity c1 = commentRepository.save(CommentEntity.builder().articleId(article.getId()).userId(user.getId()).content("좋아요 많음").likeCount(10L).build());
     CommentEntity c2 = commentRepository.save(CommentEntity.builder().articleId(article.getId()).userId(user.getId()).content("좋아요 적음").likeCount(5L).build());
@@ -351,8 +380,14 @@ public class CommentRepositoryTest {
   @Test
   @DisplayName("로그인한 유저(currentUserId)가 있을 때 좋아요 여부 서브쿼리를 실행한다")
   void findCommentsByArticleId_WithCurrentUserId__LoggedInUser_ReturnsLikedByMe() {
+
+    Interest itInterest = interestRepository.save(Interest.builder()
+        .name("IT")
+        .keywords(List.of("Java", "Spring"))
+        .build());
+
     User user = userRepository.save(User.builder().nickname("유저").email("me@test.com").password("p").build());
-    ArticleEntity article = articleRepository.save(ArticleEntity.builder().source("출").sourceUrl("m" + UUID.randomUUID()).title("기").publishDate(LocalDateTime.now()).interest("IT").build());
+    ArticleEntity article = articleRepository.save(ArticleEntity.builder().source("출").sourceUrl("m" + UUID.randomUUID()).title("기").publishDate(LocalDateTime.now()).interest(itInterest).build());
 
     commentRepository.save(CommentEntity.builder()
         .articleId(article.getId())
@@ -381,6 +416,12 @@ public class CommentRepositoryTest {
   @Test
   @DisplayName("로그인한 유저가 좋아요를 누른 경우, 해당 댓글의 likedByMe는 true이다")
   void findCommentsByArticleId_LikedByMe_True() {
+
+    Interest itInterest = interestRepository.save(Interest.builder()
+        .name("IT")
+        .keywords(List.of("Java", "Spring"))
+        .build());
+
     User user = userRepository.save(User.builder()
         .nickname("유저")
         .email("me_" + UUID.randomUUID() + "@test.com")
@@ -392,7 +433,7 @@ public class CommentRepositoryTest {
         .source("출")
         .sourceUrl("m" + UUID.randomUUID())
         .publishDate(LocalDateTime.now())
-        .interest("IT")
+        .interest(itInterest)
         .build());
 
     CommentEntity comment = commentRepository.save(CommentEntity.builder()

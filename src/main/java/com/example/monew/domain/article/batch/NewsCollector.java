@@ -2,6 +2,8 @@ package com.example.monew.domain.article.batch;
 
 import com.example.monew.domain.article.batch.dto.NaverApiResponse;
 import com.example.monew.domain.article.entity.ArticleEntity;
+import com.example.monew.domain.interest.entity.Interest;
+import com.example.monew.domain.interest.repository.InterestRepository;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -29,9 +31,11 @@ public class NewsCollector {
   @Value("${news.api.naver.client-id}") private String clientId;
   @Value("${news.api.naver.client-secret}") private String clientSecret;
 
+  private final InterestRepository interestRepository;
   private final RestTemplate restTemplate;
 
-  public NewsCollector(RestTemplateBuilder restTemplateBuilder) {
+  public NewsCollector(RestTemplateBuilder restTemplateBuilder, InterestRepository interestRepository) {
+    this.interestRepository = interestRepository;
     this.restTemplate = restTemplateBuilder
         .connectTimeout(Duration.ofSeconds(3))
         .readTimeout(Duration.ofSeconds(5))
@@ -44,6 +48,8 @@ public class NewsCollector {
   public List<ArticleEntity> fetchNaver(String keyword) {
     String url = "https://openapi.naver.com/v1/search/news.json?query=" + keyword + "&display=10&sort=sim";
 
+    Interest interest = interestRepository.findByNameAndDeletedAtIsNull(keyword).orElse(null);
+
     HttpHeaders headers = new HttpHeaders();
     headers.set("X-Naver-Client-Id", clientId);
     headers.set("X-Naver-Client-Secret", clientSecret);
@@ -52,14 +58,18 @@ public class NewsCollector {
       ResponseEntity<NaverApiResponse> response = restTemplate.exchange(
           url, HttpMethod.GET, new HttpEntity<>(headers), NaverApiResponse.class);
 
+      if (response.getBody() == null || response.getBody().items() == null) {
+        log.warn("네이버 API 응답이 비어있습니다. 키워드: {}", keyword);
+        return List.of();
+      }
       return response.getBody().items().stream().map(item ->
           ArticleEntity.builder()
               .title(cleanHtml(item.title()))
               .summary(cleanHtml(item.description()))
               .sourceUrl(item.originallink())
-              .source("네이버 뉴스")
+              .source("NAVER")
               .publishDate(ZonedDateTime.parse(item.pubDate(), naverDateFormatter).toLocalDateTime())
-              .interest(keyword)
+              .interest(interest)
               .build()
 
       ).toList();
@@ -69,8 +79,10 @@ public class NewsCollector {
     }
   }
 
-  public List<ArticleEntity> fetchRss(String rssUrl, String pressName, String interest) {
-    try (XmlReader reader = new XmlReader(new URL(rssUrl))) {
+  public List<ArticleEntity> fetchRss(String rssUrl, String pressName, String interestName) {
+    Interest interest = interestRepository.findByNameAndDeletedAtIsNull(interestName).orElse(null);
+    try (XmlReader reader = new XmlReader(new URL(rssUrl).openStream())) {
+
       SyndFeed feed = new SyndFeedInput().build(reader);
       return feed.getEntries().stream()
           .map(entry -> {

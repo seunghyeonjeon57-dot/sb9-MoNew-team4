@@ -1,10 +1,14 @@
 package com.example.monew.domain.article.entity;
 
+import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.global.base.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -47,11 +51,13 @@ public class ArticleEntity extends BaseEntity {
   @Column(name = "view_count", nullable = false)
   private long viewCount;
 
-  private String interest;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "interest_id") // 스키마의 interest_id와 매핑
+  private Interest interest;
 
   @Builder
   public ArticleEntity(UUID id, String source, String sourceUrl, String title,
-      LocalDateTime publishDate, String summary, String interest) {
+      LocalDateTime publishDate, String summary, Interest interest) {
     this.id = id; // 생성자 매개변수에 id 추가 및 할당
     this.source = source;
     this.sourceUrl = sourceUrl;
@@ -66,5 +72,8 @@ public class ArticleEntity extends BaseEntity {
   // 동일 사용자 체크 후 연산자로 1 증가
   public void incrementViewCount() {
     this.viewCount++;
+  }
+  public void incrementCommentCount() {
+    this.commentCount++;
   }
 }

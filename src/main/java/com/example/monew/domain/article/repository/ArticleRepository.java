@@ -19,7 +19,7 @@ public interface ArticleRepository extends JpaRepository<ArticleEntity, UUID>,
 
   @Query("SELECT a FROM ArticleEntity a WHERE a.deletedAt IS NULL AND " +
       "(:keyword IS NULL OR a.title LIKE %:keyword% OR a.summary LIKE %:keyword%) AND " +
-      "(:interest IS NULL OR a.interest = :interest) AND " +
+      "(:interest IS NULL OR a.interest.name = :interest) AND " +
       "(:source IS NULL OR a.source = :source) AND " +
       "(:start IS NULL OR a.publishDate >= :start) AND " +
       "(:end IS NULL OR a.publishDate <= :end)")
@@ -27,12 +27,11 @@ public interface ArticleRepository extends JpaRepository<ArticleEntity, UUID>,
       @Param("keyword") String keyword,
       @Param("interest") String interest,
       @Param("source") String source,
-
       @Param("start") LocalDateTime start,
       @Param("end") LocalDateTime end,
       Pageable pageable);
 
-  @Query("SELECT DISTINCT a.source FROM ArticleEntity a WHERE a.deletedAt IS NULL")
+  @Query("SELECT DISTINCT UPPER(a.source) FROM ArticleEntity a WHERE a.deletedAt IS NULL")
   List<String> findAllSources();
 
   @Modifying
@@ -58,4 +57,17 @@ public interface ArticleRepository extends JpaRepository<ArticleEntity, UUID>,
   @Query("SELECT a FROM ArticleEntity a WHERE a.sourceUrl = :sourceUrl")
   Optional<ArticleEntity> findBySourceUrl(@Param("sourceUrl") String sourceUrl);
 
+  @Query("SELECT a FROM ArticleEntity a " +
+      "LEFT JOIN FETCH a.interest i " +
+      "LEFT JOIN FETCH i.keywords " +
+      "WHERE a.id = :id AND a.deletedAt IS NULL")
+  Optional<ArticleEntity> findByIdWithInterest(@Param("id") UUID id);
+
+  @Modifying(clearAutomatically = true)
+  @Query("UPDATE ArticleEntity a SET a.commentCount = a.commentCount - 1 WHERE a.id = :id AND a.commentCount > 0")
+  void decrementCommentCount(@Param("id") UUID id);
+
+  @Modifying(clearAutomatically = true)
+  @Query("UPDATE ArticleEntity a SET a.commentCount = a.commentCount + 1 WHERE a.id = :id")
+  void incrementCommentCount(@Param("id") UUID id);
 }
