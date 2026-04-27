@@ -71,7 +71,6 @@ public class InterestController {
   })
   @PostMapping
   public ResponseEntity<InterestResponse> create(
-      @RequestHeader("Monew-Request-User-ID") UUID userId,
       @Valid @RequestBody InterestCreateRequest request) {
     InterestResponse response = interestService.create(request);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -89,10 +88,9 @@ public class InterestController {
   })
   @PatchMapping("/{interestId}")
   public ResponseEntity<InterestResponse> updateKeywords(
-      @RequestHeader("Monew-Request-User-ID") UUID userId,
       @PathVariable UUID interestId,
       @Valid @RequestBody InterestUpdateRequest request) {
-    return ResponseEntity.ok(interestService.updateKeywords(interestId, request, userId));
+    return ResponseEntity.ok(interestService.updateKeywords(interestId, request, null));
   }
 
   @Operation(summary = "관심사 물리 삭제", description = "관심사를 물리 삭제합니다. 구독 레코드도 함께 제거됩니다.")
@@ -105,7 +103,6 @@ public class InterestController {
   })
   @DeleteMapping("/{interestId}")
   public ResponseEntity<Void> delete(
-      @RequestHeader("Monew-Request-User-ID") UUID userId,
       @PathVariable UUID interestId) {
     interestService.delete(interestId);
     return ResponseEntity.noContent().build();
