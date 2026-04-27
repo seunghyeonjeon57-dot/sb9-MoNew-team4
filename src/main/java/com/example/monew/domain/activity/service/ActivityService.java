@@ -208,9 +208,13 @@ public class ActivityService {
 
   public void updateSubscribeInActivity(UUID userId, SubscriptionResponse subscriptionResponse) {
     try{
-      Query query = new Query(Criteria.where("_id").is(userId).and("subscribedInterests.interestId").is(subscriptionResponse.id()));
+      Query query = new Query(Criteria.where("_id").is(userId)
+          .and("subscriptions.interestId")
+          .is(subscriptionResponse.interestId()));
 
-      Update update = new Update().set("subscribedInterests.$", subscriptionResponse);
+      Update update = new Update()
+          .set("subscriptions.$.interestName", subscriptionResponse.interestName())
+          .set("subscriptions.$.interestKeywords", subscriptionResponse.interestKeywords());
 
       mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
       log.info("MongoDB 활동 내역 관심사 수정 성공: userId={}, subscribeId={}", userId, subscriptionResponse.id());
