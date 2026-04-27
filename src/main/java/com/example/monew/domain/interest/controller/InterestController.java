@@ -41,7 +41,8 @@ public class InterestController {
   @Operation(summary = "관심사 목록 조회", description = "커서 기반 페이지네이션으로 관심사 목록을 조회합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "조회 성공"),
-      @ApiResponse(responseCode = "400", description = "잘못된 정렬/헤더 파라미터",
+      @ApiResponse(responseCode = "400", description = "\t\n"
+          + "잘못된 요청 (정렬 기준 오류, 페이지네이션 파라미터 오류 등)",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -53,18 +54,18 @@ public class InterestController {
       @RequestParam String direction,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
-      @RequestParam int limit,
-      @RequestHeader("Monew-Request-User-ID") UUID userId) {
+      @RequestParam int limit)
+       {
     return ResponseEntity.ok(
-        interestService.getInterests(keyword, orderBy, direction, cursor, after, limit, userId));
+        interestService.getInterests(keyword, orderBy, direction, cursor, after, limit, null));
   }
 
   @Operation(summary = "관심사 등록", description = "새 관심사를 등록합니다. 기존 이름과 80% 이상 유사한 경우 409를 반환합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "201", description = "등록 성공"),
-      @ApiResponse(responseCode = "400", description = "입력값 검증 실패",
+      @ApiResponse(responseCode = "400", description = "잘못된 요청(입력값 검증 실패)",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-      @ApiResponse(responseCode = "409", description = "유사 관심사 이름 중복 (SIMILAR_INTEREST_NAME)",
+      @ApiResponse(responseCode = "409", description = "유사 관심사 이름 중복",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -79,9 +80,10 @@ public class InterestController {
   @Operation(summary = "관심사 키워드 수정", description = "관심사의 키워드 목록만 수정합니다. 이름 필드가 포함되면 400을 반환합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "수정 성공"),
-      @ApiResponse(responseCode = "400", description = "입력값 검증 실패 또는 이름 수정 시도 (INTEREST_NAME_IMMUTABLE)",
+      @ApiResponse(responseCode = "400", description = "\t\n"
+          + "잘못된 요청 (입력값 검증 실패)",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-      @ApiResponse(responseCode = "404", description = "관심사 정보 없음 (INTEREST_NOT_FOUND)",
+      @ApiResponse(responseCode = "404", description = "관심사 정보 없음",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -96,7 +98,7 @@ public class InterestController {
   @Operation(summary = "관심사 물리 삭제", description = "관심사를 물리 삭제합니다. 구독 레코드도 함께 제거됩니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "204", description = "삭제 성공"),
-      @ApiResponse(responseCode = "404", description = "관심사 정보 없음 (INTEREST_NOT_FOUND)",
+      @ApiResponse(responseCode = "404", description = "관심사 정보 없음",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
