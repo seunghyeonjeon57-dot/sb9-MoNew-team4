@@ -4,7 +4,6 @@ package com.example.monew.domain.article.batch;
 import com.example.monew.domain.article.batch.service.BackupService;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import lombok.extern.slf4j.Slf4j;
 
