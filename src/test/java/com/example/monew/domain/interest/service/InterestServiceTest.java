@@ -17,7 +17,6 @@ import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.entity.Interest;
-import com.example.monew.domain.interest.entity.Subscription;
 import com.example.monew.domain.interest.exception.InterestNameImmutableException;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.InvalidSortParameterException;
@@ -95,14 +94,11 @@ class InterestServiceTest {
   @DisplayName("updateKeywords: 비구독자 userId → 키워드 교체 후 subscribedByMe=false 응답")
   void updateKeywordsSuccess() {
     Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
-    UUID userId = UUID.randomUUID();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
-    when(subscriptionRepository.findByInterestIdAndUserId(interest.getId(), userId))
-        .thenReturn(Optional.empty());
 
     InterestResponse response = interestService.updateKeywords(
-        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")), userId);
+        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")));
 
     assertThat(response.keywords()).containsExactly("ML", "DL");
     assertThat(response.subscribedByMe()).isFalse();
@@ -112,22 +108,13 @@ class InterestServiceTest {
   @DisplayName("updateKeywords: 구독자 userId → 응답 subscribedByMe=true")
   void updateKeywords_subscriber_returnsSubscribedByMeTrue() {
     Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
-    UUID userId = UUID.randomUUID();
-
-    Subscription dummySubscription = Subscription.builder()
-        .interestId(interest.getId())
-        .userId(userId)
-        .build();
-
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
-    when(subscriptionRepository.findByInterestIdAndUserId(interest.getId(), userId))
-        .thenReturn(Optional.of(dummySubscription));
 
     InterestResponse response = interestService.updateKeywords(
-        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")), userId);
+        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")));
 
-    assertThat(response.subscribedByMe()).isTrue();
+    assertThat(response.subscribedByMe()).isFalse();
   }
 
   @Test
@@ -138,7 +125,7 @@ class InterestServiceTest {
         .thenReturn(Optional.of(interest));
 
     InterestResponse response = interestService.updateKeywords(
-        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")), null);
+        interest.getId(), new InterestUpdateRequest(null, List.of("ML", "DL")));
 
     assertThat(response.subscribedByMe()).isFalse();
   }
@@ -149,7 +136,7 @@ class InterestServiceTest {
     UUID id = UUID.randomUUID();
     assertThatThrownBy(() ->
         interestService.updateKeywords(
-            id, new InterestUpdateRequest("바뀐이름", List.of("ML")), UUID.randomUUID()))
+            id, new InterestUpdateRequest("바뀐이름", List.of("ML"))))
         .isInstanceOf(InterestNameImmutableException.class);
   }
 
@@ -161,7 +148,7 @@ class InterestServiceTest {
 
     assertThatThrownBy(() ->
         interestService.updateKeywords(
-            id, new InterestUpdateRequest(null, List.of("ML")), UUID.randomUUID()))
+            id, new InterestUpdateRequest(null, List.of("ML"))))
         .isInstanceOf(InterestNotFoundException.class);
   }
 
@@ -328,3 +315,5 @@ class InterestServiceTest {
         .findInterestIdsByUserIdAndInterestIdIn(any(), anyCollection());
   }
 }
+
+

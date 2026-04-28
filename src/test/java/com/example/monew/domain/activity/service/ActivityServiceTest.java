@@ -19,7 +19,6 @@ import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
 import com.mongodb.client.result.UpdateResult;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -385,32 +384,6 @@ public class ActivityServiceTest {
     verify(userActivityRepository, times(1)).softDeleteAllByUserId(userId);
   }
 
-  @Test
-  @DisplayName("MongoDB 관심사 수정 시 $ 연산자를 통한 업데이트 확인")
-  void updateSubscribeInActivity_Success() {
-    UUID userId = UUID.randomUUID();
-    UUID interestId = UUID.randomUUID();
-    SubscriptionResponse response = new SubscriptionResponse(
-        UUID.randomUUID(),
-        interestId,
-        "테스트관심사",
-        List.of("키워드1", "키워드2"),
-        100L,
-        LocalDateTime.now()
-    );
-
-    activityService.updateSubscribeInActivity(userId, response);
-
-    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
-    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
-
-    verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
-
-    assertThat(queryCaptor.getValue().getQueryObject()).containsEntry("subscriptions.interestId", interestId);
-
-    String updateObj = updateCaptor.getValue().getUpdateObject().toString();
-    assertThat(updateObj).contains("$set", "subscriptions.$.interestName");
-  }
 
   @Test
   @DisplayName("댓글 좋아요 수 동기화 성공 시 로그 확인")

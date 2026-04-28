@@ -5,9 +5,7 @@ import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
-import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.interest.entity.Interest;
-import com.example.monew.domain.interest.entity.Subscription;
 import com.example.monew.domain.interest.exception.InterestNameImmutableException;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.InvalidSortParameterException;
@@ -119,8 +117,7 @@ public class InterestService {
   }
 
   @Transactional
-  public InterestResponse updateKeywords(
-      UUID interestId, InterestUpdateRequest request, UUID userId) {
+  public InterestResponse updateKeywords(UUID interestId, InterestUpdateRequest request) {
     if (request.name() != null) {
       throw new InterestNameImmutableException(
           Map.of("interestId", interestId.toString(), "rejectedName", request.name()));
@@ -129,18 +126,8 @@ public class InterestService {
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
     interest.replaceKeywords(request.keywords());
 
-    Subscription mySubscription = null;
-    if(userId != null) {
-      mySubscription = subscriptionRepository.findByInterestIdAndUserId(interestId, userId).orElse(null);
-    }
+    activityService.updateInterestKeywords(interestId, request.keywords());
 
-    boolean subscribedByMe = (mySubscription != null);
-
-
-    if(subscribedByMe) {
-      SubscriptionResponse subscriptionResponse = SubscriptionResponse.of(mySubscription, interest);
-      activityService.updateSubscribeInActivity(userId, subscriptionResponse);
-    }
-    return InterestResponse.from(interest, subscribedByMe);
+    return InterestResponse.from(interest, false);
   }
 }

@@ -6,6 +6,7 @@ import com.example.monew.domain.article.dto.ArticleViewDto;
 import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.exception.UserNotFoundException;
+import java.util.List;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import java.util.UUID;
@@ -206,23 +207,6 @@ public class ActivityService {
     }
   }
 
-  public void updateSubscribeInActivity(UUID userId, SubscriptionResponse subscriptionResponse) {
-    try{
-      Query query = new Query(Criteria.where("_id").is(userId)
-          .and("subscriptions.interestId")
-          .is(subscriptionResponse.interestId()));
-
-      Update update = new Update()
-          .set("subscriptions.$.interestName", subscriptionResponse.interestName())
-          .set("subscriptions.$.interestKeywords", subscriptionResponse.interestKeywords());
-
-      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
-      log.info("MongoDB 활동 내역 관심사 수정 성공: userId={}, subscribeId={}", userId, subscriptionResponse.id());
-    } catch (Exception e) {
-      log.warn("MongoDB 활동 내역 관심사 수정 실패: userId={}, , subscribeId={}, error={}", userId, subscriptionResponse.id(), e.getMessage());
-    }
-  }
-
   public void commentLikeCountInRecentComments(UUID userId, UUID commentId, Long newLikeCount) {
     try {
       Query query = new Query(Criteria.where("_id").is(userId)
@@ -250,6 +234,22 @@ public class ActivityService {
       log.info("MongoDB 내 활동 내역(좋아요) 삭제 성공: userId={}, commentId={}", userId, commentId);
     } catch (Exception e) {
       log.warn("MongoDB 내 활동 내역 삭제 실패: userId={}, error={}", userId, e.getMessage());
+    }
+  }
+  public void updateInterestKeywords(UUID interestId, List<String> newKeywords) {
+    try {
+      Query query = new Query(Criteria.where("subscriptions.interestId").is(interestId));
+
+      Update update = new Update()
+          .set("subscriptions.$[elem].interestKeywords", newKeywords);
+
+      update.filterArray(Criteria.where("elem.interestId").is(interestId));
+
+      var result = mongoTemplate.updateMulti(query, update, UserActivityDocument.class);
+
+      log.info("MongoDB 일괄 업데이트 성공: {}건", result.getModifiedCount());
+    } catch (Exception e) {
+      log.error("MongoDB 전체 동기화 실패", e);
     }
   }
 }
