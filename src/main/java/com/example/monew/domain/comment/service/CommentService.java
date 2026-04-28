@@ -62,6 +62,7 @@ public class CommentService {
 
     CommentEntity comment = commentRepository.save(request.toEntity());
     articleRepository.incrementCommentCount(request.articleId());
+    activityService.incrementCommentCountInRecentArticles(request.articleId());
     CommentActivityDto activityDto = CommentActivityDto.builder()
         .id(comment.getId())
         .articleId(request.articleId())
@@ -76,7 +77,7 @@ public class CommentService {
     activityService.updateRecentComments(request.userId(), activityDto);
 
     log.info("댓글 등록 완료: commentId={}", comment.getId());
-    return commentMapper.toDto(comment, null, false);
+    return commentMapper.toDto(comment, user.getNickname(), false);
   }
 
   @Transactional
@@ -113,6 +114,7 @@ public class CommentService {
 
     comment.markDeleted();
     articleRepository.decrementCommentCount(comment.getArticleId());
+    activityService.decrementCommentCountInRecentArticles(comment.getArticleId());
     log.info("댓글 논리 삭제 완료: commentId={}", commentId);
   }
 
@@ -128,6 +130,7 @@ public class CommentService {
 
     commentRepository.delete(comment);
     articleRepository.decrementCommentCount(comment.getArticleId());
+    activityService.decrementCommentCountInRecentArticles(comment.getArticleId());
     log.info("댓글 물리 삭제 완료: commentId={}", commentId);
   }
 
