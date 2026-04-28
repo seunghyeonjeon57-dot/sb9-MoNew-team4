@@ -19,6 +19,7 @@ import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
 import com.mongodb.client.result.UpdateResult;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -426,5 +427,83 @@ public class ActivityServiceTest {
     var commentIdValue = queryObject.get("commentId");
 
     assertThat(commentIdValue).isEqualTo(commentId); // UUID 객체끼리 직접 비교
+  }
+
+  @Test
+  @DisplayName("관심사 키워드 일괄 업데이트 - 배열 필터링 확인")
+  void updateInterestKeywords_Success() {
+    // given
+    UUID interestId = UUID.randomUUID();
+    List<String> newKeywords = List.of("Spring", "MongoDB", "Test");
+
+    UpdateResult mockResult = mock(UpdateResult.class);
+    when(mockResult.getModifiedCount()).thenReturn(5L);
+
+    when(mongoTemplate.updateMulti(any(Query.class), any(Update.class), eq(UserActivityDocument.class)))
+        .thenReturn(mockResult);
+
+    activityService.updateInterestKeywords(interestId, newKeywords);
+
+    ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
+    verify(mongoTemplate).updateMulti(any(Query.class), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    Update capturedUpdate = updateCaptor.getValue();
+
+    assertThat(capturedUpdate.getUpdateObject().toString())
+        .contains("$set", "subscriptions.$[elem].interestKeywords");
+
+    assertThat(capturedUpdate.toString()).contains("elem");
+  }
+
+  @Test
+  @DisplayName("기사 댓글 수 동기화 - 특정 기사의 댓글 수가 정상적으로 증가한다")
+  void incrementCommentCountInRecentArticles_Success() {
+    UUID articleId = UUID.randomUUID();
+    int amount = 1;
+
+    UpdateResult mockResult = mock(UpdateResult.class);
+    when(mockResult.getMatchedCount()).thenReturn(1L);
+    when(mockResult.getModifiedCount()).thenReturn(1L);
+    when(mongoTemplate.updateMulti(any(Query.class), any(UpdateDefinition.class), eq(UserActivityDocument.class)))
+        .thenReturn(mockResult);
+
+    activityService.incrementCommentCountInRecentArticles(articleId, amount);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
+
+    verify(mongoTemplate).updateMulti(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    assertThat(queryCaptor.getValue().getQueryObject())
+        .containsEntry("recentArticles.articleId", articleId);
+
+    String updateObj = updateCaptor.getValue().getUpdateObject().toString();
+    assertThat(updateObj).contains("$inc", "recentArticles.$.articleCommentCount", "1");
+  }
+
+  @Test
+  @DisplayName("기사 댓글 수 감소 동기화 - 특정 기사의 댓글 수가 정상적으로 감소한다")
+  void decrementCommentCountInRecentArticles_Success() {
+    UUID articleId = UUID.randomUUID();
+    int amount = -1;
+
+    UpdateResult mockResult = mock(UpdateResult.class);
+    when(mockResult.getMatchedCount()).thenReturn(1L);
+    when(mockResult.getModifiedCount()).thenReturn(1L);
+    when(mongoTemplate.updateMulti(any(Query.class), any(UpdateDefinition.class), eq(UserActivityDocument.class)))
+        .thenReturn(mockResult);
+
+    activityService.decrementCommentCountInRecentArticles(articleId, amount);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
+
+    verify(mongoTemplate).updateMulti(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    assertThat(queryCaptor.getValue().getQueryObject())
+        .containsEntry("recentArticles.articleId", articleId);
+
+    String updateObj = updateCaptor.getValue().getUpdateObject().toString();
+    assertThat(updateObj).contains("$inc", "recentArticles.$.articleCommentCount", "-1");
   }
 }
