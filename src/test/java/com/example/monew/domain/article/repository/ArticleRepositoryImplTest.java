@@ -274,4 +274,18 @@ class ArticleRepositoryImplTest {
     assertThat(resultIds).contains(a1.getId(), a2.getId(), a3.getId());
     assertThat(resultIds).doesNotContain(a4.getId());
   }
+
+  @Test
+  @DisplayName("전체 분기 테스트에 commentCount 추가")
+  void fullCoverageWithCommentCount() {
+    String cursor = UUID.randomUUID().toString();
+
+    articleRepository.findByCursor(
+        ArticleSearchCondition.builder()
+            .orderBy("commentCount")
+            .direction("DESC")
+            .cursor(cursor)
+            .build()
+    );
+  }
 }
