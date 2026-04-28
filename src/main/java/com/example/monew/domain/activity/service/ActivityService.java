@@ -253,8 +253,9 @@ public class ActivityService {
     }
   }
 
-  public void incrementCommentCountInRecentArticles(UUID articleId, int amount) {
+  public void updateCommentCountInRecentArticles(UUID articleId, int amount) {
     try {
+
       Query query = new Query(Criteria.where("recentArticles.articleId").is(articleId));
 
       Update update = new Update().inc("recentArticles.$.articleCommentCount", amount);
@@ -262,26 +263,11 @@ public class ActivityService {
       com.mongodb.client.result.UpdateResult result =
           mongoTemplate.updateMulti(query, update, UserActivityDocument.class);
 
-      log.info("MongoDB 기사 댓글 동기화 시도 - articleId: {}, 매칭수: {}, 수정수: {}",
-          articleId, result.getMatchedCount(), result.getModifiedCount());
+      log.info("MongoDB 댓글 동기화 완료 [articleId: {}, 증감량: {}, 매칭수: {}, 수정수: {}]",
+          articleId, amount, result.getMatchedCount(), result.getModifiedCount());
 
     } catch (Exception e) {
-      log.error("MongoDB 기사 댓글 동기화 실패: error={}", e.getMessage());
-    }
-  }
-  public void decrementCommentCountInRecentArticles(UUID articleId, int amount) {
-    try {
-      Query query = new Query(Criteria.where("recentArticles.articleId").is(articleId));
-      Update update = new Update().inc("recentArticles.$.articleCommentCount", amount);
-
-      com.mongodb.client.result.UpdateResult result =
-          mongoTemplate.updateMulti(query, update, UserActivityDocument.class);
-
-      log.info("MongoDB 기사 댓글 동기화 시도 - articleId: {}, 매칭수: {}, 수정수: {}",
-          articleId, result.getMatchedCount(), result.getModifiedCount());
-
-    } catch (Exception e) {
-      log.error("MongoDB 기사 댓글 동기화 실패: error={}", e.getMessage());
+      log.error("MongoDB 댓글 동기화 실패: articleId={}, error={}", articleId, e.getMessage());
     }
   }
 }

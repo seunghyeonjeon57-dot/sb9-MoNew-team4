@@ -456,54 +456,29 @@ public class ActivityServiceTest {
   }
 
   @Test
-  @DisplayName("기사 댓글 수 동기화 - 특정 기사의 댓글 수가 정상적으로 증가한다")
-  void incrementCommentCountInRecentArticles_Success() {
+  @DisplayName("기사 댓글 수 증감 동기화 - 양수/음수 증감량이 정확히 반영된다")
+  void updateCommentCountInRecentArticles_Success() {
     UUID articleId = UUID.randomUUID();
-    int amount = 1;
+    int amount = 5;
 
     UpdateResult mockResult = mock(UpdateResult.class);
     when(mockResult.getMatchedCount()).thenReturn(1L);
     when(mockResult.getModifiedCount()).thenReturn(1L);
-    when(mongoTemplate.updateMulti(any(Query.class), any(UpdateDefinition.class), eq(UserActivityDocument.class)))
+
+    when(mongoTemplate.updateMulti(any(Query.class), any(Update.class), eq(UserActivityDocument.class)))
         .thenReturn(mockResult);
 
-    activityService.incrementCommentCountInRecentArticles(articleId, amount);
+    activityService.updateCommentCountInRecentArticles(articleId, amount);
 
     ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
-    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
+    ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
 
     verify(mongoTemplate).updateMulti(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
 
-    assertThat(queryCaptor.getValue().getQueryObject())
-        .containsEntry("recentArticles.articleId", articleId);
+    assertThat(queryCaptor.getValue().getQueryObject().get("recentArticles.articleId"))
+        .isEqualTo(articleId);
 
     String updateObj = updateCaptor.getValue().getUpdateObject().toString();
-    assertThat(updateObj).contains("$inc", "recentArticles.$.articleCommentCount", "1");
-  }
-
-  @Test
-  @DisplayName("기사 댓글 수 감소 동기화 - 특정 기사의 댓글 수가 정상적으로 감소한다")
-  void decrementCommentCountInRecentArticles_Success() {
-    UUID articleId = UUID.randomUUID();
-    int amount = -1;
-
-    UpdateResult mockResult = mock(UpdateResult.class);
-    when(mockResult.getMatchedCount()).thenReturn(1L);
-    when(mockResult.getModifiedCount()).thenReturn(1L);
-    when(mongoTemplate.updateMulti(any(Query.class), any(UpdateDefinition.class), eq(UserActivityDocument.class)))
-        .thenReturn(mockResult);
-
-    activityService.decrementCommentCountInRecentArticles(articleId, amount);
-
-    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
-    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
-
-    verify(mongoTemplate).updateMulti(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
-
-    assertThat(queryCaptor.getValue().getQueryObject())
-        .containsEntry("recentArticles.articleId", articleId);
-
-    String updateObj = updateCaptor.getValue().getUpdateObject().toString();
-    assertThat(updateObj).contains("$inc", "recentArticles.$.articleCommentCount", "-1");
+    assertThat(updateObj).contains("$inc", "recentArticles.$.articleCommentCount", "5");
   }
 }

@@ -63,7 +63,7 @@ public class CommentService {
 
     // 3. 벌크 업데이트 수행 (댓글 수 증가)
     articleRepository.incrementCommentCount(request.articleId());
-    activityService.incrementCommentCountInRecentArticles(request.articleId(), 1);
+    activityService.updateCommentCountInRecentArticles(request.articleId(), 1);
 
     // 4. 활동 내역 업데이트는 '가장 마지막'에 수행
     CommentActivityDto activityDto = CommentActivityDto.builder()
@@ -118,7 +118,7 @@ public class CommentService {
     comment.markDeleted();
     commentRepository.saveAndFlush(comment);
     articleRepository.decrementCommentCount(comment.getArticleId());
-    activityService.decrementCommentCountInRecentArticles(comment.getArticleId(), -1);
+    activityService.updateCommentCountInRecentArticles(comment.getArticleId(), -1);
     log.info("댓글 논리 삭제 완료: commentId={}", commentId);
   }
 
@@ -134,7 +134,7 @@ public class CommentService {
 
     commentRepository.delete(comment);
     articleRepository.decrementCommentCount(comment.getArticleId());
-    activityService.decrementCommentCountInRecentArticles(comment.getArticleId(), -1);
+    activityService.updateCommentCountInRecentArticles(comment.getArticleId(), -1);
     log.info("댓글 물리 삭제 완료: commentId={}", commentId);
   }
 
