@@ -1,10 +1,13 @@
 package com.example.monew.domain.interest.service;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
+import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.interest.entity.Interest;
+import com.example.monew.domain.interest.entity.Subscription;
 import com.example.monew.domain.interest.exception.InterestNameImmutableException;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.InvalidSortParameterException;
@@ -33,6 +36,7 @@ public class InterestService {
 
   private final InterestRepository interestRepository;
   private final SubscriptionRepository subscriptionRepository;
+  private final ActivityService activityService;
 
   @Transactional
   public InterestResponse create(InterestCreateRequest request) {
@@ -124,8 +128,19 @@ public class InterestService {
     Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
     interest.replaceKeywords(request.keywords());
-    boolean subscribedByMe = userId != null
-        && subscriptionRepository.existsByInterestIdAndUserId(interestId, userId);
+
+    Subscription mySubscription = null;
+    if(userId != null) {
+      mySubscription = subscriptionRepository.findByInterestIdAndUserId(interestId, userId).orElse(null);
+    }
+
+    boolean subscribedByMe = (mySubscription != null);
+
+
+    if(subscribedByMe) {
+      SubscriptionResponse subscriptionResponse = SubscriptionResponse.of(mySubscription, interest);
+      activityService.updateSubscribeInActivity(userId, subscriptionResponse);
+    }
     return InterestResponse.from(interest, subscribedByMe);
   }
 }

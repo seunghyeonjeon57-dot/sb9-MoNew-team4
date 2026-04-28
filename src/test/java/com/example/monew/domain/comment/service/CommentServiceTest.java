@@ -2,12 +2,15 @@ package com.example.monew.domain.comment.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.entity.ArticleEntity;
@@ -430,5 +433,36 @@ public class CommentServiceTest {
     assertThatThrownBy(() -> commentService.hardDeleteComment(commentId))
         .isInstanceOf(CommentNotFoundException.class)
         .hasMessage("해당 댓글을 찾을 수 없습니다.");
+  }
+
+  @Test
+  @DisplayName("좋아요 취소 성공 시 로직 흐름 확인")
+  void removeLike_Success() {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    CommentEntity mockComment = mock(CommentEntity.class);
+
+    when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(mockComment));
+    when(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).thenReturn(true);
+
+    commentService.removeLike(commentId, userId);
+
+    verify(mockComment, times(1)).decrementLikeCount();
+    verify(commentLikeRepository, times(1)).deleteByCommentIdAndUserId(commentId, userId);
+    verify(activityService, times(1)).removeRecentLikedComments(userId, commentId);
+  }
+
+  @Test
+  @DisplayName("좋아요 취소 시 존재하지 않는 댓글이면 예외 발생")
+  void removeLike_CommentNotFound() {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.empty());
+
+
+    assertThrows(CommentNotFoundException.class, () ->
+        commentService.removeLike(commentId, userId)
+    );
   }
 }

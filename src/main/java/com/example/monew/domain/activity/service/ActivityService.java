@@ -175,4 +175,51 @@ public class ActivityService {
       log.warn("MongoDB 관심사 구독 취소 반영 실패: userId={}, interestId={}, error={}", userId, interestId, e.getMessage());
     }
   }
+
+
+  public void updateRecentCommentsInactivity(UUID userId, UUID commentId, String newComment) {
+    try{
+      Query query = new Query(Criteria.where("_id")
+          .is(userId)
+          .and("recentComments.id")
+          .is(commentId));
+
+      Update update = new Update().set("recentComments.$.content", newComment);
+
+      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+      log.info("MongoDB 활동 내역 댓글 수정 동기화 성공: userId={}, commentId={}", userId, commentId);
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 댓글 수정 동기화 실패: userId={}, commentId={}, error={}", userId, commentId, e.getMessage());
+    }
+  }
+
+  public void removeRecentLikedComments(UUID userId, UUID commentId){
+    try{
+      Query query = new Query(Criteria.where("_id").is(userId));
+
+      Update update = new Update().pull("recentLikes", new org.bson.Document("commentId", commentId));
+
+      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+      log.info("MongoDB 활동 내역 좋아요 삭제 성공: userId={}, commentId={}", userId, commentId);
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 좋아요 삭제 실패: userId={}, commentId={}, error={}", userId, commentId, e.getMessage());
+    }
+  }
+
+  public void updateSubscribeInActivity(UUID userId, SubscriptionResponse subscriptionResponse) {
+    try{
+      Query query = new Query(Criteria.where("_id").is(userId)
+          .and("subscriptions.interestId")
+          .is(subscriptionResponse.interestId()));
+
+      Update update = new Update()
+          .set("subscriptions.$.interestName", subscriptionResponse.interestName())
+          .set("subscriptions.$.interestKeywords", subscriptionResponse.interestKeywords());
+
+      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+      log.info("MongoDB 활동 내역 관심사 수정 성공: userId={}, subscribeId={}", userId, subscriptionResponse.id());
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 관심사 수정 실패: userId={}, , subscribeId={}, error={}", userId, subscriptionResponse.id(), e.getMessage());
+    }
+  }
 }
