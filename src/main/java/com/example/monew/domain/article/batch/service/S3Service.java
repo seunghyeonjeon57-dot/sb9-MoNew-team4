@@ -39,15 +39,8 @@ public class S3Service {
   public File download(String key) {
     try {
 
-      String tempFileName = "s3-restore-" + System.currentTimeMillis();
-      java.nio.file.Path tempPath = Files.createTempDirectory("monew-batch").resolve(tempFileName + ".json");
+      java.nio.file.Path tempPath = Files.createTempFile("s3-restore-", ".json");
       File tempFile = tempPath.toFile();
-
-      GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-          .bucket(bucket)
-          .key(key)
-          .build();
-      s3Client.getObject(getObjectRequest, tempPath);
 
       if (java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
         Files.setPosixFilePermissions(tempPath, java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"));
@@ -55,6 +48,12 @@ public class S3Service {
         tempFile.setReadable(true, true);
         tempFile.setWritable(true, true);
       }
+
+      GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+          .bucket(bucket)
+          .key(key)
+          .build();
+      s3Client.getObject(getObjectRequest, tempPath);
 
       tempFile.deleteOnExit();
       return tempFile;

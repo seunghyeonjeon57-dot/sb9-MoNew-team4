@@ -39,35 +39,51 @@ class S3Servicetest {
   }
 
   @Test
-  @DisplayName("업로드 성공 시 s3Client의 putObject가 호출")
+  @DisplayName("다운로드 성공 시 임시 파일 생성 및 권한 설정 확인")
+  void download_Success() throws Exception {
+    // given
+    String key = "test.json";
+    // s3Client.getObject 호출 시 실제로 파일을 생성하도록 모킹 (파일이 있어야 권한 체크 가능)
+    doAnswer(invocation -> {
+      Path path = invocation.getArgument(1);
+      // 이미 createTempFile로 파일이 생성된 상태이므로, 내용만 써주거나 그대로 둡니다.
+      return null;
+    }).when(s3Client).getObject(any(GetObjectRequest.class), any(Path.class));
+
+    // when
+    File file = s3Service.download(key);
+
+    // then
+    assertThat(file).exists();
+    assertThat(file.getName()).startsWith("s3-restore-");
+
+    // 권한 설정 커버리지 및 검증 코드
+    if (java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+      // POSIX 환경(Mac, Linux)인 경우 rw------- 권한 확인
+      var permissions = Files.getPosixFilePermissions(file.toPath());
+      assertThat(permissions).containsExactlyInAnyOrder(
+          java.nio.file.attribute.PosixFilePermission.OWNER_READ,
+          java.nio.file.attribute.PosixFilePermission.OWNER_WRITE
+      );
+    } else {
+      // Non-POSIX(Windows)인 경우
+      assertThat(file.canRead()).isTrue();
+      assertThat(file.canWrite()).isTrue();
+    }
+
+    // 테스트 후 정리 (deleteOnExit가 있지만 즉시 삭제 권장)
+    file.delete();
+  }
+
+  @Test
+  @DisplayName("파일 업로드 성공 테스트")
   void upload_Success() {
     s3Service.upload("test.json", "{}");
-
     verify(s3Client, times(1)).putObject(any(PutObjectRequest.class), any(RequestBody.class));
   }
 
   @Test
-  @DisplayName("다운로드 성공 시 임시 파일 생성")
-  void download_Success() {
-    doAnswer(invocation -> {
-      Path path = invocation.getArgument(1);
-      Files.createFile(path);
-      return null;
-    }).when(s3Client).getObject(any(GetObjectRequest.class), any(Path.class));
-
-    File file = s3Service.download("test.json");
-
-    assertThat(file).exists();
-    assertThat(file.getName()).startsWith("s3-restore-");
-
-    if (file.exists()) {
-      file.delete();
-      file.getParentFile().delete();
-    }
-  }
-
-  @Test
-  @DisplayName("파일이 없을 때 예외 발생")
+  @DisplayName("S3에 파일이 없을 때 S3FileNotFoundException 발생")
   void download_Fail_NotFound() {
     when(s3Client.getObject(any(GetObjectRequest.class), any(Path.class)))
         .thenThrow(NoSuchKeyException.builder().build());
@@ -77,7 +93,7 @@ class S3Servicetest {
   }
 
   @Test
-  @DisplayName("기타 에러 시 S3DownloadException이 발생")
+  @DisplayName("S3 다운로드 중 일반 에러 발생 시 S3DownloadException 발생")
   void download_Fail_General() {
     when(s3Client.getObject(any(GetObjectRequest.class), any(Path.class)))
         .thenThrow(new RuntimeException("S3 Error"));

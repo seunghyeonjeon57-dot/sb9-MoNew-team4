@@ -61,18 +61,6 @@ public class BackupService {
     }
   }
 
-  @SneakyThrows
-  private void restoreByFileName(String fileName) {
-    File localFile = s3Service.download(fileName);
-
-    JobParameters params = new JobParametersBuilder()
-        .addString("filePath", localFile.getAbsolutePath())
-        .addLong("time", System.currentTimeMillis())
-        .toJobParameters();
-
-    jobLauncher.run(restoreJob, params);
-  }
-
   @Transactional
   @SneakyThrows
   public void restoreNews(LocalDateTime targetTime) {
@@ -97,4 +85,6 @@ public class BackupService {
       throw new RestoreFailedException(targetTime + " 시점 파일 복구 중 오류", e);
     }
   }
+
+
 }
