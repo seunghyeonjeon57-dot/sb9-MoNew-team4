@@ -38,16 +38,22 @@ public class S3Service {
   }
   public File download(String key) {
     try {
-
-      java.nio.file.Path tempPath = Files.createTempFile("s3-restore-", ".json");
-      File tempFile = tempPath.toFile();
+      java.nio.file.Path tempPath;
 
       if (java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-        Files.setPosixFilePermissions(tempPath, java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"));
+        java.nio.file.attribute.FileAttribute<java.util.Set<java.nio.file.attribute.PosixFilePermission>> attr =
+            java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                java.nio.file.attribute.PosixFilePermissions.fromString("rw-------")
+            );
+        tempPath = Files.createTempFile("s3-restore-", ".json", attr);
       } else {
+        tempPath = Files.createTempFile("s3-restore-", ".json");
+        File tempFile = tempPath.toFile();
         tempFile.setReadable(true, true);
         tempFile.setWritable(true, true);
       }
+
+      File tempFile = tempPath.toFile();
 
       GetObjectRequest getObjectRequest = GetObjectRequest.builder()
           .bucket(bucket)
