@@ -95,6 +95,8 @@ public class CommentService {
 
     comment.updateContent(request.content());
 
+    activityService.updateRecentCommentsInactivity(userId, commentId, request.content());
+
     log.info("댓글 수정 완료: commentId={}", commentId);
     return commentMapper.toDto(comment, null, false);
   }
@@ -171,6 +173,12 @@ public class CommentService {
         .build();
     commentLikeRepository.save(commentLike);
 
+    activityService.commentLikeCountInRecentComments(
+        comment.getUserId(),
+        commentId,
+        comment.getLikeCount()
+    );
+
     CommentLikeActivityDto activityDto = CommentLikeActivityDto.builder()
         .id(UUID.randomUUID())
         .createdAt(LocalDateTime.now())
@@ -215,7 +223,16 @@ public class CommentService {
 
     comment.decrementLikeCount();
 
+    activityService.commentLikeCountInRecentComments(
+        comment.getUserId(),
+        commentId,
+        comment.getLikeCount()
+    );
+
+    activityService.removeCommentLikeInActivity(userId, commentId);
     commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
+
+    activityService.removeRecentLikedComments(userId, commentId);
 
     log.info("좋아요 취소 완료: userId={}, commentId={}", userId, commentId);
   }

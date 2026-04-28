@@ -177,6 +177,66 @@ public class ActivityService {
       log.warn("MongoDB 관심사 구독 취소 반영 실패: userId={}, interestId={}, error={}", userId, interestId, e.getMessage());
     }
   }
+
+
+  public void updateRecentCommentsInactivity(UUID userId, UUID commentId, String newComment) {
+    try{
+      Query query = new Query(Criteria.where("_id")
+          .is(userId)
+          .and("recentComments.id")
+          .is(commentId));
+
+      Update update = new Update().set("recentComments.$.content", newComment);
+
+      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+      log.info("MongoDB 활동 내역 댓글 수정 동기화 성공: userId={}, commentId={}", userId, commentId);
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 댓글 수정 동기화 실패: userId={}, commentId={}, error={}", userId, commentId, e.getMessage());
+    }
+  }
+
+  public void removeRecentLikedComments(UUID userId, UUID commentId){
+    try{
+      Query query = new Query(Criteria.where("_id").is(userId));
+
+      Update update = new Update().pull("recentLikes", new org.bson.Document("commentId", commentId));
+
+      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+      log.info("MongoDB 활동 내역 좋아요 삭제 성공: userId={}, commentId={}", userId, commentId);
+    } catch (Exception e) {
+      log.warn("MongoDB 활동 내역 좋아요 삭제 실패: userId={}, commentId={}, error={}", userId, commentId, e.getMessage());
+    }
+  }
+
+  public void commentLikeCountInRecentComments(UUID userId, UUID commentId, Long newLikeCount) {
+    try {
+      Query query = new Query(Criteria.where("_id").is(userId)
+          .and("recentComments.id").is(commentId));
+
+      Update update = new Update().set("recentComments.$.likeCount", newLikeCount);
+
+      var result = mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+
+      if (result.getModifiedCount() > 0) {
+        log.info("MongoDB 내가 쓴 댓글 좋아요 수 동기화 성공: commentId={}", commentId);
+      }
+    } catch (Exception e) {
+      log.warn("MongoDB 내가 쓴 댓글 좋아요 수 동기화 실패: commentId={}, error={}", commentId, e.getMessage());
+    }
+  }
+
+  public void removeCommentLikeInActivity(UUID userId, UUID commentId) {
+    try {
+      Query query = new Query(Criteria.where("_id").is(userId));
+
+      Update update = new Update().pull("recentLikes", Query.query(Criteria.where("commentId").is(commentId)));
+
+      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
+      log.info("MongoDB 내 활동 내역(좋아요) 삭제 성공: userId={}, commentId={}", userId, commentId);
+    } catch (Exception e) {
+      log.warn("MongoDB 내 활동 내역 삭제 실패: userId={}, error={}", userId, e.getMessage());
+    }
+  }
   public void updateInterestKeywords(UUID interestId, List<String> newKeywords) {
     try {
       Query query = new Query(Criteria.where("subscriptions.interestId").is(interestId));
