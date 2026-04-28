@@ -8,6 +8,8 @@ import com.example.monew.domain.interest.entity.InterestKeyword;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -288,6 +290,7 @@ class ArticleRepositoryImplTest {
             .build()
     );
   }
+
   @Test
   @DisplayName("commentCount 커서 조건의 모든 분기(DESC, ASC, EQ)")
   void commentCount_perfect_coverage_test() {
@@ -298,27 +301,37 @@ class ArticleRepositoryImplTest {
     em.persist(a1);
     em.persist(a2);
     em.persist(a3);
+    em.flush();
 
     ReflectionTestUtils.setField(a1, "commentCount", 100L);
     ReflectionTestUtils.setField(a2, "commentCount", 100L);
-    ReflectionTestUtils.setField(a3, "commentCount", 50L);
+    ReflectionTestUtils.setField(a3, "commentCount", 150L);
+
     em.flush();
+    em.clear();
 
     ArticleSearchCondition descCond = new ArticleSearchCondition();
     descCond.setOrderBy("commentCount");
     descCond.setDirection("DESC");
     descCond.setCursor(a2.getId().toString());
 
-    articleRepository.findByCursor(descCond);
+    List<ArticleEntity> descResult = articleRepository.findByCursor(descCond);
 
-    ReflectionTestUtils.setField(a3, "commentCount", 150L);
-    em.flush();
-    em.clear();
+    assertThat(descResult)
+        .extracting(ArticleEntity::getId)
+        .containsExactly(a1.getId());
+
+
     ArticleSearchCondition ascCond = new ArticleSearchCondition();
     ascCond.setOrderBy("commentCount");
     ascCond.setDirection("ASC");
     ascCond.setCursor(a2.getId().toString());
 
-    articleRepository.findByCursor(ascCond);
+    List<ArticleEntity> ascResult = articleRepository.findByCursor(ascCond);
+
+    assertThat(ascResult)
+        .extracting(ArticleEntity::getId)
+        .containsExactly(a3.getId());
   }
+
 }
