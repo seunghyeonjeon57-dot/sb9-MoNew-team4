@@ -8,6 +8,9 @@ import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.domain.article.repository.ArticleRepository;
+import com.example.monew.domain.comment.dto.CommentDto;
+import com.example.monew.domain.comment.mapper.CommentMapper;
+import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.domain.notification.event.ArticleRegisteredEvent;
 import com.example.monew.global.exception.ErrorCode;
 import jakarta.persistence.EntityManager;
@@ -34,7 +37,6 @@ public class ArticleService {
   private final ApplicationEventPublisher eventPublisher;
   private final EntityManager entityManager;
 
-  @Transactional
   public ArticleDto getArticleDetail(UUID id) {
     log.info("뉴스 상세 조회 요청 - ID: {}", id);
     ArticleEntity article = articleRepository.findById(id)
@@ -43,22 +45,26 @@ public class ArticleService {
           log.warn("뉴스 조회 실패 - 존재하지 않거나 삭제된 ID: {}", id);
           return new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
         });
-
+    if (article.getInterest() != null) {
+      log.debug("관심사 키워드 {}건 로딩 완료", article.getInterest().getKeywords().size());
+    }
     return articleMapper.toDto(article, false);
   }
 
   @Transactional
   public void saveArticle(ArticleEntity article) {
     if (!articleRepository.existsBySourceUrl(article.getSourceUrl())) {
-
       articleRepository.save(article);
       log.debug("개별 뉴스 저장 완료 - URL: {}", article.getSourceUrl());
 
-      if (article.getInterest() != null && !article.getInterest().isBlank()) {
+      if (article.getInterest() != null &&
+          article.getInterest().getName() != null &&
+          !article.getInterest().getName().isBlank()) {
+
         eventPublisher.publishEvent(new ArticleRegisteredEvent(
             article.getId(),
             article.getTitle(),
-            article.getInterest()
+            article.getInterest().getName()
         ));
       }
     } else {
@@ -157,19 +163,23 @@ public class ArticleService {
         .collect(Collectors.toSet());
 
     List<ArticleEntity> newArticles = articles.stream()
-        .filter(article -> !existingUrls.contains(article.getSourceUrl()))
+        .filter(a -> !existingUrls.contains(a.getSourceUrl()))
         .toList();
 
     if (!newArticles.isEmpty()) {
       articleRepository.saveAll(newArticles);
+
       log.info("신규 뉴스 {}건 일괄 저장 완료", newArticles.size());
 
       newArticles.forEach(article -> {
-        if (article.getInterest() != null && !article.getInterest().isBlank()) {
+        if (article.getInterest() != null &&
+            article.getInterest().getName() != null &&
+            !article.getInterest().getName().isBlank()){
+
           eventPublisher.publishEvent(new ArticleRegisteredEvent(
               article.getId(),
               article.getTitle(),
-              article.getInterest()
+              article.getInterest().getName()
           ));
         }
       });

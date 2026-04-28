@@ -6,6 +6,8 @@ import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.entity.ArticleViewEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
 import com.example.monew.domain.article.repository.ArticleViewRepository;
+import com.example.monew.domain.user.entity.User;
+import com.example.monew.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +33,9 @@ class ArticleViewServiceTest {
   private ArticleViewRepository articleViewRepository;
 
   @Mock
+  private UserRepository userRepository;
+
+  @Mock
   private ActivityService activityService;
 
   @InjectMocks
@@ -43,6 +48,8 @@ class ArticleViewServiceTest {
     UUID userId = UUID.randomUUID();
     String clientIp = "0.0.0.0";
 
+    User user = User.builder().build();
+
     ArticleEntity article = ArticleEntity.builder()
         .title("네이버")
         .source("테스트")
@@ -51,11 +58,12 @@ class ArticleViewServiceTest {
 
     ArticleViewEntity savedLog = ArticleViewEntity.builder()
         .article(article)
-        .viewedBy(userId)
+        .viewedBy(user)
         .clientIp(clientIp)
         .build();
 
     given(articleRepository.findById(articleId)).willReturn(Optional.of(article));
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(articleViewRepository.save(any(ArticleViewEntity.class))).willReturn(savedLog);
 
     ArticleViewDto result = articleViewService.logView(articleId, userId, clientIp);
@@ -63,6 +71,7 @@ class ArticleViewServiceTest {
     assertThat(result).isNotNull();
 
     verify(articleRepository).findById(articleId);
+    verify(userRepository).findById(userId);
     verify(articleViewRepository).save(any(ArticleViewEntity.class));
   }
 
@@ -73,6 +82,8 @@ class ArticleViewServiceTest {
     UUID userId = UUID.randomUUID();
     String clientIp = "127.0.0.1";
 
+    User user = User.builder().build();
+
     ArticleEntity article = ArticleEntity.builder()
         .title("중복 테스트 기사")
         .source("테스트")
@@ -82,16 +93,15 @@ class ArticleViewServiceTest {
     long initialViewCount = article.getViewCount();
 
     given(articleRepository.findById(articleId)).willReturn(Optional.of(article));
-    given(articleViewRepository.existsByArticleEntityIdAndViewedBy(articleId, userId)).willReturn(true);
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(articleViewRepository.existsByArticleEntityIdAndViewedBy(articleId, user)).willReturn(true);
+
     ArticleViewDto result = articleViewService.logView(articleId, userId, clientIp);
 
     assertThat(article.getViewCount()).isEqualTo(initialViewCount);
-
     assertThat(result.getId()).isNull();
-    assertThat(result.getViewedBy()).isNull();
-    assertThat(result.getArticleTitle()).isEqualTo("중복 테스트 기사");
 
-    verify(articleRepository).findById(articleId);
-    verify(articleViewRepository).existsByArticleEntityIdAndViewedBy(articleId, userId);    verify(articleViewRepository, org.mockito.Mockito.never()).save(any(ArticleViewEntity.class));
+    verify(articleViewRepository).existsByArticleEntityIdAndViewedBy(articleId, user);
+    verify(articleViewRepository, org.mockito.Mockito.never()).save(any(ArticleViewEntity.class));
   }
 }

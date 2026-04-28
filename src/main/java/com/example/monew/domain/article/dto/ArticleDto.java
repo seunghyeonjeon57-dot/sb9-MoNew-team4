@@ -1,7 +1,7 @@
 package com.example.monew.domain.article.dto;
 
-import com.example.monew.domain.article.entity.ArticleEntity;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record ArticleDto(
@@ -13,6 +13,7 @@ public record ArticleDto(
     String summary,
     Long commentCount,
     Long viewCount,
-    Boolean viewedByMe
+    Boolean viewedByMe,
+    List<String> keywords
 ) {
 }

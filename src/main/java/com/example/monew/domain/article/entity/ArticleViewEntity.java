@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import com.example.monew.domain.user.entity.User;
 
 import java.time.LocalDateTime;
 @Entity
@@ -25,8 +26,9 @@ public class ArticleViewEntity {
   @JoinColumn(name = "article_id", nullable = false)
   private ArticleEntity articleEntity;
 
-  @Column(nullable = false)
-  private UUID viewedBy;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "viewed_by", nullable = false)
+  private User viewedBy;
 
   // 중복 방지를 위한 IP 주소를 저장
   private String clientIp;
@@ -36,7 +38,7 @@ public class ArticleViewEntity {
   private LocalDateTime viewedAt;
 
   @Builder
-  public ArticleViewEntity(ArticleEntity article, UUID viewedBy, String clientIp) {
+  public ArticleViewEntity(ArticleEntity article, User viewedBy, String clientIp) {
     this.articleEntity = article;
     this.viewedBy = viewedBy;
     this.clientIp = clientIp;

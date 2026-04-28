@@ -5,10 +5,12 @@ import static com.example.monew.domain.article.entity.QArticleEntity.articleEnti
 import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.entity.QArticleEntity;
+import com.example.monew.domain.interest.entity.QInterest;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
@@ -27,7 +29,6 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
     this.queryFactory = new JPAQueryFactory(em);
     this.em = em;
   }
-
 
   @Override
   public long softDelete(UUID articleId) {
@@ -52,11 +53,10 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
 
     return queryFactory
         .selectFrom(article)
+        .leftJoin(article.interest, QInterest.interest).fetchJoin()
         .where(
             article.deletedAt.isNull(),
-            keywordContains(condition.getKeyword()),
-            sourceIn(condition.getSourceIn()),
-            publishDateBetween(condition.getPublishDateFrom(), condition.getPublishDateTo()),
+            allFilters(condition),
             cursorCondition(condition)
         )
         .orderBy(getOrderSpecifiers(condition))
@@ -64,9 +64,42 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
         .fetch();
   }
 
+  private BooleanBuilder allFilters(ArticleSearchCondition condition) {
+    BooleanBuilder builder = new BooleanBuilder();
+
+
+    if (condition.getInterestId() != null) {
+
+      QInterest interest = QInterest.interest;
+
+      builder.and(
+          article.interest.id.eq(condition.getInterestId())
+              .or(
+                  JPAExpressions.selectOne()
+                      .from(interest)
+                      .where(interest.id.eq(condition.getInterestId())
+                          .and(article.title.containsIgnoreCase(interest.keywords.any().value)
+                              .or(article.summary.containsIgnoreCase(interest.keywords.any().value))))
+                      .exists()
+              )
+      );
+    }
+
+    // 2. 일반 검색어 필터 (기존 유지)
+    if (condition.getKeyword() != null && !condition.getKeyword().isBlank()) {
+      builder.and(keywordContains(condition.getKeyword()));
+    }
+
+    builder.and(sourceIn(condition.getSourceIn()));
+    builder.and(publishDateBetween(condition.getPublishDateFrom(), condition.getPublishDateTo()));
+
+    return builder;
+  }
   private BooleanExpression sourceIn(List<String> sources) {
     if (sources == null || sources.isEmpty()) return null;
-    return article.source.in(sources);
+    return article.source.upper().in(
+        sources.stream().map(String::toUpperCase).toList()
+    );
   }
 
   private BooleanExpression publishDateBetween(LocalDateTime from, LocalDateTime to) {
@@ -149,7 +182,8 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
     if (keyword == null || keyword.isBlank()) return null;
 
     return article.title.containsIgnoreCase(keyword)
-        .or(article.summary.containsIgnoreCase(keyword));
+        .or(article.summary.containsIgnoreCase(keyword))
+        .or(article.interest.keywords.any().value.containsIgnoreCase(keyword));
   }
 
   private OrderSpecifier<?>[] getOrderSpecifiers(ArticleSearchCondition condition) {

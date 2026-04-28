@@ -19,6 +19,7 @@ import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.domain.article.repository.ArticleRepository;
+import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.notification.event.ArticleRegisteredEvent;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
@@ -128,9 +129,12 @@ class ArticleServiceTest {
     @Test
     @DisplayName("성공: 관심사(interest)가 있으면 저장 후 알림 이벤트를 발행한다.")
     void success_WithInterest_PublishesEvent() {
+
+      Interest mockInterest = mock(Interest.class);
+      given(mockInterest.getName()).willReturn("IT");
       ArticleEntity article = ArticleEntity.builder()
-          .sourceUrl("http://interest.com")
-          .interest("IT")
+          .sourceUrl("https://interest.com")
+          .interest(mockInterest)
           .build();
       given(articleRepository.existsBySourceUrl(article.getSourceUrl())).willReturn(false);
 
@@ -248,11 +252,14 @@ class ArticleServiceTest {
     @Test
     @DisplayName("신규 기사 저장 시 interest가 존재하면 ArticleRegisteredEvent 알림 이벤트가 발행된다.")
     void publishEvent_WhenInterestExists() {
+      Interest mockInterest = mock(Interest.class);
+      given(mockInterest.getName()).willReturn("IT/과학");
+
       ArticleEntity article = ArticleEntity.builder()
           .id(UUID.randomUUID())
           .title("테스트 기사")
           .sourceUrl("https://test.com/1")
-          .interest("IT/과학")
+          .interest(mockInterest)
           .build();
 
       given(articleRepository.findAllBySourceUrlIn(any())).willReturn(List.of());
@@ -265,6 +272,8 @@ class ArticleServiceTest {
     @Test
     @DisplayName("신규 기사 저장 시 interest가 null이거나 빈 문자열이면 이벤트가 발행되지 않는다.")
     void doNotPublishEvent_WhenInterestIsBlank() {
+      Interest mockInterest = mock(Interest.class);
+      given(mockInterest.getName()).willReturn("  ");
       ArticleEntity nullInterestArticle = ArticleEntity.builder()
           .sourceUrl("https://test.com/2")
           .interest(null)
@@ -272,7 +281,7 @@ class ArticleServiceTest {
 
       ArticleEntity blankInterestArticle = ArticleEntity.builder()
           .sourceUrl("https://test.com/3")
-          .interest("   ")
+          .interest(mockInterest)
           .build();
 
       given(articleRepository.findAllBySourceUrlIn(any())).willReturn(List.of());

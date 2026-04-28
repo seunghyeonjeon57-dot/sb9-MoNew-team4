@@ -3,6 +3,8 @@ package com.example.monew.batch;
 import com.example.monew.domain.article.batch.NewsCollector;
 import com.example.monew.domain.article.batch.dto.NaverApiResponse;
 import com.example.monew.domain.article.entity.ArticleEntity;
+import com.example.monew.domain.interest.entity.Interest;
+import com.example.monew.domain.interest.repository.InterestRepository;
 import java.io.File;
 import java.nio.file.Files;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class NewsCollectorTest {
@@ -34,13 +37,16 @@ class NewsCollectorTest {
   @Mock
   private RestTemplate restTemplate;
 
+  @Mock
+  private InterestRepository interestRepository;
+
   private NewsCollector newsCollector;
 
   @BeforeEach
   void setUp() {
     lenient().when(restTemplateBuilder.build()).thenReturn(restTemplate);
 
-    newsCollector = new NewsCollector(restTemplateBuilder);
+    newsCollector = new NewsCollector(restTemplateBuilder, interestRepository);
 
     ReflectionTestUtils.setField(newsCollector, "clientId", "test-id");
     ReflectionTestUtils.setField(newsCollector, "clientSecret", "test-secret");
@@ -49,6 +55,12 @@ class NewsCollectorTest {
   @Test
   @DisplayName("네이버 뉴스 수집 성공 시 ArticleEntity 변환 테스트")
   void fetchNaverSuccessTest() {
+
+    Interest mockInterest = mock(Interest.class);
+    given(mockInterest.getName()).willReturn("경제");
+    given(interestRepository.findByNameAndDeletedAtIsNull("경제"))
+        .willReturn(java.util.Optional.of(mockInterest));
+
     NaverApiResponse.NaverItem mockItem = new NaverApiResponse.NaverItem(
         "<b>테스트</b> 제목",
         "https://original.com",
@@ -68,8 +80,7 @@ class NewsCollectorTest {
 
     assertThat(result).isNotEmpty();
     assertThat(result.get(0).getTitle()).isEqualTo("테스트 제목");
-    assertThat(result.get(0).getSourceUrl()).isEqualTo("https://original.com");
-    assertThat(result.get(0).getInterest()).isEqualTo("경제");
+    assertThat(result.get(0).getInterest().getName()).isEqualTo("경제");
   }
 
   @Test

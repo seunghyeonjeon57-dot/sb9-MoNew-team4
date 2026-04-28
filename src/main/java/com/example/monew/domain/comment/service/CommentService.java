@@ -61,7 +61,7 @@ public class CommentService {
         .orElseThrow(() -> new UserNotFoundException("유저를 찾을 수 없습니다."));
 
     CommentEntity comment = commentRepository.save(request.toEntity());
-
+    articleRepository.incrementCommentCount(request.articleId());
     CommentActivityDto activityDto = CommentActivityDto.builder()
         .id(comment.getId())
         .articleId(request.articleId())
@@ -112,7 +112,7 @@ public class CommentService {
         });
 
     comment.markDeleted();
-
+    articleRepository.decrementCommentCount(comment.getArticleId());
     log.info("댓글 논리 삭제 완료: commentId={}", commentId);
   }
 
@@ -127,6 +127,7 @@ public class CommentService {
         });
 
     commentRepository.delete(comment);
+    articleRepository.decrementCommentCount(comment.getArticleId());
     log.info("댓글 물리 삭제 완료: commentId={}", commentId);
   }
 
