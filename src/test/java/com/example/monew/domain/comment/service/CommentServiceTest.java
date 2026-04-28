@@ -86,11 +86,15 @@ public class CommentServiceTest {
 
     given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article));
     given(userRepository.findById(request.userId())).willReturn(Optional.of(user));
-    given(commentRepository.save(any(CommentEntity.class)))
+
+    // 1. save -> saveAndFlush로 변경
+    given(commentRepository.saveAndFlush(any(CommentEntity.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
     commentService.registerComment(request);
-    verify(commentRepository, times(1)).save(any(CommentEntity.class));
+
+    // 2. verify 대상도 saveAndFlush로 변경
+    verify(commentRepository, times(1)).saveAndFlush(any(CommentEntity.class));
   }
 
   @Test
