@@ -307,16 +307,22 @@ public class ActivityServiceTest {
   }
 
   @Test
-  @DisplayName("MongoDB 처리 중 예외 발생 시 예외 처리 확인")
+  @DisplayName("MongoDB 처리 중 예외 발생 시 예외가 전파되지 않아야 한다")
   void updateRecentCommentsInactivity_Exception() {
     UUID userId = UUID.randomUUID();
     UUID commentId = UUID.randomUUID();
     String newComment = "수정된 댓글 내용";
 
-    doThrow(new RuntimeException("DB 에러")).when(mongoTemplate)
-        .updateFirst(any(Query.class), any(Update.class), eq(UserActivityDocument.class));
+    doThrow(new RuntimeException("DB 에러"))
+        .when(mongoTemplate)
+        .updateFirst(any(Query.class), any(UpdateDefinition.class), eq(UserActivityDocument.class));
 
-    activityService.updateRecentCommentsInactivity(userId, commentId, newComment);
+    assertDoesNotThrow(() -> {
+      activityService.updateRecentCommentsInactivity(userId, commentId, newComment);
+    });
+
+    verify(mongoTemplate, times(1))
+        .updateFirst(any(Query.class), any(UpdateDefinition.class), eq(UserActivityDocument.class));
   }
 
   @Test
@@ -399,10 +405,9 @@ public class ActivityServiceTest {
 
     verify(mongoTemplate).updateFirst(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
 
-    assertThat(queryCaptor.getValue().getQueryObject().get("subscriptions.interestId")).isEqualTo(interestId);
+    assertThat(queryCaptor.getValue().getQueryObject()).containsEntry("subscriptions.interestId", interestId);
 
     String updateObj = updateCaptor.getValue().getUpdateObject().toString();
-    assertThat(updateObj).contains("$set");
-    assertThat(updateObj).contains("subscriptions.$.interestName");
+    assertThat(updateObj).contains("$set", "subscriptions.$.interestName");
   }
 }

@@ -456,8 +456,13 @@ public class CommentServiceTest {
   @DisplayName("좋아요 취소 시 존재하지 않는 댓글이면 예외 발생")
   void removeLike_CommentNotFound() {
     UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
     when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.empty());
 
-    assertThrows(CommentNotFoundException.class, () -> commentService.removeLike(commentId, UUID.randomUUID()));
+
+    assertThrows(CommentNotFoundException.class, () ->
+        commentService.removeLike(commentId, userId)
+    );
   }
 }
