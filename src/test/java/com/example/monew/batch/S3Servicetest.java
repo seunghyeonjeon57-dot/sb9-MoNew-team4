@@ -42,26 +42,40 @@ class S3Servicetest {
   @DisplayName("다운로드 성공 시 임시 파일 생성 및 권한 설정 확인")
   void download_Success() throws Exception {
     String key = "test.json";
-    doReturn(null).when(s3Client).getObject(any(GetObjectRequest.class), any(Path.class));
+
+    doAnswer(invocation -> {
+      Path path = invocation.getArgument(1);
+      if (!Files.exists(path)) {
+        Files.createFile(path);
+      }
+      return null;
+    }).when(s3Client).getObject(any(GetObjectRequest.class), any(Path.class));
 
     File file = s3Service.download(key);
 
-    assertThat(file).exists();
-    assertThat(file.getAbsolutePath()).contains(".monew-temp");
+    try {
+      assertThat(file).exists();
+      assertThat(file.getAbsolutePath()).contains(".monew-temp");
 
-    if (java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-      var perms = java.nio.file.Files.getPosixFilePermissions(file.toPath());
-      assertThat(perms).containsExactlyInAnyOrder(
-          java.nio.file.attribute.PosixFilePermission.OWNER_READ,
-          java.nio.file.attribute.PosixFilePermission.OWNER_WRITE
-      );
-    } else {
-      assertThat(file.canRead()).isTrue();
-      assertThat(file.canWrite()).isTrue();
+      if (java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+        var perms = Files.getPosixFilePermissions(file.toPath());
+        assertThat(perms).containsExactlyInAnyOrder(
+            java.nio.file.attribute.PosixFilePermission.OWNER_READ,
+            java.nio.file.attribute.PosixFilePermission.OWNER_WRITE
+        );
+      } else {
+        assertThat(file.canRead()).isTrue();
+        assertThat(file.canWrite()).isTrue();
+      }
+    } finally {
+      if (file != null && file.exists()) {
+        file.delete();
+        File parent = file.getParentFile();
+        if (parent != null && parent.getName().equals(".monew-temp")) {
+          parent.delete();
+        }
+      }
     }
-
-    file.delete();
-    java.nio.file.Files.deleteIfExists(file.getParentFile().toPath());
   }
 
   @Test
