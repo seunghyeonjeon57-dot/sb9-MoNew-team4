@@ -9,6 +9,7 @@ import com.example.monew.domain.article.batch.exception.S3DownloadException;
 import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
 import com.example.monew.domain.article.batch.service.S3Service;
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,27 +39,54 @@ class S3Servicetest {
   }
 
   @Test
-  @DisplayName("업로드 성공 시 s3Client의 putObject가 호출")
+  @DisplayName("다운로드 성공 시 임시 파일 생성 및 권한 설정 확인")
+  void download_Success() throws Exception {
+    String key = "test.json";
+
+    doAnswer(invocation -> {
+      Path path = invocation.getArgument(1);
+      if (!Files.exists(path)) {
+        Files.createFile(path);
+      }
+      return null;
+    }).when(s3Client).getObject(any(GetObjectRequest.class), any(Path.class));
+
+    File file = s3Service.download(key);
+
+    try {
+      assertThat(file).exists();
+      assertThat(file.getAbsolutePath()).contains(".monew-temp");
+
+      if (java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+        var perms = Files.getPosixFilePermissions(file.toPath());
+        assertThat(perms).containsExactlyInAnyOrder(
+            java.nio.file.attribute.PosixFilePermission.OWNER_READ,
+            java.nio.file.attribute.PosixFilePermission.OWNER_WRITE
+        );
+      } else {
+        assertThat(file.canRead()).isTrue();
+        assertThat(file.canWrite()).isTrue();
+      }
+    } finally {
+      if (file != null && file.exists()) {
+        file.delete();
+        File parent = file.getParentFile();
+        if (parent != null && parent.getName().equals(".monew-temp")) {
+          parent.delete();
+        }
+      }
+    }
+  }
+
+  @Test
+  @DisplayName("파일 업로드 성공 테스트")
   void upload_Success() {
     s3Service.upload("test.json", "{}");
-
     verify(s3Client, times(1)).putObject(any(PutObjectRequest.class), any(RequestBody.class));
   }
 
   @Test
-  @DisplayName("다운로드 성공 시 임시 파일 생성")
-  void download_Success() {
-    when(s3Client.getObject(any(GetObjectRequest.class), any(Path.class))).thenReturn(null);
-
-    File file = s3Service.download("test.json");
-
-    assertThat(file).exists();
-    assertThat(file.getName()).startsWith("s3-restore-");
-    file.delete();
-  }
-
-  @Test
-  @DisplayName("파일이 없을 때 예외 발생")
+  @DisplayName("S3에 파일이 없을 때 S3FileNotFoundException 발생")
   void download_Fail_NotFound() {
     when(s3Client.getObject(any(GetObjectRequest.class), any(Path.class)))
         .thenThrow(NoSuchKeyException.builder().build());
@@ -68,7 +96,7 @@ class S3Servicetest {
   }
 
   @Test
-  @DisplayName("기타 에러 시 S3DownloadException이 발생")
+  @DisplayName("S3 다운로드 중 일반 에러 발생 시 S3DownloadException 발생")
   void download_Fail_General() {
     when(s3Client.getObject(any(GetObjectRequest.class), any(Path.class)))
         .thenThrow(new RuntimeException("S3 Error"));
