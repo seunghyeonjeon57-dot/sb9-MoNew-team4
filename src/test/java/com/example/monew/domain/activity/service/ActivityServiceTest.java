@@ -308,8 +308,7 @@ public class ActivityServiceTest {
     verify(mongoTemplate).updateFirst(any(Query.class), updateCaptor.capture(), eq(UserActivityDocument.class));
 
     String updateObj = updateCaptor.getValue().getUpdateObject().toString();
-    assertThat(updateObj).contains("$set");
-    assertThat(updateObj).contains("likeCount=" + newLikeCount);
+    assertThat(updateObj).contains("$set", "likeCount=" + newLikeCount);
   }
 
   @Test
