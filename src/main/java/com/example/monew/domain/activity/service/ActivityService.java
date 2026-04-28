@@ -252,4 +252,22 @@ public class ActivityService {
       log.error("MongoDB 전체 동기화 실패", e);
     }
   }
+
+  public void updateCommentCountInRecentArticles(UUID articleId, int amount) {
+    try {
+
+      Query query = new Query(Criteria.where("recentArticles.articleId").is(articleId));
+
+      Update update = new Update().inc("recentArticles.$.articleCommentCount", amount);
+
+      com.mongodb.client.result.UpdateResult result =
+          mongoTemplate.updateMulti(query, update, UserActivityDocument.class);
+
+      log.info("MongoDB 댓글 동기화 완료 [articleId: {}, 증감량: {}, 매칭수: {}, 수정수: {}]",
+          articleId, amount, result.getMatchedCount(), result.getModifiedCount());
+
+    } catch (Exception e) {
+      log.error("MongoDB 댓글 동기화 실패: articleId={}, error={}", articleId, e.getMessage());
+    }
+  }
 }
