@@ -47,9 +47,10 @@ class S3Servicetest {
     File file = s3Service.download(key);
 
     assertThat(file).exists();
+    assertThat(file.getAbsolutePath()).contains(".monew-temp");
 
     if (java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-      var perms = Files.getPosixFilePermissions(file.toPath());
+      var perms = java.nio.file.Files.getPosixFilePermissions(file.toPath());
       assertThat(perms).containsExactlyInAnyOrder(
           java.nio.file.attribute.PosixFilePermission.OWNER_READ,
           java.nio.file.attribute.PosixFilePermission.OWNER_WRITE
@@ -60,6 +61,7 @@ class S3Servicetest {
     }
 
     file.delete();
+    java.nio.file.Files.deleteIfExists(file.getParentFile().toPath());
   }
 
   @Test

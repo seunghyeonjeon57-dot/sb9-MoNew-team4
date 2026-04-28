@@ -39,15 +39,19 @@ public class S3Service {
   public File download(String key) {
     try {
       java.nio.file.Path tempPath;
+      java.nio.file.Path baseDir = java.nio.file.Paths.get(System.getProperty("user.home"), ".monew-temp");
+      if (!Files.exists(baseDir)) {
+        Files.createDirectories(baseDir);
+      }
 
       if (java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
         java.nio.file.attribute.FileAttribute<java.util.Set<java.nio.file.attribute.PosixFilePermission>> attr =
             java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
                 java.nio.file.attribute.PosixFilePermissions.fromString("rw-------")
             );
-        tempPath = Files.createTempFile("s3-restore-", ".json", attr);
+        tempPath = Files.createTempFile(baseDir, "s3-restore-", ".json", attr);
       } else {
-        tempPath = Files.createTempFile("s3-restore-", ".json");
+        tempPath = Files.createTempFile(baseDir, "s3-restore-", ".json");
         File tempFile = tempPath.toFile();
         tempFile.setReadable(true, true);
         tempFile.setWritable(true, true);
