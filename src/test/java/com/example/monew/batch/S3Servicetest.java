@@ -9,6 +9,7 @@ import com.example.monew.domain.article.batch.exception.S3DownloadException;
 import com.example.monew.domain.article.batch.exception.S3FileNotFoundException;
 import com.example.monew.domain.article.batch.service.S3Service;
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,13 +49,21 @@ class S3Servicetest {
   @Test
   @DisplayName("다운로드 성공 시 임시 파일 생성")
   void download_Success() {
-    when(s3Client.getObject(any(GetObjectRequest.class), any(Path.class))).thenReturn(null);
+    doAnswer(invocation -> {
+      Path path = invocation.getArgument(1);
+      Files.createFile(path);
+      return null;
+    }).when(s3Client).getObject(any(GetObjectRequest.class), any(Path.class));
 
     File file = s3Service.download("test.json");
 
     assertThat(file).exists();
     assertThat(file.getName()).startsWith("s3-restore-");
-    file.delete();
+
+    if (file.exists()) {
+      file.delete();
+      file.getParentFile().delete();
+    }
   }
 
   @Test

@@ -15,8 +15,8 @@ public class BackupBatch {
 
   private final BackupService backupService;
 
-  @Scheduled(cron = "0 0 1 * * *")
   public void runBackup() {
-    backupService.backupDailyNews(); //외부 호출
+
+    backupService.backupDailyNews();
   }
 }
