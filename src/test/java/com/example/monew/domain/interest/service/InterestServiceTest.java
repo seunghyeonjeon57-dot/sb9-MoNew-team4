@@ -315,3 +315,5 @@ class InterestServiceTest {
         .findInterestIdsByUserIdAndInterestIdIn(any(), anyCollection());
   }
 }
+
+
