@@ -288,4 +288,37 @@ class ArticleRepositoryImplTest {
             .build()
     );
   }
+  @Test
+  @DisplayName("commentCount 커서 조건의 모든 분기(DESC, ASC, EQ)")
+  void commentCount_perfect_coverage_test() {
+    ArticleEntity a1 = ArticleEntity.builder().title("a1").source("S1").sourceUrl("U1").build();
+    ArticleEntity a2 = ArticleEntity.builder().title("a2").source("S2").sourceUrl("U2").build();
+    ArticleEntity a3 = ArticleEntity.builder().title("a3").source("S3").sourceUrl("U3").build();
+
+    em.persist(a1);
+    em.persist(a2);
+    em.persist(a3);
+
+    ReflectionTestUtils.setField(a1, "commentCount", 100L);
+    ReflectionTestUtils.setField(a2, "commentCount", 100L);
+    ReflectionTestUtils.setField(a3, "commentCount", 50L);
+    em.flush();
+
+    ArticleSearchCondition descCond = new ArticleSearchCondition();
+    descCond.setOrderBy("commentCount");
+    descCond.setDirection("DESC");
+    descCond.setCursor(a2.getId().toString());
+
+    articleRepository.findByCursor(descCond);
+
+    ReflectionTestUtils.setField(a3, "commentCount", 150L);
+    em.flush();
+    em.clear();
+    ArticleSearchCondition ascCond = new ArticleSearchCondition();
+    ascCond.setOrderBy("commentCount");
+    ascCond.setDirection("ASC");
+    ascCond.setCursor(a2.getId().toString());
+
+    articleRepository.findByCursor(ascCond);
+  }
 }
