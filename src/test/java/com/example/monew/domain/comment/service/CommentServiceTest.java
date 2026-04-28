@@ -465,4 +465,29 @@ public class CommentServiceTest {
         commentService.removeLike(commentId, userId)
     );
   }
+
+  @Test
+  @DisplayName("좋아요 취소 시 좋아요 수 감소 및 활동 내역 동기화 확인")
+  void removeLike_IncreaseDecrease() {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    UUID ownerId = UUID.randomUUID();
+
+    CommentEntity mockComment = mock(CommentEntity.class);
+    when(mockComment.getUserId()).thenReturn(ownerId);
+    when(mockComment.getLikeCount()).thenReturn(5L);
+
+    when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(mockComment));
+    when(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).thenReturn(true);
+
+    commentService.removeLike(commentId, userId);
+
+    verify(mockComment, times(1)).decrementLikeCount();
+
+    verify(activityService, times(1)).commentLikeCountInRecentComments(ownerId, commentId, 5L);
+
+    verify(activityService, times(1)).removeCommentLikeInActivity(userId, commentId);
+
+    verify(commentLikeRepository, times(1)).deleteByCommentIdAndUserId(commentId, userId);
+  }
 }

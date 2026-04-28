@@ -173,6 +173,12 @@ public class CommentService {
         .build();
     commentLikeRepository.save(commentLike);
 
+    activityService.commentLikeCountInRecentComments(
+        comment.getUserId(),
+        commentId,
+        comment.getLikeCount()
+    );
+
     CommentLikeActivityDto activityDto = CommentLikeActivityDto.builder()
         .id(UUID.randomUUID())
         .createdAt(LocalDateTime.now())
@@ -217,6 +223,13 @@ public class CommentService {
 
     comment.decrementLikeCount();
 
+    activityService.commentLikeCountInRecentComments(
+        comment.getUserId(),
+        commentId,
+        comment.getLikeCount()
+    );
+
+    activityService.removeCommentLikeInActivity(userId, commentId);
     commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
 
     activityService.removeRecentLikedComments(userId, commentId);
