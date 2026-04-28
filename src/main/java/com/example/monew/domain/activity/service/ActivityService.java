@@ -253,33 +253,35 @@ public class ActivityService {
     }
   }
 
-  public void incrementCommentCountInRecentArticles(UUID articleId) {
+  public void incrementCommentCountInRecentArticles(UUID articleId, int amount) {
     try {
       Query query = new Query(Criteria.where("recentArticles.articleId").is(articleId));
-      Update update = new Update().inc("recentArticles.$.commentCount", 1);
 
-      var result = mongoTemplate.updateMulti(query, update, UserActivityDocument.class);
+      Update update = new Update().inc("recentArticles.$.articleCommentCount", amount);
 
-      if (result.getModifiedCount() > 0) {
-        log.info("MongoDB 최근 기사 댓글 카운트 증가 성공: articleId={}", articleId);
-      }
+      com.mongodb.client.result.UpdateResult result =
+          mongoTemplate.updateMulti(query, update, UserActivityDocument.class);
+
+      log.info("MongoDB 기사 댓글 동기화 시도 - articleId: {}, 매칭수: {}, 수정수: {}",
+          articleId, result.getMatchedCount(), result.getModifiedCount());
+
     } catch (Exception e) {
-      log.error("MongoDB 최근 기사 댓글 카운트 증가 실패: articleId={}, error={}", articleId, e.getMessage());
+      log.error("MongoDB 기사 댓글 동기화 실패: error={}", e.getMessage());
     }
   }
-
-  public void decrementCommentCountInRecentArticles(UUID articleId) {
+  public void decrementCommentCountInRecentArticles(UUID articleId, int amount) {
     try {
       Query query = new Query(Criteria.where("recentArticles.articleId").is(articleId));
-      Update update = new Update().inc("recentArticles.$.commentCount", -1);
+      Update update = new Update().inc("recentArticles.$.articleCommentCount", amount);
 
-      var result = mongoTemplate.updateMulti(query, update, UserActivityDocument.class);
+      com.mongodb.client.result.UpdateResult result =
+          mongoTemplate.updateMulti(query, update, UserActivityDocument.class);
 
-      if (result.getModifiedCount() > 0) {
-        log.info("MongoDB 최근 기사 댓글 카운트 감소 성공: articleId={}", articleId);
-      }
+      log.info("MongoDB 기사 댓글 동기화 시도 - articleId: {}, 매칭수: {}, 수정수: {}",
+          articleId, result.getMatchedCount(), result.getModifiedCount());
+
     } catch (Exception e) {
-      log.error("MongoDB 최근 기사 댓글 카운트 감소 실패: articleId={}, error={}", articleId, e.getMessage());
+      log.error("MongoDB 기사 댓글 동기화 실패: error={}", e.getMessage());
     }
   }
 }
