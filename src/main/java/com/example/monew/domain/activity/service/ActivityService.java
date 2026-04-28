@@ -6,7 +6,6 @@ import com.example.monew.domain.article.dto.ArticleViewDto;
 import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.exception.UserNotFoundException;
-import com.mongodb.client.model.UpdateOptions;
 import java.util.List;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
