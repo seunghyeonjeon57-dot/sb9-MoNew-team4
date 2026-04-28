@@ -49,20 +49,23 @@ public class CommentService {
 
   @Transactional
   public CommentDto registerComment(CommentRegisterRequest request) {
-
     log.info("댓글 등록 시도: articleId={}", request.articleId());
-    ArticleEntity article = articleRepository.findById(request.articleId())
-        .orElseThrow(() -> {
-          log.warn("댓글 등록 실패: 존재하지 않은 기사 articleId={}", request.articleId());
-          return new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
-        });
 
+    // 1. 엔티티 조회 (기존 유지)
+    ArticleEntity article = articleRepository.findById(request.articleId())
+        .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
     User user = userRepository.findById(request.userId())
         .orElseThrow(() -> new UserNotFoundException("유저를 찾을 수 없습니다."));
 
-    CommentEntity comment = commentRepository.save(request.toEntity());
+    // 2. 중요: save 대신 saveAndFlush를 써서 즉시 INSERT를 강제하세요.
+    // 여기서 INSERT가 안 찍히면 연관관계 매핑이나 엔티티 설정을 뜯어봐야 합니다.
+    CommentEntity comment = commentRepository.saveAndFlush(request.toEntity());
+
+    // 3. 벌크 업데이트 수행 (댓글 수 증가)
     articleRepository.incrementCommentCount(request.articleId());
     activityService.incrementCommentCountInRecentArticles(request.articleId());
+
+    // 4. 활동 내역 업데이트는 '가장 마지막'에 수행
     CommentActivityDto activityDto = CommentActivityDto.builder()
         .id(comment.getId())
         .articleId(request.articleId())
@@ -113,6 +116,7 @@ public class CommentService {
         });
 
     comment.markDeleted();
+    commentRepository.saveAndFlush(comment);
     articleRepository.decrementCommentCount(comment.getArticleId());
     activityService.decrementCommentCountInRecentArticles(comment.getArticleId());
     log.info("댓글 논리 삭제 완료: commentId={}", commentId);

@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -54,10 +55,16 @@ public class InterestController {
       @RequestParam String direction,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
-      @RequestParam int limit)
-       {
+      @RequestParam int limit,
+      // [핵심 수정] 팀원분의 방식대로 헤더를 추가합니다.
+      // 비로그인 상태도 고려해야 하니 required = false로 둡니다.
+      @RequestHeader(value = "Monew-Request-User-ID", required = false) UUID userId
+  ) {
+    // 이제 null이 아니라 프론트가 보낸 userId가 전달됩니다.
+    // 그러면 서비스가 "이 유저는 구독 중이네!" 하고 true를 뱉어줄 겁니다.
     return ResponseEntity.ok(
-        interestService.getInterests(keyword, orderBy, direction, cursor, after, limit, null));
+        interestService.getInterests(keyword, orderBy, direction, cursor, after, limit, userId)
+    );
   }
 
   @Operation(summary = "관심사 등록", description = "새 관심사를 등록합니다. 기존 이름과 80% 이상 유사한 경우 409를 반환합니다.")
