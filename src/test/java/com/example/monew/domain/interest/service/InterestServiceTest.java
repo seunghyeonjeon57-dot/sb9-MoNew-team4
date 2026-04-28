@@ -109,7 +109,6 @@ class InterestServiceTest {
   @DisplayName("updateKeywords: 구독자 userId → 응답 subscribedByMe=true")
   void updateKeywords_subscriber_returnsSubscribedByMeTrue() {
     Interest interest = Interest.builder().name("인공지능").keywords(List.of("AI")).build();
-    UUID userId = UUID.randomUUID();
     when(interestRepository.findByIdAndDeletedAtIsNull(interest.getId()))
         .thenReturn(Optional.of(interest));
 

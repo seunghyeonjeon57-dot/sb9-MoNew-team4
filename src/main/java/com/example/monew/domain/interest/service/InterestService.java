@@ -1,7 +1,6 @@
 package com.example.monew.domain.interest.service;
 
 import com.example.monew.domain.activity.service.ActivityService;
-import com.example.monew.domain.article.service.ArticleService;
 import com.example.monew.domain.interest.dto.CursorPageResponse;
 import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
