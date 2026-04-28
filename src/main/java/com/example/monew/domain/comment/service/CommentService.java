@@ -95,6 +95,8 @@ public class CommentService {
 
     comment.updateContent(request.content());
 
+    activityService.updateRecentCommentsInactivity(userId, commentId, request.content());
+
     log.info("댓글 수정 완료: commentId={}", commentId);
     return commentMapper.toDto(comment, null, false);
   }
@@ -229,6 +231,8 @@ public class CommentService {
 
     activityService.removeCommentLikeInActivity(userId, commentId);
     commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
+
+    activityService.removeRecentLikedComments(userId, commentId);
 
     log.info("좋아요 취소 완료: userId={}, commentId={}", userId, commentId);
   }

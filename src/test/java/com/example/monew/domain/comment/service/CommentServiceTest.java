@@ -2,6 +2,7 @@ package com.example.monew.domain.comment.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -435,8 +436,39 @@ public class CommentServiceTest {
   }
 
   @Test
-  @DisplayName("좋아요 취소 시 좋아요 수 감소 및 활동 내역 동기화 확인")
+  @DisplayName("좋아요 취소 성공 시 로직 흐름 확인")
   void removeLike_Success() {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    CommentEntity mockComment = mock(CommentEntity.class);
+
+    when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(mockComment));
+    when(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).thenReturn(true);
+
+    commentService.removeLike(commentId, userId);
+
+    verify(mockComment, times(1)).decrementLikeCount();
+    verify(commentLikeRepository, times(1)).deleteByCommentIdAndUserId(commentId, userId);
+    verify(activityService, times(1)).removeRecentLikedComments(userId, commentId);
+  }
+
+  @Test
+  @DisplayName("좋아요 취소 시 존재하지 않는 댓글이면 예외 발생")
+  void removeLike_CommentNotFound() {
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.empty());
+
+
+    assertThrows(CommentNotFoundException.class, () ->
+        commentService.removeLike(commentId, userId)
+    );
+  }
+
+  @Test
+  @DisplayName("좋아요 취소 시 좋아요 수 감소 및 활동 내역 동기화 확인")
+  void removeLike_IncreaseDecrease() {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
     UUID ownerId = UUID.randomUUID();
