@@ -38,30 +38,34 @@ public class S3Service {
   }
   public File download(String key) {
     try {
-      File tempFile;
-      String prefix = "s3-restore-";
-      String suffix = ".json";
-      //보안
+      java.nio.file.Path tempPath;
+      java.nio.file.Path baseDir = java.nio.file.Paths.get(System.getProperty("user.home"), ".monew-temp");
+      if (!Files.exists(baseDir)) {
+        Files.createDirectories(baseDir);
+      }
+
       if (java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-        var attr = java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
-            java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")
-        );
-        tempFile = Files.createTempFile(prefix, suffix, attr).toFile();
+        java.nio.file.attribute.FileAttribute<java.util.Set<java.nio.file.attribute.PosixFilePermission>> attr =
+            java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                java.nio.file.attribute.PosixFilePermissions.fromString("rw-------")
+            );
+        tempPath = Files.createTempFile(baseDir, "s3-restore-", ".json", attr);
       } else {
-        tempFile = Files.createTempFile(prefix, suffix).toFile();
+        tempPath = Files.createTempFile(baseDir, "s3-restore-", ".json");
+        File tempFile = tempPath.toFile();
         tempFile.setReadable(true, true);
         tempFile.setWritable(true, true);
-        tempFile.setExecutable(true, true);
       }
+
+      File tempFile = tempPath.toFile();
 
       GetObjectRequest getObjectRequest = GetObjectRequest.builder()
           .bucket(bucket)
           .key(key)
           .build();
+      s3Client.getObject(getObjectRequest, tempPath);
 
       tempFile.deleteOnExit();
-      s3Client.getObject(getObjectRequest, tempFile.toPath());
-
       return tempFile;
 
     } catch (NoSuchKeyException e) {

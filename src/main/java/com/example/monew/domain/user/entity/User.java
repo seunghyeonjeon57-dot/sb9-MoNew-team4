@@ -24,25 +24,31 @@ import lombok.NoArgsConstructor;
 @Getter
 @Table(name = "users")
 public class User extends BaseEntity {
+
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
+  @Column(name = "id", updatable = false, nullable = false)
   private UUID id;
-  @Column(nullable = false)
+
+  // 스키마의 varchar(20)에 맞춰 length 추가
+  @Column(name = "nickname", nullable = false, length = 20)
   private String nickname;
-  @Column(nullable = false,unique = true)
+
+  @Column(name = "email", nullable = false, unique = true, length = 255)
   private String email;
-  @Column(nullable = false)
+
+  @Column(name = "password", nullable = false, length = 255)
   private String password;
 
   @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
+  @Column(name = "status", nullable = false, length = 20)
   private UserStatus status = UserStatus.ACTIVE;
 
   @Builder
-  public User(String nickname,String email,String password,UserStatus status){
-    this.nickname=nickname;
-    this.email=email;
-    this.password=password;
+  public User(String nickname, String email, String password, UserStatus status) {
+    this.nickname = nickname;
+    this.email = email;
+    this.password = password;
     this.status = (status != null) ? status : UserStatus.ACTIVE;
   }
 

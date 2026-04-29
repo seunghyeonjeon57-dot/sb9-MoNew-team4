@@ -296,7 +296,7 @@ class ArticleRepositoryImplTest {
     );
   }
 
-  @Test
+ @Test
   @DisplayName("commentCount 커서 조건의 모든 분기 - Impl 로직 한계 대응")
   void commentCount_perfect_coverage_test() {
     

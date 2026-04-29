@@ -38,18 +38,9 @@ public class SecurityConfig {
   @Profile("prod")
   public SecurityFilterChain prodFilterChain(HttpSecurity http) throws Exception {
     http
-        .csrf(csrf -> csrf.disable()) 
+        .csrf(csrf -> csrf.disable()) // 보안 검사 해제
         .authorizeHttpRequests(auth -> auth
-
-            .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-
-            .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
-
-
-            .requestMatchers("/api/users", "/api/users/login").permitAll()
-
-
-            .anyRequest().authenticated()
+            .anyRequest().permitAll() // 모든 경로(루트, API, 정적 리소스) 통과!
         )
         .formLogin(form -> form.disable())
         .httpBasic(basic -> basic.disable());

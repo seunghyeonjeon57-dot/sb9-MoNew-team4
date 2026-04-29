@@ -1,14 +1,15 @@
 package com.example.monew.batch;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
+import com.example.monew.domain.article.batch.exception.RestoreFailedException;
 import com.example.monew.domain.article.batch.service.BackupService;
 import com.example.monew.domain.article.batch.service.S3Service;
 import java.io.File;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,10 +24,14 @@ import org.springframework.batch.core.launch.JobLauncher;
 @ExtendWith(MockitoExtension.class)
 class BackupServiceTest {
 
-  @Mock private S3Service s3Service;
-  @Mock private JobLauncher jobLauncher;
-  @Mock private Job restoreJob;
-  @Mock private Job backupJob;
+  @Mock
+  private S3Service s3Service;
+  @Mock
+  private JobLauncher jobLauncher;
+  @Mock
+  private Job restoreJob;
+  @Mock
+  private Job backupJob;
 
   @InjectMocks
   private BackupService backupService;
@@ -42,12 +47,12 @@ class BackupServiceTest {
   @Test
   @DisplayName("s3로 복구 성공")
   void restoreNews_Success() throws Exception {
-    LocalDate targetDate = LocalDate.of(2026, 4, 24);
+    LocalDateTime targetTime = LocalDateTime.of(2026, 4, 24, 1, 0, 0);
     File mockFile = mock(File.class);
     given(mockFile.getAbsolutePath()).willReturn("/tmp/test.json");
     given(s3Service.download(anyString())).willReturn(mockFile);
 
-    backupService.restoreNews(targetDate);
+    backupService.restoreNews(targetTime);
 
     verify(jobLauncher, times(1)).run(any(Job.class), any(JobParameters.class));
   }
@@ -57,8 +62,9 @@ class BackupServiceTest {
   void restoreNews_Fail_Catch() throws Exception {
     given(s3Service.download(anyString())).willThrow(new RuntimeException("S3 에러"));
 
-    assertThatThrownBy(() -> backupService.restoreNews(LocalDate.now()))
-        .isInstanceOf(com.example.monew.domain.article.batch.exception.RestoreFailedException.class);
+    assertThatThrownBy(() -> backupService.restoreNews(LocalDateTime.now()))
+        .isInstanceOf(
+            com.example.monew.domain.article.batch.exception.RestoreFailedException.class);
 
     verify(jobLauncher, never()).run(any(), any());
   }
@@ -73,7 +79,6 @@ class BackupServiceTest {
     given(mockFile.getAbsolutePath()).willReturn("/tmp/test.json");
     given(s3Service.download(anyString())).willReturn(mockFile);
 
-    // [실행]
     backupService.restoreNewsRange(from, to);
 
     verify(jobLauncher, times(2)).run(any(Job.class), any(JobParameters.class));
@@ -82,23 +87,23 @@ class BackupServiceTest {
 
   @Test
   @DisplayName("범위 복구 중 특정 날짜 실패 시에도 다음 날짜 계속 진행 확인")
-  void restoreNewsRange_PartialFail() throws Exception {
+  void restoreNewsRange_PartialFail_SuccessTest() throws Exception {
     LocalDateTime from = LocalDateTime.of(2026, 4, 24, 0, 0);
-    LocalDateTime to = LocalDateTime.of(2026, 4, 25, 23, 59);
-
-    given(s3Service.download("backups/2026-04-24.json"))
-        .willThrow(new RuntimeException("S3 다운로드 실패"));
+    LocalDateTime to = LocalDateTime.of(2026, 4, 25, 0, 0);
 
     File mockFile = mock(File.class);
     given(mockFile.getAbsolutePath()).willReturn("/tmp/test.json");
-    given(s3Service.download("backups/2026-04-25.json")).willReturn(mockFile);
 
-    backupService.restoreNewsRange(from, to);
+    given(s3Service.download(anyString()))
+        .willThrow(new RuntimeException("S3 연결 실패"))
+        .willReturn(mockFile);
 
+    assertThrows(RestoreFailedException.class, () -> {
+      backupService.restoreNewsRange(from, to);
+    });
+
+    verify(s3Service, times(2)).download(anyString());
 
     verify(jobLauncher, times(1)).run(any(Job.class), any(JobParameters.class));
-    verify(s3Service, times(2)).download(anyString()); // 다운로드 시도는 둘 다 함
   }
-
-
 }

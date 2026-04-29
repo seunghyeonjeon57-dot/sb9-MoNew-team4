@@ -19,6 +19,7 @@ import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
 import com.mongodb.client.result.UpdateResult;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -426,5 +427,58 @@ public class ActivityServiceTest {
     var commentIdValue = queryObject.get("commentId");
 
     assertThat(commentIdValue).isEqualTo(commentId); // UUID 객체끼리 직접 비교
+  }
+
+  @Test
+  @DisplayName("관심사 키워드 일괄 업데이트 - 배열 필터링 확인")
+  void updateInterestKeywords_Success() {
+    // given
+    UUID interestId = UUID.randomUUID();
+    List<String> newKeywords = List.of("Spring", "MongoDB", "Test");
+
+    UpdateResult mockResult = mock(UpdateResult.class);
+    when(mockResult.getModifiedCount()).thenReturn(5L);
+
+    when(mongoTemplate.updateMulti(any(Query.class), any(Update.class), eq(UserActivityDocument.class)))
+        .thenReturn(mockResult);
+
+    activityService.updateInterestKeywords(interestId, newKeywords);
+
+    ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
+    verify(mongoTemplate).updateMulti(any(Query.class), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    Update capturedUpdate = updateCaptor.getValue();
+
+    assertThat(capturedUpdate.getUpdateObject().toString())
+        .contains("$set", "subscriptions.$[elem].interestKeywords");
+
+    assertThat(capturedUpdate.toString()).contains("elem");
+  }
+
+  @Test
+  @DisplayName("기사 댓글 수 증감 동기화 - 양수/음수 증감량이 정확히 반영된다")
+  void updateCommentCountInRecentArticles_Success() {
+    UUID articleId = UUID.randomUUID();
+    int amount = 5;
+
+    UpdateResult mockResult = mock(UpdateResult.class);
+    when(mockResult.getMatchedCount()).thenReturn(1L);
+    when(mockResult.getModifiedCount()).thenReturn(1L);
+
+    when(mongoTemplate.updateMulti(any(Query.class), any(Update.class), eq(UserActivityDocument.class)))
+        .thenReturn(mockResult);
+
+    activityService.updateCommentCountInRecentArticles(articleId, amount);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
+
+    verify(mongoTemplate).updateMulti(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
+
+    assertThat(queryCaptor.getValue().getQueryObject().get("recentArticles.articleId"))
+        .isEqualTo(articleId);
+
+    String updateObj = updateCaptor.getValue().getUpdateObject().toString();
+    assertThat(updateObj).contains("$inc", "recentArticles.$.articleCommentCount", "5");
   }
 }

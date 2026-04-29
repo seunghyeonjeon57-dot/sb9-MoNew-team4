@@ -30,13 +30,13 @@ public class ArticleEntity extends BaseEntity {
   @Column(name = "id", updatable = false, nullable = false)
   private UUID id;
 
-  @Column(nullable = false, length = 100)
+  @Column(name = "source", nullable = false, length = 100)
   private String source;
 
   @Column(name = "source_url", nullable = false, unique = true, length = 500)
   private String sourceUrl;
 
-  @Column(nullable = false, length = 300)
+  @Column(name = "title" ,nullable = false, length = 300)
   private String title;
 
   @Column(name = "publish_date")

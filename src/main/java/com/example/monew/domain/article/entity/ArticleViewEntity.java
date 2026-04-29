@@ -31,10 +31,11 @@ public class ArticleViewEntity {
   private User viewedBy;
 
   // 중복 방지를 위한 IP 주소를 저장
+  @Column(name = "client_ip")
   private String clientIp;
 
   @CreatedDate
-  @Column(updatable = false)
+  @Column(name = "viewed_at", updatable = false)
   private LocalDateTime viewedAt;
 
   @Builder
