@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: dev # 기본 실행 환경을 dev로 지정
+    active: prod # 기본 실행 환경을 dev로 지정
 
   datasource:
     driver-class-name: org.postgresql.Driver # 모든 환경 공통 드라이버
