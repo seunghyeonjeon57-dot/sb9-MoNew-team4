@@ -24,7 +24,7 @@ public class CommentEntity extends BaseEntity {
   @Column(name = "user_id", nullable = false)
   private UUID userId;
 
-  @Column(nullable = false, length = 500)
+  @Column(name = "content",nullable = false, length = 500)
   private String content;
 
   @Builder.Default

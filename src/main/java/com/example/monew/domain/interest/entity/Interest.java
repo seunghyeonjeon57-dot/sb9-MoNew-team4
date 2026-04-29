@@ -29,7 +29,7 @@ public class Interest extends BaseEntity {
   @Column(columnDefinition = "uuid")
   private UUID id = UUID.randomUUID();
 
-  @Column(nullable = false, unique = true, length = 50)
+  @Column(name = "name", nullable = false, unique = true, length = 50)
   private String name;
 
   @OneToMany(mappedBy = "interest", cascade = CascadeType.ALL, orphanRemoval = true)

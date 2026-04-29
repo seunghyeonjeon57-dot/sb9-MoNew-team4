@@ -24,7 +24,7 @@ public class Notification extends BaseEntity {
   private UUID userId;
 
   @NotNull(message = "알림 내용은 필수입니다.")
-  @Column(nullable = false)
+  @Column(name = "content",nullable = false)
   private String content;
 
   @NotNull(message = "리소스 타입은 필수입니다.")
