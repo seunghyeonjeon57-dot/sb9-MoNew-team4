@@ -24,7 +24,7 @@ public class NewsBatchScheduler {
   private final ArticleService articleService;
 
   @Transactional
-  @Scheduled(cron = "0 0/15 * * * *")
+  @Scheduled(cron = "0 0 * * * *")
   public void runNewsBatch() {
     log.info("=== 뉴스 배치 수집 시작 ===");
 

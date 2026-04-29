@@ -85,7 +85,6 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
       );
     }
 
-    // 2. 일반 검색어 필터 (기존 유지)
     if (condition.getKeyword() != null && !condition.getKeyword().isBlank()) {
       builder.and(keywordContains(condition.getKeyword()));
     }
@@ -118,7 +117,7 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
 
     return switch (orderBy) {
       case "viewCount" -> new OrderSpecifier<>(direction, article.viewCount);
-      case "commentCount" -> new OrderSpecifier<>(direction, article.id);
+      case "commentCount" -> new OrderSpecifier<>(direction, article.commentCount);
       default -> new OrderSpecifier<>(direction, article.createdAt);
     };
   }
@@ -144,7 +143,7 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
     }
 
     if ("commentCount".equals(orderBy)) {
-      return article.id.lt(cursorId);
+      return commentCountCursorCondition(cursorArticle, cursorId, isDesc);
     }
 
     return createdAtCursorCondition(cursorArticle, cursorId, isDesc);
@@ -161,6 +160,20 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
     } else {
       return article.viewCount.gt(v)
           .or(article.viewCount.eq(v).and(article.id.gt(cursorId)));
+    }
+  }
+
+  private BooleanExpression commentCountCursorCondition(
+      ArticleEntity cursorArticle, UUID cursorId, boolean isDesc) {
+
+    long c = cursorArticle.getCommentCount();
+
+    if (isDesc) {
+      return article.commentCount.lt(c)
+          .or(article.commentCount.eq(c).and(article.id.lt(cursorId)));
+    } else {
+      return article.commentCount.gt(c)
+          .or(article.commentCount.eq(c).and(article.id.gt(cursorId)));
     }
   }
 
