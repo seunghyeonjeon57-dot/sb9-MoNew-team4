@@ -43,7 +43,7 @@ public class InterestSubscriptionService {
     SubscriptionResponse response = SubscriptionResponse.of(saved, refreshed);
 
 
-    activityService.updateSubscriptionResponse(userId, response);
+    activityService.syncSubscriptions(userId);
 
     return response;
   }

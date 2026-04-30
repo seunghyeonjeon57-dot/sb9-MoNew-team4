@@ -133,9 +133,15 @@ public class InterestService {
     }
     Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
+
+    List<UUID> subscribedUserIds = subscriptionRepository.findAllByInterestId(interestId)
+        .stream()
+        .map(Subscription::getUserId)
+        .toList();
+
     interest.replaceKeywords(request.keywords());
 
-    activityService.updateInterestKeywords(interestId, request.keywords());
+    activityService.syncMultipleUsersSubscriptions(subscribedUserIds);
 
     return InterestResponse.from(interest, false);
   }
