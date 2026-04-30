@@ -9,11 +9,13 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v4 # [교정] aws-actions가 아닌 actions가 맞습니다.
         with:
           java-version: '17'
           distribution: 'corretto'
@@ -27,27 +29,31 @@ jobs:
           chmod +x gradlew
           ./gradlew build -x test
 
-      # 2. Docker 이미지 빌드
-      - name: Build Docker Image
-        run: |
-          docker build -t geoni98/monew-app:latest .
-
-      # 3. Docker Hub 로그인
-      - name: Login to Docker Hub
-        if: github.event_name != 'pull_request' && success()
-        uses: docker/login-action@v3
+      # 2. AWS 인증 및 ECR 로그인 (팀장님 Secrets 기반)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
 
-      # 4. Docker 이미지 푸시
-      - name: Push Docker Image
-        if: github.event_name != 'pull_request' && success()
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 3. Docker 이미지 빌드 및 ECR 푸시 (monew-app 리포지토리 반영)
+      - name: Build and Push Docker Image
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: monew-app
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker push geoni98/monew-app:latest
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Notify Build/Push Success
-          # 실패하지 않았고(Success 또는 Skipped 포함), 앞선 작업이 취소되지 않았을 때
         if: always() && !failure() && !cancelled()
         uses: sarisia/actions-status-discord@v1
         with:
@@ -55,10 +61,9 @@ jobs:
           status: success
           title: "🚀 CI 빌드 성공: ${{ github.ref_name }}"
           description: |
-            ${{ github.event_name == 'pull_request' && 'PR 테스트 빌드가 완료되었습니다.' || '소스 빌드 및 Docker 이미지 푸시가 완료되었습니다.' }}
+            ${{ github.event_name == 'pull_request' && 'PR 테스트 빌드가 완료되었습니다.' || '소스 빌드 및 ECR 이미지 푸시가 완료되었습니다.' }}
           color: 0x00ff00
 
-      # [실패 알림] 빌드 또는 이미지 생성/푸시 실패 시
       - name: Notify Build/Push Failure
         if: failure()
         uses: sarisia/actions-status-discord@v1
@@ -66,26 +71,39 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: failure
           title: "❌ 빌드/푸시 실패: ${{ github.ref_name }}"
-          description: "소스 빌드 또는 Docker 과정에서 에러가 발생했습니다. 로그를 확인하세요."
+          description: "소스 빌드 또는 Docker 과정에서 에러가 발생했습니다."
           color: 0xff0000
 
   deploy:
     needs: build-and-push
-    # [중요] 오직 main 브랜치에 직접 Push/Merge 되었을 때만 서버 배포 실행
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # main 또는 develop 브랜치에 Push 되었을 때 배포 실행
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@master
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /home/ubuntu/app
-            docker-compose pull
-            docker-compose up -d
-            docker image prune -f
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # 1. ECS 작업 정의에 새 이미지 주입 (monew-app 반영)
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: monew-app
+          image: ${{ needs.build-and-push.outputs.image }}
+
+      # 2. ECS 서비스 업데이트 (monew-cluster / monew-task-service 반영)
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: monew-task-service
+          cluster: monew-cluster
+          wait-for-service-stability: true
 
       - name: Notify Deploy Success
         if: success()
@@ -93,8 +111,8 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: success
-          title: "✅ 운영 배포 성공 (Main)"
-          description: "서버에 최신 기능이 성공적으로 반영되었습니다."
+          title: "✅ 배포 성공 (${{ github.ref_name }}/ECS)"
+          description: "ECS 서비스에 최신 코드가 반영되었습니다."
           color: 0x00ff00
 
       - name: Notify Deploy Failure
@@ -103,6 +121,6 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: failure
-          title: "🆘 운영 배포 실패 (Main)"
-          description: "SSH 접속 또는 컨테이너 실행 중 문제가 발생했습니다."
+          title: "🆘 배포 실패 (${{ github.ref_name }}/ECS)"
+          description: "배포 과정 중 문제가 발생했습니다."
           color: 0xff0000
