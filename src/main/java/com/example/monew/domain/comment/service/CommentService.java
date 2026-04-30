@@ -77,7 +77,7 @@ public class CommentService {
         .createdAt(comment.getCreatedAt())
         .build();
 
-    activityService.updateRecentComments(request.userId(), activityDto);
+    activityService.syncRecentComments(request.userId());
 
     log.info("댓글 등록 완료: commentId={}", comment.getId());
     return commentMapper.toDto(comment, user.getNickname(), false);

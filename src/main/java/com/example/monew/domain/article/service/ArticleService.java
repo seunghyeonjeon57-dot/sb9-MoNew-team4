@@ -1,5 +1,6 @@
 package com.example.monew.domain.article.service;
 
+import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.dto.ArticleRestoreResultDto;
 import com.example.monew.domain.article.dto.ArticleSearchCondition;
@@ -36,6 +37,7 @@ public class ArticleService {
   private final ArticleViewService articleViewService;
   private final ApplicationEventPublisher eventPublisher;
   private final EntityManager entityManager;
+  private final ActivityService activityService;
 
   public ArticleDto getArticleDetail(UUID id) {
     log.info("뉴스 상세 조회 요청 - ID: {}", id);
@@ -195,7 +197,6 @@ public class ArticleService {
     log.info("조회수 로그 기록 요청 - Article: {}, User: {}", articleId, viewedBy);
 
     articleViewService.logView(articleId, viewedBy, clientIp);
-
   }
 
 }

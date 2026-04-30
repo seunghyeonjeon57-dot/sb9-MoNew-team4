@@ -51,9 +51,7 @@ public class ArticleViewService {
 
     ArticleViewDto responseDto = buildDto(article, saved);
 
-    if (userId != null) {
-      activityService.updateRecentViewedArticles(userId, responseDto);
-    }
+    activityService.syncRecentArticles(userId);
 
     return responseDto;
   }

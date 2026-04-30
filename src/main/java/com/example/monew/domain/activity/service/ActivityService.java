@@ -6,6 +6,7 @@ import com.example.monew.domain.article.dto.ArticleViewDto;
 import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.exception.UserNotFoundException;
+import java.util.Collections;
 import java.util.List;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
@@ -270,6 +271,47 @@ public class ActivityService {
     } catch (Exception e) {
       log.error("MongoDB 댓글 동기화 실패: articleId={}, error={}", articleId, e.getMessage());
     }
+  }
+
+  @Transactional(readOnly = true)
+  public UserActivityDto syncActivity(UUID userId) {
+
+    log.info("RDB 실시간 조회를 통한 활동 내역 생성: userId={}", userId);
+
+    userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException("해당 유저를 찾을 수 없습니다."));
+
+    return rdbService.getUserActivity(userId);
+  }
+
+  public void syncRecentComments(UUID userId) {
+    var comments = rdbService.getRecentComments(userId);
+
+    Query query = new Query(Criteria.where("_id").is(userId));
+    Update update = new Update().set("recentComments", comments);
+
+    mongoTemplate.upsert(query, update, UserActivityDocument.class);
+    log.info("MongoDB 댓글 동기화 완료: userId={}", userId);
+  }
+
+  public void syncRecentLikes(UUID userId) {
+    var likes = rdbService.getRecentLikes(userId);
+
+    Query query = new Query(Criteria.where("_id").is(userId));
+    Update update = new Update().set("recentLikes", likes);
+
+    mongoTemplate.upsert(query, update, UserActivityDocument.class);
+    log.info("MongoDB 좋아요 동기화 완료: userId={}", userId);
+  }
+
+  public void syncRecentArticles(UUID userId) {
+    var articles = rdbService.getRecentArticles(userId);
+
+    Query query = new Query(Criteria.where("_id").is(userId));
+    Update update = new Update().set("recentArticles", articles);
+
+    mongoTemplate.upsert(query, update, UserActivityDocument.class);
+    log.info("MongoDB 최근 본 기사 동기화 완료: userId={}", userId);
   }
 
   public void syncSubscriptions(UUID userId) {
