@@ -1,7 +1,5 @@
 package com.example.monew.domain.comment.service;
 
-import com.example.monew.domain.activity.dto.CommentActivityDto;
-import com.example.monew.domain.activity.dto.CommentLikeActivityDto;
 import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;

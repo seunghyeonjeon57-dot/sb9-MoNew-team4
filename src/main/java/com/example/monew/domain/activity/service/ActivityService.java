@@ -1,23 +1,15 @@
 package com.example.monew.domain.activity.service;
 
-import com.example.monew.domain.activity.dto.CommentActivityDto;
-import com.example.monew.domain.activity.dto.CommentLikeActivityDto;
-import com.example.monew.domain.article.dto.ArticleViewDto;
-import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.exception.UserNotFoundException;
-import java.util.Collections;
 import java.util.List;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import java.util.UUID;
-
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Update.Position;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import com.example.monew.domain.activity.document.UserActivityDocument;
 import com.example.monew.domain.activity.dto.UserActivityDto;
 import com.example.monew.domain.activity.repository.UserActivityRepository;
