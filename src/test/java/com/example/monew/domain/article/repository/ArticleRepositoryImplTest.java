@@ -3,6 +3,7 @@ package com.example.monew.domain.article.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.entity.ArticleEntity;
+import com.example.monew.domain.comment.entity.CommentEntity;
 import com.example.monew.domain.interest.entity.Interest;
 import com.example.monew.domain.interest.entity.InterestKeyword;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -299,10 +300,16 @@ class ArticleRepositoryImplTest {
   @Test
   @DisplayName("commentCount 커서 조건의 모든 분기 - Impl 로직 한계 대응")
   void commentCount_perfect_coverage_test() {
-    
+
+    // 1. 엔티티 생성 (ID는 자동 생성되므로 우리가 제어할 수 없음)
     ArticleEntity a1 = ArticleEntity.builder().title("a1").source("S1").sourceUrl("U1").build();
     ArticleEntity a2 = ArticleEntity.builder().title("a2").source("S2").sourceUrl("U2").build();
     ArticleEntity a3 = ArticleEntity.builder().title("a3").source("S3").sourceUrl("U3").build();
+
+    // 2. 값 주입 (L을 붙여 long 타입 명시)
+    ReflectionTestUtils.setField(a1, "commentCount", 10L);
+    ReflectionTestUtils.setField(a2, "commentCount", 20L);
+    ReflectionTestUtils.setField(a3, "commentCount", 30L);
 
     em.persist(a1);
     em.persist(a2);
@@ -310,29 +317,28 @@ class ArticleRepositoryImplTest {
     em.flush();
     em.clear();
 
-    
+    // 3. [중요] ID가 아니라 commentCount 기준으로 데이터를 찾아야 정확합니다.
+    // findAllActive() 결과 중 commentCount가 가장 높은 놈을 기준으로 잡습니다.
     List<ArticleEntity> all = articleRepository.findAllActive();
-    all.sort(java.util.Comparator.comparing(ArticleEntity::getId));
 
-    ArticleEntity small = all.get(0);
-    ArticleEntity middle = all.get(1);
-    ArticleEntity large = all.get(2);
+    // commentCount 내림차순 정렬 (30, 20, 10 순서)
+    all.sort((o1, o2) -> Long.compare(o2.getCommentCount(), o1.getCommentCount()));
 
-    
-    
+    ArticleEntity large = all.get(0);   // 30개 (a3)
+    ArticleEntity middle = all.get(1);  // 20개 (a2)
+    ArticleEntity small = all.get(2);   // 10개 (a1)
+
+    // 4. 커서 조건 설정 (현재 보고 있는 기준: 30개짜리)
     ArticleSearchCondition descCond = new ArticleSearchCondition();
     descCond.setOrderBy("commentCount");
     descCond.setDirection("DESC");
-    descCond.setCursor(large.getId().toString());
+    descCond.setCursor(large.getId().toString()); // 커서 기준: a3(30)
 
+    // 5. 실행
     List<ArticleEntity> descResult = articleRepository.findByCursor(descCond);
 
-    
+    // 6. 검증: 30개짜리 다음 페이지는 당연히 20개짜리(middle)여야 함
     assertThat(descResult).isNotEmpty();
     assertThat(descResult.get(0).getId()).isEqualTo(middle.getId());
-
-    
-    
-    
   }
 }
