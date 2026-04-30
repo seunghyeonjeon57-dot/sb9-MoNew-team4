@@ -453,7 +453,7 @@ public class CommentServiceTest {
 
     verify(mockComment, times(1)).decrementLikeCount();
     verify(commentLikeRepository, times(1)).deleteByCommentIdAndUserId(commentId, userId);
-    verify(activityService, times(1)).removeRecentLikedComments(userId, commentId);
+    verify(activityService, times(1)).syncRecentLikes(userId);
   }
 
   @Test
@@ -475,11 +475,8 @@ public class CommentServiceTest {
   void removeLike_IncreaseDecrease() {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    UUID ownerId = UUID.randomUUID();
 
     CommentEntity mockComment = mock(CommentEntity.class);
-    when(mockComment.getUserId()).thenReturn(ownerId);
-    when(mockComment.getLikeCount()).thenReturn(5L);
 
     when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(mockComment));
     when(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).thenReturn(true);
@@ -487,11 +484,7 @@ public class CommentServiceTest {
     commentService.removeLike(commentId, userId);
 
     verify(mockComment, times(1)).decrementLikeCount();
-
-    verify(activityService, times(1)).commentLikeCountInRecentComments(ownerId, commentId, 5L);
-
-    verify(activityService, times(1)).removeCommentLikeInActivity(userId, commentId);
-
+    verify(activityService, times(1)).syncRecentLikes(userId);
     verify(commentLikeRepository, times(1)).deleteByCommentIdAndUserId(commentId, userId);
   }
 }

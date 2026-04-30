@@ -2,11 +2,13 @@ package com.example.monew.domain.activity.service;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.example.monew.domain.activity.dto.CommentActivityDto;
@@ -16,9 +18,11 @@ import com.example.monew.domain.article.dto.ArticleViewDto;
 import com.example.monew.domain.interest.dto.SubscriptionResponse;
 import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.entity.User;
+import com.example.monew.domain.user.entity.type.UserStatus;
+import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.repository.UserRepository;
-import com.mongodb.client.result.UpdateResult;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,18 +32,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.ArgumentCaptor;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.data.mongodb.core.query.UpdateDefinition;
-import org.bson.Document;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-
 import com.example.monew.domain.activity.document.UserActivityDocument;
 import com.example.monew.domain.activity.repository.UserActivityRepository;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.mockito.ArgumentCaptor;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import static org.mockito.ArgumentMatchers.eq;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -50,313 +54,122 @@ public class ActivityServiceTest {
   @Mock
   private UserRepository userRepository;
   @Mock
+  private RDBService rdbService;
+  @Mock
   private MongoTemplate mongoTemplate;
 
   @InjectMocks
   ActivityService activityService;
 
   @Test
-  @DisplayName("처음 활동 내역을 조회하는 유저(데이터 없음)의 경우, 에러 없이 빈 리스트들을 가진 DTO를 반환한다.")
-  void getUserActivity_ReturnEmptyDto_WhenNoDataExists() {
+  @DisplayName("활동 내역 조회 성공 - DB와 몽고DB에 모두 데이터가 있을 때")
+  void getUserActivity_Success() {
     UUID userId = UUID.randomUUID();
-    String expectedEmail = "test@example.com";
-    String expectedNickname = "test";
-    LocalDateTime expectedCreatedAt = LocalDateTime.now();
 
-    User mockUser = mock(User.class);
-    given(mockUser.getId()).willReturn(userId);
-    given(mockUser.getEmail()).willReturn(expectedEmail);
-    given(mockUser.getNickname()).willReturn(expectedNickname);
-    given(mockUser.getCreatedAt()).willReturn(expectedCreatedAt);
-
-    given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
-
-    given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
-
-    UserActivityDto result = activityService.getUserActivity(userId);
-
-    assertThat(result).isNotNull();
-    assertThat(result.id()).isEqualTo(userId);
-    assertThat(result.email()).isEqualTo(expectedEmail);
-    assertThat(result.nickname()).isEqualTo(expectedNickname);
-
-    assertThat(result.subscriptions()).isEmpty();
-    assertThat(result.comments()).isEmpty();
-    assertThat(result.commentLikes()).isEmpty();
-    assertThat(result.articleViews()).isEmpty();
-  }
-
-  @Test
-  @DisplayName("기존 활동 내역이 있는 유저의 경우, 해당 도큐먼트의 데이터를 DTO로 정확히 매핑하여 반환한다.")
-  void getUserActivity_ReturnMappedDto_WhenDataExists() {
-    UUID userId = UUID.randomUUID();
-    String expectedEmail = "test@test.com";
-    String expectedNickname = "test";
-    LocalDateTime expectedCreatedAt = LocalDateTime.now();
-
-    User mockUser = mock(User.class);
-    given(mockUser.getId()).willReturn(userId);
-    given(mockUser.getEmail()).willReturn(expectedEmail);
-    given(mockUser.getNickname()).willReturn(expectedNickname);
-    given(mockUser.getCreatedAt()).willReturn(expectedCreatedAt);
-
-    given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
+    User mockUser = User.builder()
+        .email("test@monew.com")
+        .nickname("모뉴테스터")
+        .build();
+    ReflectionTestUtils.setField(mockUser, "id", userId);
+    ReflectionTestUtils.setField(mockUser, "createdAt", LocalDateTime.now());
 
     UserActivityDocument mockDocument = UserActivityDocument.builder()
         .userId(userId)
+        .subscriptions(Collections.emptyList())
+        .recentComments(Collections.emptyList())
         .build();
 
+    given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(mockDocument));
 
     UserActivityDto result = activityService.getUserActivity(userId);
 
     assertThat(result).isNotNull();
     assertThat(result.id()).isEqualTo(userId);
-    assertThat(result.email()).isEqualTo(expectedEmail);
-    assertThat(result.nickname()).isEqualTo(expectedNickname);
-    assertThat(result.createdAt()).isEqualTo(expectedCreatedAt);
+    assertThat(result.email()).isEqualTo("test@monew.com");
+    assertThat(result.nickname()).isEqualTo("모뉴테스터");
 
     verify(userRepository).findById(userId);
     verify(userActivityRepository).findById(userId);
   }
 
-
   @Test
-  @DisplayName("최근 댓글 추가 시 MongoTemplate의 push와 slice 로직이 정상적으로 호출된다.")
-  void updateRecentComments_CallsUpsertWithPushAndSlice() {
+  @DisplayName("활동 내역 조회 성공 - 유저는 있지만 활동 내역(몽고DB)이 없을 때 빈 내역 반환")
+  void getUserActivity_Success_EmptyDocument() {
     UUID userId = UUID.randomUUID();
-    CommentActivityDto mockDto = mock(CommentActivityDto.class);
+    User mockUser = User.builder()
+        .email("newbie@monew.com")
+        .nickname("신규유저")
+        .build();
+    ReflectionTestUtils.setField(mockUser, "id", userId);
 
-    activityService.updateRecentComments(userId, mockDto);
+    given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
+    given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
 
-    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
-    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
+    UserActivityDto result = activityService.getUserActivity(userId);
 
-    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
-
-    Query capturedQuery = queryCaptor.getValue();
-    Update capturedUpdate = (Update) updateCaptor.getValue();
-
-    Document queryObject = capturedQuery.getQueryObject();
-    assertThat(queryObject.get("_id")).isEqualTo(userId);
-
-    Document updateObject = capturedUpdate.getUpdateObject();
-    assertThat(capturedUpdate.getUpdateObject()).containsKey("$push");
-
-    Document pushObject = (Document) updateObject.get("$push");
-    assertThat(pushObject.containsKey("recentComments")).isTrue();
+    assertThat(result).isNotNull();
+    assertThat(result.id()).isEqualTo(userId);
+    assertThat(result.subscriptions()).isEmpty();
+    assertThat(result.comments()).isEmpty();
   }
 
   @Test
-  @DisplayName("최근 좋아요 누른 댓글 추가 시 MongoTemplate의 push와 slice 로직이 정상적으로 호출된다.")
-  void updateRecentLikedComments_CallsUpsertWithPushAndSlice() {
-    UUID userId = UUID.randomUUID();
-    CommentLikeActivityDto mockDto = mock(CommentLikeActivityDto.class);
+  @DisplayName("활동 내역 조회 실패 - 존재하지 않는 유저일 경우 예외 발생")
+  void getUserActivity_Fail_UserNotFound() {
+    UUID invalidUserId = UUID.randomUUID();
+    given(userRepository.findById(invalidUserId)).willReturn(Optional.empty());
 
-    activityService.updateRecentLikedComments(userId, mockDto);
+    assertThatThrownBy(() -> activityService.getUserActivity(invalidUserId))
+        .isInstanceOf(UserNotFoundException.class)
+        .hasMessageContaining("해당 유저를 찾을 수 없습니다.");
 
-    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
-    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
-
-    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
-
-    Query capturedQuery = queryCaptor.getValue();
-    Update capturedUpdate = (Update) updateCaptor.getValue();
-
-    Document queryObject = capturedQuery.getQueryObject();
-    assertThat(queryObject.get("_id")).isEqualTo(userId);
-
-    Document updateObject = capturedUpdate.getUpdateObject();
-    assertThat(updateObject.containsKey("$push")).isTrue();
-
-    Document pushObject = (Document) updateObject.get("$push");
-    assertThat(pushObject.containsKey("recentLikes")).isTrue();
-  }
-
-
-  @Test
-  @DisplayName("최근 읽은 기사 추가 시 MongoTemplate의 push와 slice 로직이 정상적으로 호출된다.")
-  void updateRecentViewedArticles_CallsUpsertWithPushAndSlice() {
-    UUID userId = UUID.randomUUID();
-    ArticleViewDto mockDto = mock(ArticleViewDto.class);
-
-    activityService.updateRecentViewedArticles(userId, mockDto);
-
-    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
-    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
-
-    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
-
-    Query capturedQuery = queryCaptor.getValue();
-    Update capturedUpdate = (Update) updateCaptor.getValue();
-
-    Document queryObject = capturedQuery.getQueryObject();
-    assertThat(queryObject.get("_id")).isEqualTo(userId);
-
-    Document updateObject = capturedUpdate.getUpdateObject();
-    assertThat(updateObject.containsKey("$push")).isTrue();
-
-    Document pushObject = (Document) updateObject.get("$push");
-    assertThat(pushObject.containsKey("recentArticles")).isTrue();
+    verify(userActivityRepository, never()).findById(any());
   }
 
   @Test
-  @DisplayName("사용자 프로필 업데이트 시 MongoTemplate의 set 로직이 정상적으로 호출된다.")
-  void updateUser_CallsUpsertWithSet() {
+  @DisplayName("MongoDB 활동 내역 업데이트 및 Upsert 호출 검증")
+  void updateUser_Success() {
     UUID userId = UUID.randomUUID();
-    UserDto mockUserDto = mock(UserDto.class);
-
-    activityService.updateUser(userId, mockUserDto);
-
-    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
-    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
-
-    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
-
-    Query capturedQuery = queryCaptor.getValue();
-    Update capturedUpdate = (Update) updateCaptor.getValue();
-
-    Document queryObject = capturedQuery.getQueryObject();
-    assertThat(queryObject.get("_id")).isEqualTo(userId);
-
-    Document updateObject = capturedUpdate.getUpdateObject();
-    assertThat(updateObject.containsKey("$set")).isTrue();
-
-    Document setObject = (Document) updateObject.get("$set");
-    assertThat(setObject.containsKey("userProfile")).isTrue();
-  }
-
-  @Test
-  @DisplayName("구독 정보 업데이트 시 MongoTemplate의 set 로직이 정상적으로 호출된다.")
-  void updateSubscriptionResponse_CallsUpsertWithSet() {
-    UUID userId = UUID.randomUUID();
-    SubscriptionResponse mockDto = mock(SubscriptionResponse.class);
-
-    activityService.updateSubscriptionResponse(userId, mockDto);
-
-    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
-    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
-
-    verify(mongoTemplate).upsert(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
-
-    Query capturedQuery = queryCaptor.getValue();
-    Update capturedUpdate = (Update) updateCaptor.getValue();
-
-    Document queryObject = capturedQuery.getQueryObject();
-    assertThat(queryObject.get("_id")).isEqualTo(userId);
-
-    Document updateObject = capturedUpdate.getUpdateObject();
-    assertThat(updateObject).containsKey("$addToSet");
-
-    Document addToSetObject = (Document) updateObject.get("$addToSet");
-    assertThat(addToSetObject).containsKey("subscriptions");
-  }
-
-  @Test
-  @DisplayName("관심사 구독 취소 - MongoDB 배열에서 $pull 연산자가 포함된 업데이트가 정상 실행된다")
-  void removeSubscription_Success() {
-
-    UUID userId = UUID.randomUUID();
-    UUID interestId = UUID.randomUUID();
-
-    activityService.removeSubscription(userId, interestId);
+    UserDto userDto = new UserDto(
+        userId,
+        "test@test.com",
+        "test",
+        LocalDateTime.now().withNano(0)
+    );
 
     ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
     ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
 
-    verify(mongoTemplate, times(1)).updateFirst(
+    activityService.updateUser(userId, userDto);
+
+    verify(mongoTemplate).upsert(
         queryCaptor.capture(),
         updateCaptor.capture(),
-        eq(UserActivityDocument.class)
+        org.mockito.ArgumentMatchers.eq(UserActivityDocument.class)
     );
 
     Query capturedQuery = queryCaptor.getValue();
-    assertThat(capturedQuery.getQueryObject().get("_id")).isEqualTo(userId);
-
     Update capturedUpdate = updateCaptor.getValue();
-    assertThat(capturedUpdate.getUpdateObject().containsKey("$pull")).isTrue();
+
+    assertThat(capturedQuery.getQueryObject().get("_id")).isEqualTo(userId);
+    assertThat(capturedUpdate.getUpdateObject().toString()).contains("userProfile");
   }
 
   @Test
-  @DisplayName("관심사 구독 취소 예외 - MongoDB 통신 중 에러가 발생해도 예외를 던지지 않고 꿀꺽 삼킨다 (트랜잭션 롤백 방지)")
-  void removeSubscription_ExceptionHandled() {
+  @DisplayName("MongoDB 업데이트 시 예외가 발생해도 로직이 중단되지 않고 로그를 남긴다")
+  void updateUser_Fail_Logging() {
     UUID userId = UUID.randomUUID();
-    UUID interestId = UUID.randomUUID();
+    UserDto userDto = new UserDto(userId, "test@test.com", "test", LocalDateTime.now());
 
-    doThrow(new RuntimeException("MongoDB 연결 에러 테스트"))
-        .when(mongoTemplate).updateFirst(any(Query.class), any(Update.class), eq(UserActivityDocument.class));
+    doThrow(new RuntimeException("MongoDB Connection Error"))
+        .when(mongoTemplate).upsert(any(), any(), eq(UserActivityDocument.class));
 
-    assertDoesNotThrow(() -> activityService.removeSubscription(userId, interestId));
+    activityService.updateUser(userId, userDto);
 
-    verify(mongoTemplate, times(1)).updateFirst(any(Query.class), any(Update.class), eq(UserActivityDocument.class));
+    verify(mongoTemplate, times(1)).upsert(any(), any(), eq(UserActivityDocument.class));
   }
 
-  @Test
-  @DisplayName("MongoDB 댓글 수정 동기화 성공 케이스")
-  void updateRecentCommentsInactivity_Success() {
-    UUID userId = UUID.randomUUID();
-    UUID commentId = UUID.randomUUID();
-    String newComment = "수정된 댓글 내용";
-
-    activityService.updateRecentCommentsInactivity(userId, commentId, newComment);
-
-    verify(mongoTemplate, times(1)).updateFirst(
-        any(Query.class),
-        any(Update.class),
-        eq(UserActivityDocument.class)
-    );
-  }
-
-  @Test
-  @DisplayName("MongoDB 처리 중 예외 발생 시 예외가 전파되지 않아야 한다")
-  void updateRecentCommentsInactivity_Exception() {
-    UUID userId = UUID.randomUUID();
-    UUID commentId = UUID.randomUUID();
-    String newComment = "수정된 댓글 내용";
-
-    doThrow(new RuntimeException("DB 에러"))
-        .when(mongoTemplate)
-        .updateFirst(any(Query.class), any(UpdateDefinition.class), eq(UserActivityDocument.class));
-
-    assertDoesNotThrow(() -> {
-      activityService.updateRecentCommentsInactivity(userId, commentId, newComment);
-    });
-
-    verify(mongoTemplate, times(1))
-        .updateFirst(any(Query.class), any(UpdateDefinition.class), eq(UserActivityDocument.class));
-  }
-
-  @Test
-  @DisplayName("MongoDB 좋아요 삭제(pull) 동기화 성공")
-  void removeRecentLikedComments_Success() {
-    UUID userId = UUID.randomUUID();
-    UUID commentId = UUID.randomUUID();
-
-    activityService.removeRecentLikedComments(userId, commentId);
-
-    verify(mongoTemplate, times(1)).updateFirst(
-        any(Query.class),
-        any(Update.class),
-        eq(UserActivityDocument.class)
-    );
-  }
-
-  @Test
-  @DisplayName("MongoDB 좋아요 삭제 중 예외 발생 시 로그 기록 확인")
-  void removeRecentLikedComments_Exception() {
-    UUID userId = UUID.randomUUID();
-    UUID commentId = UUID.randomUUID();
-
-    doThrow(new RuntimeException("DB Connection Fail")).when(mongoTemplate)
-        .updateFirst(any(Query.class), any(Update.class), eq(UserActivityDocument.class));
-
-    activityService.removeRecentLikedComments(userId, commentId);
-
-    verify(mongoTemplate, times(1)).updateFirst(
-        any(Query.class),
-        any(UpdateDefinition.class),
-        eq(UserActivityDocument.class));
-  }
 
   @Test
   @DisplayName("사용자 활동 내역 논리 삭제 성공 테스트")
@@ -374,7 +187,6 @@ public class ActivityServiceTest {
   @Test
   @DisplayName("사용자 활동 내역 논리 삭제 중 예외 발생 시 로그 확인")
   void softDeleteUserActivity_Exception() {
-    // given
     UUID userId = UUID.randomUUID();
 
     when(userActivityRepository.softDeleteAllByUserId(userId))
@@ -385,100 +197,257 @@ public class ActivityServiceTest {
     verify(userActivityRepository, times(1)).softDeleteAllByUserId(userId);
   }
 
-
   @Test
-  @DisplayName("댓글 좋아요 수 동기화 성공 시 로그 확인")
-  void commentLikeCountInRecentComments_Success() {
+  @DisplayName("성공: RDB 데이터를 기반으로 활동 내역을 동기화한다")
+  void syncActivity_Success() {
     UUID userId = UUID.randomUUID();
-    UUID commentId = UUID.randomUUID();
-    Long newLikeCount = 10L;
 
-    UpdateResult mockResult = mock(UpdateResult.class);
-    when(mockResult.getModifiedCount()).thenReturn(1L);
-    when(mongoTemplate.updateFirst(any(Query.class), any(UpdateDefinition.class), eq(UserActivityDocument.class)))
-        .thenReturn(mockResult);
+    User user = User.builder()
+        .nickname("hyeonhong")
+        .email("kang@example.com")
+        .password("encoded_password")
+        .status(UserStatus.ACTIVE)
+        .build();
 
-    activityService.commentLikeCountInRecentComments(userId, commentId, newLikeCount);
+    ReflectionTestUtils.setField(user, "id", userId);
 
-    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
-    verify(mongoTemplate).updateFirst(any(Query.class), updateCaptor.capture(), eq(UserActivityDocument.class));
+    UserActivityDto expectedDto = UserActivityDto.builder()
+        .id(userId)
+        .email("kang@example.com")
+        .nickname("test")
+        .createdAt(LocalDateTime.now())
+        .subscriptions(List.of())
+        .comments(List.of())
+        .commentLikes(List.of())
+        .articleViews(List.of())
+        .build();
 
-    String updateObj = updateCaptor.getValue().getUpdateObject().toString();
-    assertThat(updateObj).contains("$set", "likeCount=" + newLikeCount);
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(rdbService.getUserActivity(userId)).willReturn(expectedDto);
+
+    UserActivityDto result = activityService  .syncActivity(userId);
+
+    assertThat(result).isNotNull();
+    assertThat(result.id()).isEqualTo(userId);
+    assertThat(result.nickname()).isEqualTo("test");
+
+    verify(userRepository).findById(userId);
+    verify(rdbService).getUserActivity(userId);
   }
 
   @Test
-  @DisplayName("MongoDB 내 활동 내역 좋아요 삭제(pull) 확인")
-  void removeCommentLikeInActivity_Success() {
+  @DisplayName("실패: 사용자가 존재하지 않으면 UserNotFoundException이 발생한다")
+  void syncActivity_UserNotFound() {
     UUID userId = UUID.randomUUID();
-    UUID commentId = UUID.randomUUID();
+    given(userRepository.findById(userId)).willReturn(Optional.empty());
 
-    activityService.removeCommentLikeInActivity(userId, commentId);
+    assertThrows(UserNotFoundException.class, () -> {
+      activityService.syncActivity(userId);
+    });
 
-    ArgumentCaptor<UpdateDefinition> updateCaptor = ArgumentCaptor.forClass(UpdateDefinition.class);
-    verify(mongoTemplate).updateFirst(any(Query.class), updateCaptor.capture(), eq(UserActivityDocument.class));
-
-    var updateObj = updateCaptor.getValue().getUpdateObject();
-
-    var pullDoc = (org.bson.Document) updateObj.get("$pull");
-    var recentLikesQuery = (Query) pullDoc.get("recentLikes");
-
-    var queryObject = recentLikesQuery.getQueryObject();
-    var commentIdValue = queryObject.get("commentId");
-
-    assertThat(commentIdValue).isEqualTo(commentId); // UUID 객체끼리 직접 비교
+    verify(rdbService, never()).getUserActivity(any());
   }
 
   @Test
-  @DisplayName("관심사 키워드 일괄 업데이트 - 배열 필터링 확인")
-  void updateInterestKeywords_Success() {
-    // given
-    UUID interestId = UUID.randomUUID();
-    List<String> newKeywords = List.of("Spring", "MongoDB", "Test");
+  @DisplayName("성공: RDB에서 가져온 최근 댓글 목록을 MongoDB에 동기화(upsert)한다")
+  void syncRecentComments_Success() {
+    UUID userId = UUID.randomUUID();
+    List<CommentActivityDto> mockComments = List.of(
+        CommentActivityDto.builder()
+            .id(UUID.randomUUID())
+            .content("테스트 댓글 1")
+            .createdAt(LocalDateTime.now())
+            .build(),
+        CommentActivityDto.builder()
+            .id(UUID.randomUUID())
+            .content("테스트 댓글 2")
+            .createdAt(LocalDateTime.now())
+            .build()
+    );
 
-    UpdateResult mockResult = mock(UpdateResult.class);
-    when(mockResult.getModifiedCount()).thenReturn(5L);
-
-    when(mongoTemplate.updateMulti(any(Query.class), any(Update.class), eq(UserActivityDocument.class)))
-        .thenReturn(mockResult);
-
-    activityService.updateInterestKeywords(interestId, newKeywords);
-
-    ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
-    verify(mongoTemplate).updateMulti(any(Query.class), updateCaptor.capture(), eq(UserActivityDocument.class));
-
-    Update capturedUpdate = updateCaptor.getValue();
-
-    assertThat(capturedUpdate.getUpdateObject().toString())
-        .contains("$set", "subscriptions.$[elem].interestKeywords");
-
-    assertThat(capturedUpdate.toString()).contains("elem");
-  }
-
-  @Test
-  @DisplayName("기사 댓글 수 증감 동기화 - 양수/음수 증감량이 정확히 반영된다")
-  void updateCommentCountInRecentArticles_Success() {
-    UUID articleId = UUID.randomUUID();
-    int amount = 5;
-
-    UpdateResult mockResult = mock(UpdateResult.class);
-    when(mockResult.getMatchedCount()).thenReturn(1L);
-    when(mockResult.getModifiedCount()).thenReturn(1L);
-
-    when(mongoTemplate.updateMulti(any(Query.class), any(Update.class), eq(UserActivityDocument.class)))
-        .thenReturn(mockResult);
-
-    activityService.updateCommentCountInRecentArticles(articleId, amount);
+    given(rdbService.getRecentComments(userId)).willReturn(mockComments);
 
     ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
     ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
 
-    verify(mongoTemplate).updateMulti(queryCaptor.capture(), updateCaptor.capture(), eq(UserActivityDocument.class));
+    activityService.syncRecentComments(userId);
 
-    assertThat(queryCaptor.getValue().getQueryObject().get("recentArticles.articleId"))
-        .isEqualTo(articleId);
+    verify(mongoTemplate).upsert(
+        queryCaptor.capture(),
+        updateCaptor.capture(),
+        org.mockito.ArgumentMatchers.eq(UserActivityDocument.class)
+    );
 
-    String updateObj = updateCaptor.getValue().getUpdateObject().toString();
-    assertThat(updateObj).contains("$inc", "recentArticles.$.articleCommentCount", "5");
+    Query capturedQuery = queryCaptor.getValue();
+    Update capturedUpdate = updateCaptor.getValue();
+
+    assertThat(capturedQuery.getQueryObject().get("_id")).isEqualTo(userId);
+    assertThat(capturedUpdate.getUpdateObject().toString()).contains("recentComments");
+  }
+
+  @Test
+  @DisplayName("성공: RDB에서 가져온 최근 좋아요 목록을 MongoDB에 동기화(upsert)한다")
+  void syncRecentLikes_Success() {
+    UUID userId = UUID.randomUUID();
+
+    List<CommentLikeActivityDto> mockLikes = List.of(
+        CommentLikeActivityDto.builder()
+            .id(UUID.randomUUID())
+            .createdAt(LocalDateTime.now())
+            .commentId(UUID.randomUUID())
+            .articleTitle("테스트 기사 제목 1")
+            .commentContent("좋아요한 댓글 내용 1")
+            .build(),
+        CommentLikeActivityDto.builder()
+            .id(UUID.randomUUID())
+            .createdAt(LocalDateTime.now())
+            .commentId(UUID.randomUUID())
+            .articleTitle("테스트 기사 제목 2")
+            .commentContent("좋아요한 댓글 내용 2")
+            .build()
+    );
+
+    given(rdbService.getRecentLikes(userId)).willReturn(mockLikes);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
+
+    activityService.syncRecentLikes(userId);
+
+    verify(mongoTemplate, times(1)).upsert(
+        queryCaptor.capture(),
+        updateCaptor.capture(),
+        org.mockito.ArgumentMatchers.eq(UserActivityDocument.class)
+    );
+
+    Query capturedQuery = queryCaptor.getValue();
+    Update capturedUpdate = updateCaptor.getValue();
+
+    assertThat(capturedQuery.getQueryObject().get("_id")).isEqualTo(userId);
+
+    String updateJson = capturedUpdate.getUpdateObject().toString();
+    assertThat(updateJson).contains("recentLikes");
+
+    verify(rdbService).getRecentLikes(userId);
+  }
+
+  @Test
+  @DisplayName("성공: RDB에서 가져온 최근 본 기사 목록을 MongoDB에 동기화(upsert)한다")
+  void syncRecentArticles_Success() {
+    UUID userId = UUID.randomUUID();
+
+    List<ArticleViewDto> mockArticles = List.of(
+        ArticleViewDto.builder()
+            .id(UUID.randomUUID())
+            .articleId(UUID.randomUUID())
+            .articleTitle("최근 본 기사 제목 1")
+            .createdAt(LocalDateTime.now())
+            .build(),
+        ArticleViewDto.builder()
+            .id(UUID.randomUUID())
+            .articleId(UUID.randomUUID())
+            .articleTitle("최근 본 기사 제목 2")
+            .createdAt(LocalDateTime.now())
+            .build()
+    );
+
+    given(rdbService.getRecentArticles(userId)).willReturn(mockArticles);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
+
+    activityService.syncRecentArticles(userId);
+
+    verify(mongoTemplate, times(1)).upsert(
+        queryCaptor.capture(),
+        updateCaptor.capture(),
+        org.mockito.ArgumentMatchers.eq(UserActivityDocument.class)
+    );
+
+    Query capturedQuery = queryCaptor.getValue();
+    Update capturedUpdate = updateCaptor.getValue();
+
+    assertThat(capturedQuery.getQueryObject().get("_id")).isEqualTo(userId);
+
+    String updateJson = capturedUpdate.getUpdateObject().toString();
+    assertThat(updateJson).contains("recentArticles");
+
+    verify(rdbService).getRecentArticles(userId);
+  }
+
+  @Test
+  @DisplayName("성공: RDB에서 가져온 구독 목록을 MongoDB에 동기화(upsert)한다")
+  void syncSubscriptions_Success() {
+    UUID userId = UUID.randomUUID();
+
+    List<SubscriptionResponse> mockSubscriptions = List.of(
+        new SubscriptionResponse(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            "IT/과학",
+            List.of("AI", "반도체"),
+            1500L,
+            LocalDateTime.now()
+        ),
+        new SubscriptionResponse(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            "경제",
+            List.of("주식", "부동산"),
+            2300L,
+            LocalDateTime.now()
+        )
+    );
+
+    given(rdbService.getSubscriptions(userId)).willReturn(mockSubscriptions);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
+
+    activityService.syncSubscriptions(userId);
+
+    verify(mongoTemplate, times(1)).upsert(
+        queryCaptor.capture(),
+        updateCaptor.capture(),
+        org.mockito.ArgumentMatchers.eq(UserActivityDocument.class)
+    );
+
+    Query capturedQuery = queryCaptor.getValue();
+    Update capturedUpdate = updateCaptor.getValue();
+
+    assertThat(capturedQuery.getQueryObject().get("_id")).isEqualTo(userId);
+
+    String updateJson = capturedUpdate.getUpdateObject().toString();
+    assertThat(updateJson).contains("subscriptions");
+
+    verify(rdbService).getSubscriptions(userId);
+  }
+
+  @Test
+  @DisplayName("성공: 여러 사용자 ID 리스트를 받아 각 사용자의 구독 정보를 동기화한다")
+  void syncMultipleUsersSubscriptions_Success() {
+    // Given
+    UUID user1 = UUID.randomUUID();
+    UUID user2 = UUID.randomUUID();
+    List<UUID> userIds = List.of(user1, user2);
+
+    given(rdbService.getSubscriptions(any(UUID.class)))
+        .willReturn(Collections.emptyList());
+
+    activityService.syncMultipleUsersSubscriptions(userIds);
+
+    verify(rdbService, times(userIds.size())).getSubscriptions(any(UUID.class));
+
+    verify(mongoTemplate).upsert(
+        argThat(query -> query.getQueryObject().get("_id").equals(user1)),
+        any(Update.class),
+        eq(UserActivityDocument.class)
+    );
+
+    verify(mongoTemplate).upsert(
+        argThat(query -> query.getQueryObject().get("_id").equals(user2)),
+        any(Update.class),
+        eq(UserActivityDocument.class)
+    );
   }
 }

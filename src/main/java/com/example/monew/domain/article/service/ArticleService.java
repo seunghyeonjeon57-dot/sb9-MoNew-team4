@@ -1,6 +1,5 @@
 package com.example.monew.domain.article.service;
 
-import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.dto.ArticleDto;
 import com.example.monew.domain.article.dto.ArticleRestoreResultDto;
 import com.example.monew.domain.article.dto.ArticleSearchCondition;
@@ -9,9 +8,6 @@ import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.domain.article.repository.ArticleRepository;
-import com.example.monew.domain.comment.dto.CommentDto;
-import com.example.monew.domain.comment.mapper.CommentMapper;
-import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.domain.notification.event.ArticleRegisteredEvent;
 import com.example.monew.global.exception.ErrorCode;
 import jakarta.persistence.EntityManager;
@@ -37,7 +33,6 @@ public class ArticleService {
   private final ArticleViewService articleViewService;
   private final ApplicationEventPublisher eventPublisher;
   private final EntityManager entityManager;
-  private final ActivityService activityService;
 
   public ArticleDto getArticleDetail(UUID id) {
     log.info("뉴스 상세 조회 요청 - ID: {}", id);

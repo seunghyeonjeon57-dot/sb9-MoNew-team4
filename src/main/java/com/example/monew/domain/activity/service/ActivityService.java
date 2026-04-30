@@ -70,54 +70,6 @@ public class ActivityService {
         .build();
   }
 
-  public void updateRecentComments(UUID userId, CommentActivityDto commentDto) {
-    try {
-      Query query = new Query(Criteria.where("_id").is(userId));
-
-      Update update = new Update();
-      update.push("recentComments")
-          .atPosition(Position.FIRST)    // 배열의 최신
-          .slice(10)              // 최신 10개 유지
-          .each(commentDto);            // 추가할 데이터
-
-      mongoTemplate.upsert(query, update, UserActivityDocument.class);
-      log.info("MongoDB 활동 내역 업데이트 성공: userId={}", userId);
-    } catch (Exception e) {
-      log.warn("MongoDB 활동 내역 업데이트 실패 (데이터 정합성 보정 필요): userId={}, error={}", userId, e.getMessage());
-    }
-  }
-
-  public void updateRecentLikedComments(UUID userId, CommentLikeActivityDto commentDto) {
-    try {
-      Query query = new Query(Criteria.where("_id").is(userId));
-
-      Update update = new Update().push("recentLikes")
-          .atPosition(Update.Position.FIRST)
-          .slice(10)
-          .each(commentDto);
-
-      mongoTemplate.upsert(query, update, UserActivityDocument.class);
-      log.info("MongoDB 활동 내역 업데이트 성공: userId={}", userId);
-    } catch (Exception e) {
-      log.warn("MongoDB 활동 내역 업데이트 실패 (데이터 정합성 보정 필요): userId={}, error={}", userId, e.getMessage());
-    }
-  }
-
-  public void updateRecentViewedArticles(UUID userId, ArticleViewDto articleDto) {
-    try {
-      Query query = new Query(Criteria.where("_id").is(userId));
-
-      Update update = new Update().push("recentArticles")
-          .atPosition(Update.Position.FIRST)
-          .slice(10)
-          .each(articleDto);
-
-      mongoTemplate.upsert(query, update, UserActivityDocument.class);
-      log.info("MongoDB 활동 내역 업데이트 성공: userId={}", userId);
-    } catch (Exception e) {
-      log.warn("MongoDB 활동 내역 업데이트 실패 (데이터 정합성 보정 필요): userId={}, error={}", userId, e.getMessage());
-    }
-  }
 
   public void updateUser(UUID userId, UserDto userDto){
     try{
@@ -132,18 +84,6 @@ public class ActivityService {
     }
   }
 
-  public void updateSubscriptionResponse(UUID userId, SubscriptionResponse subscriptionResponse) {
-    try{
-      Query query = new Query(Criteria.where("_id").is(userId));
-
-      Update update = new Update().addToSet("subscriptions", subscriptionResponse);
-
-      mongoTemplate.upsert(query, update, UserActivityDocument.class);
-      log.info("MongoDB 활동 내역 업데이트 성공: userId={}", userId);
-    } catch (Exception e) {
-      log.warn("MongoDB 활동 내역 업데이트 실패 (데이터 정합성 보정 필요): userId={}, error={}", userId, e.getMessage());
-    }
-  }
 
   public void deleteUserActivity(UUID userId) {
     try {
@@ -163,115 +103,6 @@ public class ActivityService {
     }
   }
 
-  public void removeSubscription(UUID userId, UUID interestId) {
-    try {
-      Query query = new Query(Criteria.where("_id").is(userId));
-
-      Update update = new Update().pull("subscriptions",
-          new org.bson.Document("interestId", interestId)
-      );
-
-      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
-      log.info("MongoDB 관심사 구독 취소 반영 성공: userId={}, interestId={}", userId, interestId);
-
-    } catch (Exception e) {
-      log.warn("MongoDB 관심사 구독 취소 반영 실패: userId={}, interestId={}, error={}", userId, interestId, e.getMessage());
-    }
-  }
-
-
-  public void updateRecentCommentsInactivity(UUID userId, UUID commentId, String newComment) {
-    try{
-      Query query = new Query(Criteria.where("_id")
-          .is(userId)
-          .and("recentComments.id")
-          .is(commentId));
-
-      Update update = new Update().set("recentComments.$.content", newComment);
-
-      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
-      log.info("MongoDB 활동 내역 댓글 수정 동기화 성공: userId={}, commentId={}", userId, commentId);
-    } catch (Exception e) {
-      log.warn("MongoDB 활동 내역 댓글 수정 동기화 실패: userId={}, commentId={}, error={}", userId, commentId, e.getMessage());
-    }
-  }
-
-  public void removeRecentLikedComments(UUID userId, UUID commentId){
-    try{
-      Query query = new Query(Criteria.where("_id").is(userId));
-
-      Update update = new Update().pull("recentLikes", new org.bson.Document("commentId", commentId));
-
-      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
-      log.info("MongoDB 활동 내역 좋아요 삭제 성공: userId={}, commentId={}", userId, commentId);
-    } catch (Exception e) {
-      log.warn("MongoDB 활동 내역 좋아요 삭제 실패: userId={}, commentId={}, error={}", userId, commentId, e.getMessage());
-    }
-  }
-
-  public void commentLikeCountInRecentComments(UUID userId, UUID commentId, Long newLikeCount) {
-    try {
-      Query query = new Query(Criteria.where("_id").is(userId)
-          .and("recentComments.id").is(commentId));
-
-      Update update = new Update().set("recentComments.$.likeCount", newLikeCount);
-
-      var result = mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
-
-      if (result.getModifiedCount() > 0) {
-        log.info("MongoDB 내가 쓴 댓글 좋아요 수 동기화 성공: commentId={}", commentId);
-      }
-    } catch (Exception e) {
-      log.warn("MongoDB 내가 쓴 댓글 좋아요 수 동기화 실패: commentId={}, error={}", commentId, e.getMessage());
-    }
-  }
-
-  public void removeCommentLikeInActivity(UUID userId, UUID commentId) {
-    try {
-      Query query = new Query(Criteria.where("_id").is(userId));
-
-      Update update = new Update().pull("recentLikes", Query.query(Criteria.where("commentId").is(commentId)));
-
-      mongoTemplate.updateFirst(query, update, UserActivityDocument.class);
-      log.info("MongoDB 내 활동 내역(좋아요) 삭제 성공: userId={}, commentId={}", userId, commentId);
-    } catch (Exception e) {
-      log.warn("MongoDB 내 활동 내역 삭제 실패: userId={}, error={}", userId, e.getMessage());
-    }
-  }
-  public void updateInterestKeywords(UUID interestId, List<String> newKeywords) {
-    try {
-      Query query = new Query(Criteria.where("subscriptions.interestId").is(interestId));
-
-      Update update = new Update()
-          .set("subscriptions.$[elem].interestKeywords", newKeywords);
-
-      update.filterArray(Criteria.where("elem.interestId").is(interestId));
-
-      var result = mongoTemplate.updateMulti(query, update, UserActivityDocument.class);
-
-      log.info("MongoDB 일괄 업데이트 성공: {}건", result.getModifiedCount());
-    } catch (Exception e) {
-      log.error("MongoDB 전체 동기화 실패", e);
-    }
-  }
-
-  public void updateCommentCountInRecentArticles(UUID articleId, int amount) {
-    try {
-
-      Query query = new Query(Criteria.where("recentArticles.articleId").is(articleId));
-
-      Update update = new Update().inc("recentArticles.$.articleCommentCount", amount);
-
-      com.mongodb.client.result.UpdateResult result =
-          mongoTemplate.updateMulti(query, update, UserActivityDocument.class);
-
-      log.info("MongoDB 댓글 동기화 완료 [articleId: {}, 증감량: {}, 매칭수: {}, 수정수: {}]",
-          articleId, amount, result.getMatchedCount(), result.getModifiedCount());
-
-    } catch (Exception e) {
-      log.error("MongoDB 댓글 동기화 실패: articleId={}, error={}", articleId, e.getMessage());
-    }
-  }
 
   @Transactional(readOnly = true)
   public UserActivityDto syncActivity(UUID userId) {
@@ -279,7 +110,7 @@ public class ActivityService {
     log.info("RDB 실시간 조회를 통한 활동 내역 생성: userId={}", userId);
 
     userRepository.findById(userId)
-        .orElseThrow(() -> new UserNotFoundException("해당 유저를 찾을 수 없습니다."));
+        .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
 
     return rdbService.getUserActivity(userId);
   }
