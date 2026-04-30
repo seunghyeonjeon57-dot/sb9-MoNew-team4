@@ -41,7 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class RdbServiceTest {
+class RdbServiceTest {
 
   @Mock
   private SubscriptionRepository subscriptionRepository;
@@ -73,10 +73,10 @@ public class RdbServiceTest {
     ReflectionTestUtils.setField(mockUser, "id", userId);
     ReflectionTestUtils.setField(mockUser, "createdAt", LocalDateTime.now());
 
-    List<SubscriptionResponse> mockSubs = List.of(mock(SubscriptionResponse.class));
-    List<CommentActivityDto> mockComments = List.of(mock(CommentActivityDto.class));
-    List<CommentLikeActivityDto> mockLikes = List.of(mock(CommentLikeActivityDto.class));
-    List<ArticleViewDto> mockViews = List.of(mock(ArticleViewDto.class));
+    given(subscriptionRepository.findAllByUserId(userId)).willReturn(List.of());
+    given(commentRepository.findTop10ByUserIdOrderByCreatedAtDesc(userId)).willReturn(List.of());
+    given(commentLikeRepository.findTop10ByUserIdOrderByCreatedAtDesc(userId)).willReturn(List.of());
+    given(articleViewRepository.findTop10ByViewedByIdOrderByViewedAtDesc(userId)).willReturn(List.of());
 
     given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
 

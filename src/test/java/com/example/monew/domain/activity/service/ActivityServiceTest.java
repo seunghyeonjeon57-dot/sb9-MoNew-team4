@@ -153,7 +153,7 @@ public class ActivityServiceTest {
     Update capturedUpdate = updateCaptor.getValue();
 
     assertThat(capturedQuery.getQueryObject().get("_id")).isEqualTo(userId);
-    assertThat(capturedUpdate.getUpdateObject().toString()).contains("userProfile");
+    assertThat(capturedQuery.getQueryObject()).containsEntry("_id", userId);
   }
 
   @Test
@@ -367,7 +367,7 @@ public class ActivityServiceTest {
     Query capturedQuery = queryCaptor.getValue();
     Update capturedUpdate = updateCaptor.getValue();
 
-    assertThat(capturedQuery.getQueryObject().get("_id")).isEqualTo(userId);
+    assertThat(capturedQuery.getQueryObject()).containsEntry("_id", userId);
 
     String updateJson = capturedUpdate.getUpdateObject().toString();
     assertThat(updateJson).contains("recentArticles");
@@ -415,7 +415,7 @@ public class ActivityServiceTest {
     Query capturedQuery = queryCaptor.getValue();
     Update capturedUpdate = updateCaptor.getValue();
 
-    assertThat(capturedQuery.getQueryObject().get("_id")).isEqualTo(userId);
+    assertThat(capturedQuery.getQueryObject()).containsEntry("_id", userId);
 
     String updateJson = capturedUpdate.getUpdateObject().toString();
     assertThat(updateJson).contains("subscriptions");

@@ -62,7 +62,7 @@ public class RDBService {
         .map(sub -> SubscriptionResponse.of(sub,
             interestRepository.findById(sub.getInterestId())
                 .orElseThrow()))
-        .collect(Collectors.toList());
+        .toList();
   }
 
   public List<CommentActivityDto> getRecentComments(UUID userId) {
@@ -81,7 +81,7 @@ public class RDBService {
             articles.get(comment.getArticleId()),
             users.get(comment.getUserId())
         ))
-        .collect(Collectors.toList());
+        .toList();
   }
 
   public List<CommentLikeActivityDto> getRecentLikes(UUID userId) {
@@ -110,7 +110,7 @@ public class RDBService {
               users.get(like.getUserId())
           );
         })
-        .collect(Collectors.toList());
+        .toList();
   }
 
   public List<ArticleViewDto> getRecentArticles(UUID userId) {
@@ -118,6 +118,6 @@ public class RDBService {
 
     return views.stream()
         .map(v -> ArticleViewDto.of(v, v.getArticleEntity()))
-        .collect(Collectors.toList());
+        .toList();
   }
 }

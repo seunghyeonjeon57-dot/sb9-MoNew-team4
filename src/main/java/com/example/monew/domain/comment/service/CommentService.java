@@ -50,8 +50,9 @@ public class CommentService {
     log.info("댓글 등록 시도: articleId={}", request.articleId());
 
     // 1. 엔티티 조회 (기존 유지)
-    ArticleEntity article = articleRepository.findById(request.articleId())
-        .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
+    if (!articleRepository.existsById(request.articleId())) {
+      throw new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
+    }
     User user = userRepository.findById(request.userId())
         .orElseThrow(() -> new UserNotFoundException("유저를 찾을 수 없습니다."));
 
@@ -152,10 +153,10 @@ public class CommentService {
       throw new CommentDuplicateLike(ErrorCode.DUPLICATE_LIKE);
     }
 
-    User user = userRepository.findById(userId)
+    userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException("유저를 찾을 수 없습니다."));
 
-    ArticleEntity article = articleRepository.findById(comment.getArticleId())
+    articleRepository.findById(comment.getArticleId())
         .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
 
     comment.incrementLikeCount();
