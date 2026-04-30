@@ -1,5 +1,6 @@
 package com.example.monew.domain.article.articleconfig;
 
+import com.example.monew.domain.article.batch.dto.ArticleBackupDto;
 import com.example.monew.domain.article.batch.service.S3Service;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
@@ -10,6 +11,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.item.json.JacksonJsonObjectReader;
+import org.springframework.batch.item.json.JsonItemReader;
+import org.springframework.batch.item.json.builder.JsonItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -51,8 +55,17 @@ public class NewsBackupBatchConfig {
 
   @Bean
   public Step backupStep() {
-    return new StepBuilder("backupStep", jobRepository).<ArticleEntity, ArticleEntity>chunk(100,
-        transactionManager).reader(articleReader()).writer(articleS3Writer()).build();
+    return new StepBuilder("backupStep", jobRepository)
+        .<ArticleEntity, ArticleBackupDto>chunk(100, transactionManager)
+        .reader(articleReader())
+        .processor(articleBackupProcessor()) // 여기서 DTO로 변환
+        .writer(articleS3Writer(null)) // DTO를 JSON으로 써서 S3 업로드
+        .build();
+  }
+
+  @Bean
+  public ItemProcessor<ArticleEntity, ArticleBackupDto> articleBackupProcessor() {
+    return ArticleBackupDto::from; // 이전에 만든 정적 메서드 활용
   }
 
   @Bean
@@ -62,18 +75,23 @@ public class NewsBackupBatchConfig {
 
   @Bean
   public Step restoreStep() {
-    return new StepBuilder("restoreStep", jobRepository).<ArticleEntity, ArticleEntity>chunk(100,
-            transactionManager).reader(jsonFileItemReader(null)).processor(duplicateCheckProcessor())
-        .writer(articleRestoreWriter()).build();
+    return new StepBuilder("restoreStep", jobRepository)
+        .<ArticleBackupDto, ArticleEntity>chunk(100, transactionManager)
+        .reader(jsonFileItemReader(null))
+        .processor(restoreProcessor())
+        .writer(articleRestoreWriter())
+        .build();
   }
 
   @Bean
   @StepScope
-  public FlatFileItemReader<ArticleEntity> jsonFileItemReader(
+  public JsonItemReader<ArticleBackupDto> jsonFileItemReader(
       @Value("#{jobParameters['filePath']}") String filePath) {
-    return new FlatFileItemReaderBuilder<ArticleEntity>().name("jsonFileItemReader")
+
+    return new JsonItemReaderBuilder<ArticleBackupDto>()
+        .name("jsonFileItemReader")
         .resource(new FileSystemResource(filePath))
-        .lineMapper((line, lineNumber) -> objectMapper.readValue(line, ArticleEntity.class))
+        .jsonObjectReader(new JacksonJsonObjectReader<>(objectMapper, ArticleBackupDto.class))
         .build();
   }
 
@@ -97,24 +115,42 @@ public class NewsBackupBatchConfig {
 
   @Bean
   public JpaPagingItemReader<ArticleEntity> articleReader() {
-    return new JpaPagingItemReaderBuilder<ArticleEntity>().name("articleReader")
+    return new JpaPagingItemReaderBuilder<ArticleEntity>()
+        .name("articleReader")
         .entityManagerFactory(entityManagerFactory)
-        .queryString("SELECT a FROM ArticleEntity a WHERE a.publishDate >= :yesterday")
+        .queryString("SELECT DISTINCT a FROM ArticleEntity a LEFT JOIN FETCH a.interest i LEFT JOIN FETCH i.keywords WHERE a.publishDate >= :yesterday")
         .parameterValues(Map.of("yesterday", LocalDate.now().minusDays(1).atStartOfDay()))
-        .pageSize(100).build();
+        .pageSize(100)
+        .build();
   }
 
   @Bean
-  public ItemWriter<ArticleEntity> articleS3Writer() {
+  @StepScope
+  public ItemWriter<ArticleBackupDto> articleS3Writer(
+      @Value("#{jobParameters['s3Key']}") String s3Key) {
     return chunk -> {
       String jsonChunk = objectMapper.writeValueAsString(chunk.getItems());
-
-      String fileName = "backups/" + LocalDate.now() + ".json";
-
-      s3Service.upload(fileName, jsonChunk);
+      s3Service.upload(s3Key, jsonChunk);
     };
   }
+  @Bean
+  public ItemProcessor<ArticleBackupDto, ArticleEntity> restoreProcessor() {
+    return dto -> {
+      Optional<ArticleEntity> existingOpt = articleRepository.findBySourceUrl(dto.getSourceUrl());
+      if (existingOpt.isPresent() && !existingOpt.get().isDeleted()) {
+        return null;
+      }
 
+      return ArticleEntity.builder()
+          .id(dto.getId())
+          .source(dto.getSource())
+          .sourceUrl(dto.getSourceUrl())
+          .title(dto.getTitle())
+          .publishDate(dto.getPublishDate())
+          .summary(dto.getSummary())
+          .build();
+    };
+  }
   @Bean
   public ItemWriter<ArticleEntity> articleRestoreWriter() {
     return chunk -> {

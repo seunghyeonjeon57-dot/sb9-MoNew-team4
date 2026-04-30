@@ -57,14 +57,17 @@ public class S3Service {
         tempFile.setWritable(true, true);
       }
 
-      File tempFile = tempPath.toFile();
+      Files.deleteIfExists(tempPath);
 
       GetObjectRequest getObjectRequest = GetObjectRequest.builder()
           .bucket(bucket)
           .key(key)
           .build();
-      s3Client.getObject(getObjectRequest, tempPath);
 
+      s3Client.getObject(getObjectRequest,
+          software.amazon.awssdk.core.sync.ResponseTransformer.toFile(tempPath));
+
+      File tempFile = tempPath.toFile();
       tempFile.deleteOnExit();
       return tempFile;
 

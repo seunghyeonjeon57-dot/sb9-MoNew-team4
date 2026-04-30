@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
+import com.example.monew.domain.article.batch.dto.ArticleBackupDto;
 import com.example.monew.domain.article.batch.service.S3Service;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
@@ -20,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.item.Chunk;
+import org.springframework.batch.item.ItemWriter;
 
 @ExtendWith(MockitoExtension.class)
 class NewsBackupBatchConfigTest {
@@ -33,15 +35,25 @@ class NewsBackupBatchConfigTest {
   private NewsBackupBatchConfig config;
 
   @Test
-  @DisplayName("JSON 변환 후 업로드 확인")
+  @DisplayName("DTO 변환 후 JSON 업로드 확인")
   void articleS3WriterTest() throws Exception {
-    ArticleEntity article = ArticleEntity.builder().build();
-    Chunk<ArticleEntity> chunk = new Chunk<>(List.of(article));
-    given(objectMapper.writeValueAsString(any())).willReturn("[]");
+    ArticleBackupDto dto = ArticleBackupDto.builder()
+        .id(UUID.randomUUID())
+        .title("테스트 기사")
+        .build();
 
-    config.articleS3Writer().write(chunk);
+    Chunk<ArticleBackupDto> chunk = new Chunk<>(List.of(dto));
 
-    verify(s3Service).upload(anyString(), anyString());
+    String expectedJson = "[{\"title\":\"테스트 기사\"}]";
+    String testS3Key = "backups/test.json";
+
+    given(objectMapper.writeValueAsString(any())).willReturn(expectedJson);
+
+    ItemWriter<ArticleBackupDto> writer = config.articleS3Writer(testS3Key);
+
+    writer.write(chunk);
+
+    verify(s3Service).upload(eq(testS3Key), eq(expectedJson));
   }
 
   @Test
