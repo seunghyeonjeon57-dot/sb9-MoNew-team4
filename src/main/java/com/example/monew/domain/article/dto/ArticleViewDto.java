@@ -1,5 +1,7 @@
 package com.example.monew.domain.article.dto;
 
+import com.example.monew.domain.article.entity.ArticleEntity;
+import com.example.monew.domain.article.entity.ArticleViewEntity;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -22,4 +24,18 @@ public class ArticleViewDto {
 
   private Long articleCommentCount;
   private Long articleViewCount;
+
+  public static ArticleViewDto of(ArticleViewEntity articleView, ArticleEntity article) {
+    return ArticleViewDto.builder()
+        .id(articleView.getId())
+        .viewedBy(articleView.getViewedBy().getId())
+        .createdAt(articleView.getCreatedAt())
+        .articleId(article.getId())
+        .articleTitle(article.getTitle())
+        .articlePublishedDate(article.getPublishDate())
+        .articleSummary(article.getSummary())
+        .articleCommentCount(article.getCommentCount())
+        .articleViewCount(article.getViewCount())
+        .build();
+  }
 }

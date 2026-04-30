@@ -1,5 +1,6 @@
 package com.example.monew.domain.article.entity;
 
+import com.example.monew.global.base.BaseEntity;
 import jakarta.persistence.*;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -16,7 +17,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "article_views")
-public class ArticleViewEntity {
+public class ArticleViewEntity extends BaseEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
