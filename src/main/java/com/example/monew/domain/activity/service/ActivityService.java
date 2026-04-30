@@ -33,6 +33,7 @@ public class ActivityService {
 
   private final UserActivityRepository userActivityRepository;
   private final UserRepository userRepository;
+  private final RDBService rdbService;
   private final MongoTemplate mongoTemplate;
 
   @Transactional(readOnly = true)
@@ -268,6 +269,21 @@ public class ActivityService {
 
     } catch (Exception e) {
       log.error("MongoDB 댓글 동기화 실패: articleId={}, error={}", articleId, e.getMessage());
+    }
+  }
+
+  public void syncSubscriptions(UUID userId) {
+    var subscriptions = rdbService.getSubscriptions(userId);
+
+    Query query = new Query(Criteria.where("_id").is(userId));
+    Update update = new Update().set("subscriptions", subscriptions);
+
+    mongoTemplate.upsert(query, update, UserActivityDocument.class);
+  }
+
+  public void syncMultipleUsersSubscriptions(List<UUID> userIds) {
+    for (UUID userId : userIds) {
+      syncSubscriptions(userId);
     }
   }
 }

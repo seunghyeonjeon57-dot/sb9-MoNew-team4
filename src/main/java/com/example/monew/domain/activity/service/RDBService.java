@@ -106,7 +106,7 @@ public class RDBService {
           return CommentLikeActivityDto.of(
               like,
               comment,
-              articles.get(comment.getArticleId()), // 댓글에서 얻은 기사 ID로 매핑
+              articles.get(comment.getArticleId()),
               users.get(like.getUserId())
           );
         })
@@ -117,7 +117,7 @@ public class RDBService {
     List<ArticleViewEntity> views = articleViewRepository.findTop10ByViewedByIdOrderByViewedAtDesc(userId);
 
     return views.stream()
-        .map(v -> ArticleViewDto.of(v, v.getArticleEntity())) // v.getArticleEntity()를 바로 전달
+        .map(v -> ArticleViewDto.of(v, v.getArticleEntity()))
         .collect(Collectors.toList());
   }
 }
