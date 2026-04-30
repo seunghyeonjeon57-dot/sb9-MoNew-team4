@@ -67,8 +67,25 @@ jobs:
             -Dspring.batch.job.enabled=false \
             --info --stacktrace
 
-      - name: Display Test Error Details
+      - name: 🚨 실패한 테스트 범인 검거
         if: failure()
         run: |
-          echo "검색에 실패한 상세 에러 로그를 출력합니다..."
-          find build/test-results/test -name "*.xml" -exec cat {} +
+            echo "===================================================="
+            echo "실패한 테스트!"
+            echo "===================================================="
+            
+            # 1. 실패한 테스트 클래스 파일 찾기
+            FAILED_FILES=$(grep -l "failure" build/test-results/test/*.xml)
+            
+            if [ -z "$FAILED_FILES" ]; then
+              echo "❌ 실패한 테스트 결과 파일을 찾을 수 없습니다. 컴파일 에러일 수 있습니다."
+            else
+              for FILE in $FAILED_FILES; do
+                echo "📍 실패한 클래스: $(basename $FILE)"
+                echo "----------------------------------------------------"
+                # 2. 어떤 메서드가 어떤 에러 메시지로 깨졌는지 추출
+                grep -E "testcase name=|failure message=" "$FILE" | sed 's/ <failure message="/  👉 에러원인: /g' | sed 's/"//g' | sed 's/>//g'
+                echo "----------------------------------------------------"
+              done
+            fi
+            echo "===================================================="

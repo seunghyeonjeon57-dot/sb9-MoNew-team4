@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  app:
+    image: 688674375434.dkr.ecr.ap-northeast-2.amazonaws.com/monew-app:latest
+    container_name: monew-app
+    ports:
+      - "8081:8080" # (서버 외부 포트 8081 -> 도커 내부 앱 포트 8088)
+    env_file:
+      - .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    restart: always
+

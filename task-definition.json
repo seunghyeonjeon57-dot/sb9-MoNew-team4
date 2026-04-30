@@ -1,0 +1,53 @@
+{
+  "family": "monew-task",
+  "taskRoleArn": "arn:aws:iam::688674375434:role/ecs-task",
+  "executionRoleArn": "arn:aws:iam::688674375434:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "containerDefinitions": [
+    {
+      "name": "monew-app",
+      "image": "688674375434.dkr.ecr.ap-northeast-2.amazonaws.com/monew-app",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "containerPort": 8081,
+          "hostPort": 8081,
+          "protocol": "tcp",
+          "name": "monew-container-8081-tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "TZ",
+          "value": "Asia/Seoul"
+        }
+      ],
+      "environmentFiles": [
+        {
+          "value": "arn:aws:s3:::amzn-s3-bucket-monew-688674375434-ap-northeast-2-an/.env",
+          "type": "s3"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/monew-task",
+          "awslogs-create-group": "true",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "1024",
+  "memory": "3072",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  }
+}
