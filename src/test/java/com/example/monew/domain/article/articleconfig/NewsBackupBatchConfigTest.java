@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
+import com.example.monew.domain.article.batch.dto.ArticleBackupDto;
 import com.example.monew.domain.article.batch.service.S3Service;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.repository.ArticleRepository;
@@ -20,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.item.Chunk;
+import org.springframework.batch.item.ItemWriter;
 
 @ExtendWith(MockitoExtension.class)
 class NewsBackupBatchConfigTest {
@@ -33,29 +35,43 @@ class NewsBackupBatchConfigTest {
   private NewsBackupBatchConfig config;
 
   @Test
-  @DisplayName("JSON 변환 후 업로드 확인")
+  @DisplayName("DTO 변환 후 JSON 업로드 확인")
   void articleS3WriterTest() throws Exception {
-    ArticleEntity article = ArticleEntity.builder().build();
-    Chunk<ArticleEntity> chunk = new Chunk<>(List.of(article));
-    given(objectMapper.writeValueAsString(any())).willReturn("[]");
+    ArticleBackupDto dto = ArticleBackupDto.builder()
+        .id(UUID.randomUUID())
+        .title("테스트 기사")
+        .build();
 
-    config.articleS3Writer().write(chunk);
+    Chunk<ArticleBackupDto> chunk = new Chunk<>(List.of(dto));
 
-    verify(s3Service).upload(anyString(), anyString());
+    String expectedJson = "[{\"title\":\"테스트 기사\"}]";
+    String testS3Key = "backups/test.json";
+
+    given(objectMapper.writeValueAsString(any())).willReturn(expectedJson);
+
+    ItemWriter<ArticleBackupDto> writer = config.articleS3Writer(testS3Key);
+
+    writer.write(chunk);
+
+    verify(s3Service).upload(eq(testS3Key), eq(expectedJson));
   }
 
   @Test
-  @DisplayName("중복 체크로직")
-  void duplicateCheckProcessorTest() throws Exception {
-    ArticleEntity existingArticle = mock(ArticleEntity.class);
-    given(existingArticle.isDeleted()).willReturn(false);
-    given(articleRepository.findBySourceUrl(any())).willReturn(Optional.of(existingArticle));
+  @DisplayName("삭제된 데이터 존재 → 통과")
+  void duplicateCheckProcessor_deleted() throws Exception {
+    ArticleEntity deleted = mock(ArticleEntity.class);
+    given(deleted.isDeleted()).willReturn(true);
 
-    ArticleEntity newArticle = ArticleEntity.builder().sourceUrl("test.com").build();
+    given(articleRepository.findBySourceUrl(any()))
+        .willReturn(Optional.of(deleted));
 
-    ArticleEntity result = config.duplicateCheckProcessor().process(newArticle);
+    ArticleEntity article = ArticleEntity.builder()
+        .sourceUrl("test.com")
+        .build();
 
-    assertThat(result).isNull();
+    ArticleEntity result = config.duplicateCheckProcessor().process(article);
+
+    assertThat(result).isNotNull();
   }
 
   @Test
@@ -80,6 +96,25 @@ class NewsBackupBatchConfigTest {
   }
 
   @Test
+  @DisplayName("이미 존재하고 삭제 안됨 → 아무 작업 안함")
+  void articleRestoreWriter_skip() throws Exception {
+    ArticleEntity existing = mock(ArticleEntity.class);
+    given(existing.isDeleted()).willReturn(false);
+
+    given(articleRepository.findBySourceUrl("exist.com"))
+        .willReturn(Optional.of(existing));
+
+    Chunk<ArticleEntity> chunk = new Chunk<>(List.of(
+        ArticleEntity.builder().sourceUrl("exist.com").build()
+    ));
+
+    config.articleRestoreWriter().write(chunk);
+
+    verify(articleRepository, never()).save(any());
+    verify(articleRepository, never()).restoreById(any());
+  }
+
+  @Test
   @DisplayName("물리삭제 로직 성공")
   void articleHardDeleteWriterTest() throws Exception {
     ArticleEntity article = ArticleEntity.builder().build();
@@ -89,5 +124,61 @@ class NewsBackupBatchConfigTest {
 
     verify(articleViewRepository).deleteByArticleEntity(any());
     verify(articleRepository).delete(any());
+  }
+
+  @Test
+  @DisplayName("restoreProcessor - 신규 데이터 생성")
+  void restoreProcessor_new() throws Exception {
+    given(articleRepository.findBySourceUrl(any()))
+        .willReturn(Optional.empty());
+
+    ArticleBackupDto dto = ArticleBackupDto.builder()
+        .id(UUID.randomUUID())
+        .sourceUrl("new.com")
+        .title("title")
+        .build();
+
+    ArticleEntity result = config.restoreProcessor().process(dto);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getSourceUrl()).isEqualTo("new.com");
+  }
+
+  @Test
+  @DisplayName("restoreProcessor - 이미 존재하고 삭제 안됨 → null")
+  void restoreProcessor_skip() throws Exception {
+    ArticleEntity existing = mock(ArticleEntity.class);
+    given(existing.isDeleted()).willReturn(false);
+
+    given(articleRepository.findBySourceUrl(any()))
+        .willReturn(Optional.of(existing));
+
+    ArticleBackupDto dto = ArticleBackupDto.builder()
+        .sourceUrl("exist.com")
+        .build();
+
+    ArticleEntity result = config.restoreProcessor().process(dto);
+
+    assertThat(result).isNull();
+  }
+
+  @Test
+  @DisplayName("restoreProcessor - 삭제된 데이터 → 재생성")
+  void restoreProcessor_deleted() throws Exception {
+    ArticleEntity deleted = mock(ArticleEntity.class);
+    given(deleted.isDeleted()).willReturn(true);
+
+    given(articleRepository.findBySourceUrl(any()))
+        .willReturn(Optional.of(deleted));
+
+    ArticleBackupDto dto = ArticleBackupDto.builder()
+        .id(UUID.randomUUID())
+        .sourceUrl("deleted.com")
+        .title("복구")
+        .build();
+
+    ArticleEntity result = config.restoreProcessor().process(dto);
+
+    assertThat(result).isNotNull();
   }
 }
