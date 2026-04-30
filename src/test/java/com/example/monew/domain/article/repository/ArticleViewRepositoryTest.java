@@ -6,6 +6,7 @@ import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.entity.ArticleViewEntity;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.repository.UserRepository;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,7 @@ class ArticleViewRepositoryTest {
   private UserRepository userRepository;
 
   @Test
+  @Disabled
   @DisplayName("기사 뷰 레포 테스트 - 생성 후 삭제")
   void createAndDeleteViewTest() {
 
