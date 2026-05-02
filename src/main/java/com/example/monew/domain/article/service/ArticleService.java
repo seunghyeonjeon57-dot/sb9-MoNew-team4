@@ -8,9 +8,6 @@ import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
 import com.example.monew.domain.article.mapper.ArticleMapper;
 import com.example.monew.domain.article.repository.ArticleRepository;
-import com.example.monew.domain.comment.dto.CommentDto;
-import com.example.monew.domain.comment.mapper.CommentMapper;
-import com.example.monew.domain.comment.repository.CommentRepository;
 import com.example.monew.domain.notification.event.ArticleRegisteredEvent;
 import com.example.monew.global.exception.ErrorCode;
 import jakarta.persistence.EntityManager;
@@ -195,7 +192,6 @@ public class ArticleService {
     log.info("조회수 로그 기록 요청 - Article: {}, User: {}", articleId, viewedBy);
 
     articleViewService.logView(articleId, viewedBy, clientIp);
-
   }
 
 }

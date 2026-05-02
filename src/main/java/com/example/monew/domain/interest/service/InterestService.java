@@ -6,6 +6,7 @@ import com.example.monew.domain.interest.dto.InterestCreateRequest;
 import com.example.monew.domain.interest.dto.InterestResponse;
 import com.example.monew.domain.interest.dto.InterestUpdateRequest;
 import com.example.monew.domain.interest.entity.Interest;
+import com.example.monew.domain.interest.entity.Subscription;
 import com.example.monew.domain.interest.exception.InterestNameImmutableException;
 import com.example.monew.domain.interest.exception.InterestNotFoundException;
 import com.example.monew.domain.interest.exception.InvalidSortParameterException;
@@ -110,10 +111,18 @@ public class InterestService {
 
   @Transactional
   public void delete(UUID interestId) {
+    List<UUID> subscribedUserIds = subscriptionRepository.findAllByInterestId(interestId)
+        .stream()
+        .map(Subscription::getUserId)
+        .toList();
+
     Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
+
     subscriptionRepository.deleteAllByInterestId(interestId);
     interestRepository.delete(interest);
+
+    activityService.syncMultipleUsersSubscriptions(subscribedUserIds);
   }
 
   @Transactional
@@ -124,9 +133,15 @@ public class InterestService {
     }
     Interest interest = interestRepository.findByIdAndDeletedAtIsNull(interestId)
         .orElseThrow(() -> new InterestNotFoundException(Map.of("interestId", interestId.toString())));
+
+    List<UUID> subscribedUserIds = subscriptionRepository.findAllByInterestId(interestId)
+        .stream()
+        .map(Subscription::getUserId)
+        .toList();
+
     interest.replaceKeywords(request.keywords());
 
-    activityService.updateInterestKeywords(interestId, request.keywords());
+    activityService.syncMultipleUsersSubscriptions(subscribedUserIds);
 
     return InterestResponse.from(interest, false);
   }

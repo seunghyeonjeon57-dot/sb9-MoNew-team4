@@ -25,7 +25,7 @@ public class ActivityController {
   public ResponseEntity<UserActivityDto> getUserActivity(
       @PathVariable("userId") UUID userId
   ) {
-    UserActivityDto response = activityService.getUserActivity(userId);
+    UserActivityDto response = activityService.syncActivity(userId);
     return ResponseEntity.ok(response);
   }
 

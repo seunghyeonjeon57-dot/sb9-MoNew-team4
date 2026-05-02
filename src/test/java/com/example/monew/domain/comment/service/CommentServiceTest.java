@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -81,26 +82,24 @@ public class CommentServiceTest {
         .content("서비스 테스트 댓글")
         .build();
 
-    ArticleEntity article = ArticleEntity.builder().build();
     User user = User.builder().build();
 
-    given(articleRepository.findById(request.articleId())).willReturn(Optional.of(article));
-    given(userRepository.findById(request.userId())).willReturn(Optional.of(user));
+    given(articleRepository.existsById(any(UUID.class))).willReturn(true);
 
-    // 1. save -> saveAndFlush로 변경
+    given(userRepository.findById(any(UUID.class))).willReturn(Optional.of(user));
+
     given(commentRepository.saveAndFlush(any(CommentEntity.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
     commentService.registerComment(request);
 
-    // 2. verify 대상도 saveAndFlush로 변경
     verify(commentRepository, times(1)).saveAndFlush(any(CommentEntity.class));
+    verify(articleRepository).existsById(any(UUID.class));
   }
 
   @Test
   @DisplayName("존재하지 않는 기사 ID로 댓글을 등록하면 예외가 발생한다.")
   void registerComment_ArticleNotFound() {
-
     UUID articleId = UUID.randomUUID();
     CommentRegisterRequest request = CommentRegisterRequest.builder()
         .articleId(articleId)
@@ -108,12 +107,11 @@ public class CommentServiceTest {
         .content("기사가 없는 유령 댓글")
         .build();
 
-    given(articleRepository.findById(articleId)).willReturn(Optional.empty());
-
-
     assertThatThrownBy(() -> commentService.registerComment(request))
         .isInstanceOf(ArticleNotFoundException.class)
         .hasMessage("해당 기사를 찾을 수 없습니다.");
+
+    verify(userRepository, never()).findById(any());
   }
 
   @Test
@@ -453,7 +451,7 @@ public class CommentServiceTest {
 
     verify(mockComment, times(1)).decrementLikeCount();
     verify(commentLikeRepository, times(1)).deleteByCommentIdAndUserId(commentId, userId);
-    verify(activityService, times(1)).removeRecentLikedComments(userId, commentId);
+    verify(activityService, times(1)).syncRecentLikes(userId);
   }
 
   @Test
@@ -475,11 +473,8 @@ public class CommentServiceTest {
   void removeLike_IncreaseDecrease() {
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    UUID ownerId = UUID.randomUUID();
 
     CommentEntity mockComment = mock(CommentEntity.class);
-    when(mockComment.getUserId()).thenReturn(ownerId);
-    when(mockComment.getLikeCount()).thenReturn(5L);
 
     when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(mockComment));
     when(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)).thenReturn(true);
@@ -487,11 +482,7 @@ public class CommentServiceTest {
     commentService.removeLike(commentId, userId);
 
     verify(mockComment, times(1)).decrementLikeCount();
-
-    verify(activityService, times(1)).commentLikeCountInRecentComments(ownerId, commentId, 5L);
-
-    verify(activityService, times(1)).removeCommentLikeInActivity(userId, commentId);
-
+    verify(activityService, times(1)).syncRecentLikes(userId);
     verify(commentLikeRepository, times(1)).deleteByCommentIdAndUserId(commentId, userId);
   }
 }

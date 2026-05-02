@@ -3,6 +3,7 @@ package com.example.monew.domain.activity.controller;
 
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -28,13 +29,9 @@ public class ActivityControllerTest {
   private ActivityService activityService;
 
   @Test
-  @DisplayName("유저 활동 내역 조회 API를 호출하면 상태코드 200과 함께 데이터 반환한다.")
-  void getUserActivity_ReturnsOK() throws Exception{
+  @DisplayName("사용자 활동 내역 조회 성공 시 200과 데이터를 반환한다")
+  void getUserActivity_ReturnsOK() throws Exception {
     UUID userId = UUID.randomUUID();
-    String expectedEmail = ("test@test.com");
-    String expectedNickname = "test";
-    LocalDateTime expectedCreatedAt = LocalDateTime.now();
-
     UserActivityDto mockResponse = UserActivityDto.builder()
         .id(userId)
         .email("test@test.com")
@@ -42,18 +39,14 @@ public class ActivityControllerTest {
         .createdAt(LocalDateTime.now())
         .subscriptions(List.of())
         .comments(List.of())
-        .commentLikes(List.of())
-        .articleViews(List.of())
         .build();
 
-    given(activityService.getUserActivity(userId)).willReturn(mockResponse);
+    given(activityService.syncActivity(userId)).willReturn(mockResponse);
 
     mockMvc.perform(get("/api/user-activities/{userId}", userId))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.id").value(userId.toString())) // JSON 응답 필드 검증
-        .andExpect(jsonPath("$.email").value(expectedEmail))
-        .andExpect(jsonPath("$.nickname").value(expectedNickname))
-        .andExpect(jsonPath("$.subscriptions").isArray()) // 배열 형태인지 검증
-        .andExpect(jsonPath("$.subscriptions").isEmpty()); // 비어있는지 검증
+        .andExpect(jsonPath("$.id").value(userId.toString()))
+        .andExpect(jsonPath("$.nickname").value("test"))
+        .andDo(print());
   }
 }

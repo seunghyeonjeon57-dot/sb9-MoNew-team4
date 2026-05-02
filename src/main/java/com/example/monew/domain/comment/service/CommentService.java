@@ -1,7 +1,5 @@
 package com.example.monew.domain.comment.service;
 
-import com.example.monew.domain.activity.dto.CommentActivityDto;
-import com.example.monew.domain.activity.dto.CommentLikeActivityDto;
 import com.example.monew.domain.activity.service.ActivityService;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.article.exception.ArticleNotFoundException;
@@ -52,8 +50,9 @@ public class CommentService {
     log.info("댓글 등록 시도: articleId={}", request.articleId());
 
     // 1. 엔티티 조회 (기존 유지)
-    ArticleEntity article = articleRepository.findById(request.articleId())
-        .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
+    if (!articleRepository.existsById(request.articleId())) {
+      throw new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND);
+    }
     User user = userRepository.findById(request.userId())
         .orElseThrow(() -> new UserNotFoundException("유저를 찾을 수 없습니다."));
 
@@ -63,21 +62,8 @@ public class CommentService {
 
     // 3. 벌크 업데이트 수행 (댓글 수 증가)
     articleRepository.incrementCommentCount(request.articleId());
-    activityService.updateCommentCountInRecentArticles(request.articleId(), 1);
 
-    // 4. 활동 내역 업데이트는 '가장 마지막'에 수행
-    CommentActivityDto activityDto = CommentActivityDto.builder()
-        .id(comment.getId())
-        .articleId(request.articleId())
-        .articleTitle(article.getTitle())
-        .userId(request.userId())
-        .userNickname(user.getNickname())
-        .content(comment.getContent())
-        .likeCount(comment.getLikeCount())
-        .createdAt(comment.getCreatedAt())
-        .build();
-
-    activityService.updateRecentComments(request.userId(), activityDto);
+    activityService.syncRecentComments(request.userId());
 
     log.info("댓글 등록 완료: commentId={}", comment.getId());
     return commentMapper.toDto(comment, user.getNickname(), false);
@@ -99,7 +85,7 @@ public class CommentService {
 
     comment.updateContent(request.content());
 
-    activityService.updateRecentCommentsInactivity(userId, commentId, request.content());
+    activityService.syncRecentComments(userId);
 
     log.info("댓글 수정 완료: commentId={}", commentId);
     return commentMapper.toDto(comment, null, false);
@@ -118,7 +104,7 @@ public class CommentService {
     comment.markDeleted();
     commentRepository.saveAndFlush(comment);
     articleRepository.decrementCommentCount(comment.getArticleId());
-    activityService.updateCommentCountInRecentArticles(comment.getArticleId(), -1);
+    activityService.syncRecentComments(comment.getUserId());
     log.info("댓글 논리 삭제 완료: commentId={}", commentId);
   }
 
@@ -134,7 +120,7 @@ public class CommentService {
 
     commentRepository.delete(comment);
     articleRepository.decrementCommentCount(comment.getArticleId());
-    activityService.updateCommentCountInRecentArticles(comment.getArticleId(), -1);
+    activityService.syncRecentComments(comment.getUserId());
     log.info("댓글 물리 삭제 완료: commentId={}", commentId);
   }
 
@@ -167,10 +153,10 @@ public class CommentService {
       throw new CommentDuplicateLike(ErrorCode.DUPLICATE_LIKE);
     }
 
-    User user = userRepository.findById(userId)
+    userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException("유저를 찾을 수 없습니다."));
 
-    ArticleEntity article = articleRepository.findById(comment.getArticleId())
+    articleRepository.findById(comment.getArticleId())
         .orElseThrow(() -> new ArticleNotFoundException(ErrorCode.ARTICLE_NOT_FOUND));
 
     comment.incrementLikeCount();
@@ -181,25 +167,7 @@ public class CommentService {
         .build();
     commentLikeRepository.save(commentLike);
 
-    activityService.commentLikeCountInRecentComments(
-        comment.getUserId(),
-        commentId,
-        comment.getLikeCount()
-    );
-
-    CommentLikeActivityDto activityDto = CommentLikeActivityDto.builder()
-        .id(UUID.randomUUID())
-        .createdAt(LocalDateTime.now())
-        .commentId(comment.getId())
-        .articleId(comment.getArticleId())
-        .articleTitle(article.getTitle())
-        .commentUserId(comment.getUserId())
-        .commentUserNickname(user.getNickname())
-        .commentContent(comment.getContent())
-        .commentLikeCount(comment.getLikeCount())
-        .commentCreatedAt(comment.getCreatedAt())
-        .build();
-    activityService.updateRecentLikedComments(userId, activityDto);
+    activityService.syncRecentLikes(comment.getUserId());
 
     log.info("좋아요 추가 완료: userId={}, commentId={}", userId, commentId);
 
@@ -231,16 +199,9 @@ public class CommentService {
 
     comment.decrementLikeCount();
 
-    activityService.commentLikeCountInRecentComments(
-        comment.getUserId(),
-        commentId,
-        comment.getLikeCount()
-    );
-
-    activityService.removeCommentLikeInActivity(userId, commentId);
     commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
 
-    activityService.removeRecentLikedComments(userId, commentId);
+    activityService.syncRecentLikes(userId);
 
     log.info("좋아요 취소 완료: userId={}, commentId={}", userId, commentId);
   }
