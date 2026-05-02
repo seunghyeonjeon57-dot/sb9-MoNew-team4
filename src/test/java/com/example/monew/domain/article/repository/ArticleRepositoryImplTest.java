@@ -1,6 +1,7 @@
 package com.example.monew.domain.article.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
 import com.example.monew.domain.article.dto.ArticleSearchCondition;
 import com.example.monew.domain.article.entity.ArticleEntity;
 import com.example.monew.domain.interest.entity.Interest;
@@ -299,10 +300,14 @@ class ArticleRepositoryImplTest {
   @Test
   @DisplayName("commentCount 커서 조건의 모든 분기 - Impl 로직 한계 대응")
   void commentCount_perfect_coverage_test() {
-    
+
     ArticleEntity a1 = ArticleEntity.builder().title("a1").source("S1").sourceUrl("U1").build();
     ArticleEntity a2 = ArticleEntity.builder().title("a2").source("S2").sourceUrl("U2").build();
     ArticleEntity a3 = ArticleEntity.builder().title("a3").source("S3").sourceUrl("U3").build();
+
+    ReflectionTestUtils.setField(a1, "commentCount", 10L);
+    ReflectionTestUtils.setField(a2, "commentCount", 20L);
+    ReflectionTestUtils.setField(a3, "commentCount", 30L);
 
     em.persist(a1);
     em.persist(a2);
@@ -310,29 +315,29 @@ class ArticleRepositoryImplTest {
     em.flush();
     em.clear();
 
-    
     List<ArticleEntity> all = articleRepository.findAllActive();
-    all.sort(java.util.Comparator.comparing(ArticleEntity::getId));
+    all.sort((o1, o2) -> Long.compare(o2.getCommentCount(), o1.getCommentCount()));
 
-    ArticleEntity small = all.get(0);
+    ArticleEntity large = all.get(0);
     ArticleEntity middle = all.get(1);
-    ArticleEntity large = all.get(2);
+    ArticleEntity small = all.get(2);
 
-    
-    
-    ArticleSearchCondition descCond = new ArticleSearchCondition();
-    descCond.setOrderBy("commentCount");
-    descCond.setDirection("DESC");
-    descCond.setCursor(large.getId().toString());
+    ArticleSearchCondition descCond1 = new ArticleSearchCondition();
+    descCond1.setOrderBy("commentCount");
+    descCond1.setDirection("DESC");
+    descCond1.setCursor(large.getId().toString());
 
-    List<ArticleEntity> descResult = articleRepository.findByCursor(descCond);
+    List<ArticleEntity> descResult1 = articleRepository.findByCursor(descCond1);
+    assertThat(descResult1).isNotEmpty();
+    assertThat(descResult1.get(0).getId()).isEqualTo(middle.getId());
 
-    
-    assertThat(descResult).isNotEmpty();
-    assertThat(descResult.get(0).getId()).isEqualTo(middle.getId());
+    ArticleSearchCondition descCond2 = new ArticleSearchCondition();
+    descCond2.setOrderBy("commentCount");
+    descCond2.setDirection("DESC");
+    descCond2.setCursor(middle.getId().toString());
 
-    
-    
-    
+    List<ArticleEntity> descResult2 = articleRepository.findByCursor(descCond2);
+    assertThat(descResult2).isNotEmpty();
+    assertThat(descResult2.get(0).getId()).isEqualTo(small.getId());
   }
 }
