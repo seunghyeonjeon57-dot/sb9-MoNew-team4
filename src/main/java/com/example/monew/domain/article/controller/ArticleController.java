@@ -122,8 +122,8 @@ public class ArticleController {
   })
   @GetMapping("/restore")
   public ResponseEntity<String> restoreFromS3(
-      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime from,
-      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime to
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH") LocalDateTime from,
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH") LocalDateTime to
   ) {
     if (from.isAfter(LocalDateTime.now()) || to.isAfter(LocalDateTime.now())) {
       throw new InvalidRestoreDateException(ErrorCode.INVALID_INPUT_VALUE);

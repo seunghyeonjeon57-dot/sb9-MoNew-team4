@@ -87,7 +87,7 @@ class BackupServiceTest {
 
   @Test
   @DisplayName("범위 복구 중 특정 날짜 실패 시에도 다음 날짜 계속 진행 확인")
-  void restoreNewsRange_PartialFail_SuccessTest() throws Exception {
+  void restoreNewsRange_PartialFail_ContinueTest() throws Exception {
     LocalDateTime from = LocalDateTime.of(2026, 4, 24, 0, 0);
     LocalDateTime to = LocalDateTime.of(2026, 4, 25, 0, 0);
 
@@ -98,10 +98,7 @@ class BackupServiceTest {
         .willThrow(new RuntimeException("S3 연결 실패"))
         .willReturn(mockFile);
 
-    assertThrows(RestoreFailedException.class, () -> {
-      backupService.restoreNewsRange(from, to);
-    });
-
+    backupService.restoreNewsRange(from, to);
     verify(s3Service, times(2)).download(anyString());
 
     verify(jobLauncher, times(1)).run(any(Job.class), any(JobParameters.class));
