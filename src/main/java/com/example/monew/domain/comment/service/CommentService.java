@@ -243,7 +243,7 @@ public class CommentService {
       if ("likeCount".equals(orderBy)) {
         nextCursor = String.format("%d_%s", lastComment.likeCount(), lastComment.id());
       } else {
-        nextCursor = lastComment.id().toString();
+        nextCursor = String.format("%s_%s", lastComment.createdAt().toString(), lastComment.id());
       }
     }
 
