@@ -8,6 +8,7 @@ spring:
     enabled: true
     baseline-on-migrate: true # 기존 DB가 있을 경우를 대비해 기준점을 잡음
     locations: classpath:db/migration
+    out-of-order: true
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
