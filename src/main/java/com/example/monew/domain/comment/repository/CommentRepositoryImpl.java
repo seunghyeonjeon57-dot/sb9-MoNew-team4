@@ -54,14 +54,17 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
   ) {
     UUID parsedCursorId = null;
     Long parsedLikeCount = null;
+    LocalDateTime parsedCreatedAt = after;
 
     if (cursor != null && !cursor.isBlank()) {
-      if (ORDER_BY_LIKE_COUNT.equals(orderBy)) {
+      if (cursor.contains("_")) {
         String[] parts = cursor.split("_");
-        if(parts.length >= 2) {
+        if (ORDER_BY_LIKE_COUNT.equals(orderBy)) {
           parsedLikeCount = Long.parseLong(parts[0]);
-          parsedCursorId = UUID.fromString(parts[1]);
+        } else {
+          parsedCreatedAt = LocalDateTime.parse(parts[0]);
         }
+        parsedCursorId = UUID.fromString(parts[1]);
       } else {
         parsedCursorId = UUID.fromString(cursor);
       }
@@ -97,7 +100,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
             comment.articleId.eq(articleId),
             isNotDeleted(),
             isArticleNotDeleted(),
-            getCursorCondition(parsedCursorId, after, parsedLikeCount, orderBy, direction)
+            getCursorCondition(parsedCursorId, parsedCreatedAt, parsedLikeCount, orderBy, direction)
         )
         .orderBy(getSortOrder(orderBy, direction))
         .limit(size)
