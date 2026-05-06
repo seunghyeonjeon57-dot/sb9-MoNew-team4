@@ -3,7 +3,8 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=seunghyeonjeon57-dot_sb9-MoNew-team4&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=seunghyeonjeon57-dot_sb9-MoNew-team4)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=seunghyeonjeon57-dot_sb9-MoNew-team4&metric=coverage)](https://sonarcloud.io/summary/new_code?id=seunghyeonjeon57-dot_sb9-MoNew-team4)
 
-> **MoNew**는 효율적인 자산 관리와 팀 협업을 위한 백엔드 서비스입니다.
+> **MoNew**는 사용자가 원하는 키워드만 설정하면 흩어져 있는
+최신 뉴스를 자동으로 수집하여 맞춤형 피드로 제공합니다.
 > 하이버네이트의 글로벌 설정을 우회하는 트러블 슈팅 경험과 **93.2%의 높은 테스트 커버리지**를 통해 서비스의 안정성을 확보했습니다.
 
 ---
