@@ -47,6 +47,10 @@ public class UserService {
       log.warn("회원가입 실패: 이미 존재하는 이메일 -> {}", request.email());
       throw new DuplicateEmailException("이미 존재하는 이메일입니다.");
     }
+    if(userRepository.existsByNickname(request.nickname())){
+      log.warn("회원가입 실패: 이미 존재하는 닉네임 -> {}", request.nickname());
+      throw new DuplicateNickNameException("이미 존재하는 닉네임입니다.");
+    }
     User user = userMapper.toEntity(request);
     user.updatePassword(passwordEncoder.encode(request.password()));
 

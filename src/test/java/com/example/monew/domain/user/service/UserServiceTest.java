@@ -93,6 +93,15 @@ class UserServiceTest {
       assertThatThrownBy(() -> userService.create(request))
           .isInstanceOf(DuplicateEmailException.class);
     }
+    @Test
+    @DisplayName("중복된 닉네임 가입 실패")
+    void existed_nickname_fail() {
+      UserRegisterRequest request = new UserRegisterRequest("new@email.com", "테스트", "new12345");
+      when(userRepository.existsByNickname(request.nickname())).thenReturn(true);
+
+      assertThatThrownBy(() -> userService.create(request))
+          .isInstanceOf(DuplicateNickNameException.class);
+    }
   }
 
   @Nested
