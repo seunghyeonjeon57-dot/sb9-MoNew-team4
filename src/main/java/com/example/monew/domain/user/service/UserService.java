@@ -12,6 +12,7 @@ import com.example.monew.domain.user.dto.request.UserRegisterRequest;
 import com.example.monew.domain.user.dto.request.UserUpdateRequest;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.exception.DuplicateEmailException;
+import com.example.monew.domain.user.exception.DuplicateNickNameException;
 import com.example.monew.domain.user.exception.LoginFailedException;
 import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.mapper.UserMapper;
@@ -84,10 +85,20 @@ public class UserService {
       return new UserNotFoundException("해당 유저를 찾을 수 없습니다.");
     });
 
+    String newNickname = request.nickname();
     String oldNickname = user.getNickname();
-    user.updateNickname(request.nickname());
 
-    log.info("유저 정보 수정 완료: ID={}, Nickname={} -> {}", id, oldNickname, request.nickname());
+
+    if (!oldNickname.equals(newNickname)) {
+      
+      if (userRepository.existsByNickName(newNickname)) {
+        log.error("유저 수정 실패: 이미 존재하는 닉네임 -> {}", newNickname);
+        throw new DuplicateNickNameException("이미 존재하는 닉네임입니다.");
+      }
+      user.updateNickname(newNickname);
+    }
+
+    log.info("유저 정보 수정 완료: ID={}, Nickname={} -> {}", id, oldNickname, user.getNickname());
     return userMapper.toDto(user);
   }
 

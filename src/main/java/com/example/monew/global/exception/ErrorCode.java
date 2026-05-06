@@ -37,6 +37,7 @@ public enum ErrorCode {
   // User 도메인 (기존 보존)
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 유저를 찾을 수 없습니다."),
   DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 존재하는 이메일입니다."),
+  DUPLICATE_NICKNAME(HttpStatus.CONFLICT,"이미 존재하는 닉네임입니다."),
   LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
   NICKNAME_BLANK(HttpStatus.BAD_REQUEST, "닉네임은 공백일 수 없습니다."),
 
