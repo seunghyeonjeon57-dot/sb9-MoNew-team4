@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,6 +22,7 @@ import com.example.monew.domain.user.dto.request.UserUpdateRequest;
 import com.example.monew.domain.user.entity.User;
 import com.example.monew.domain.user.entity.type.UserStatus;
 import com.example.monew.domain.user.exception.DuplicateEmailException;
+import com.example.monew.domain.user.exception.DuplicateNickNameException;
 import com.example.monew.domain.user.exception.LoginFailedException;
 import com.example.monew.domain.user.exception.UserNotFoundException;
 import com.example.monew.domain.user.mapper.UserMapper;
@@ -36,25 +38,37 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
-  @Mock private UserRepository userRepository;
-  @Mock private PasswordEncoder passwordEncoder;
-  @Mock private UserMapper userMapper;
-  @Mock private SubscriptionRepository subscriptionRepository;
-  @Mock private NotificationRepository notificationRepository;
-  @Mock private CommentLikeRepository commentLikeRepository;
-  @Mock private CommentRepository commentRepository;
-  @Mock private InterestRepository interestRepository;
-  @Mock private ActivityService activityService;
+  @Mock
+  private UserRepository userRepository;
+  @Mock
+  private PasswordEncoder passwordEncoder;
+  @Mock
+  private UserMapper userMapper;
+  @Mock
+  private SubscriptionRepository subscriptionRepository;
+  @Mock
+  private NotificationRepository notificationRepository;
+  @Mock
+  private CommentLikeRepository commentLikeRepository;
+  @Mock
+  private CommentRepository commentRepository;
+  @Mock
+  private InterestRepository interestRepository;
+  @Mock
+  private ActivityService activityService;
 
-  @InjectMocks private UserService userService;
+  @InjectMocks
+  private UserService userService;
 
   @Nested
   @DisplayName("회원 가입 테스트")
   class CreateUser {
+
     @Test
     @DisplayName("새로운 이메일로 가입 성공")
     void success() {
@@ -84,6 +98,7 @@ class UserServiceTest {
   @Nested
   @DisplayName("로그인 테스트")
   class Login {
+
     @Test
     @DisplayName("로그인 성공")
     void login_success() {
@@ -100,6 +115,7 @@ class UserServiceTest {
       assertThat(result.nickname()).isEqualTo("테스트유저");
       verify(userRepository).findActiveByEmail(request.email());
     }
+
     @Test
     @DisplayName("비밀번호 불일치 시 로그인 실패")
     void login_fail_password_mismatch() {
@@ -127,6 +143,7 @@ class UserServiceTest {
   @Nested
   @DisplayName("유저 수정 테스트")
   class UpdateUser {
+
     @Test
     @DisplayName("유저 수정 성공")
     void success_update() {
@@ -142,6 +159,7 @@ class UserServiceTest {
       assertThat(user.getNickname()).isEqualTo("새닉네임");
       verify(userRepository).findActiveById(userId);
     }
+
     @Test
     @DisplayName("존재하지 않는 유저 수정 시 실패")
     void update_fail_notFound() {
@@ -154,87 +172,104 @@ class UserServiceTest {
           .isInstanceOf(UserNotFoundException.class);
     }
 
-  }
-
-  @Nested
-  @DisplayName("유저 삭제 테스트")
-  class DeleteUser {
     @Test
-    @DisplayName("소프트 삭제 성공")
-    void success_soft_delete() {
-      UUID userId = UUID.randomUUID();
-      User user = User.builder().status(UserStatus.ACTIVE).build();
+    @DisplayName("중복 닉네임 수정 시도 시 수정 실패")
+    void update_fail_duplicate_nickname() {
 
-      when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
+      User user = User.builder()
+          .nickname("기존닉네임")
+          .status(UserStatus.ACTIVE)
+          .build();
 
-      userService.softDeleteUser(userId);
+      UUID testId = UUID.randomUUID();
+      ReflectionTestUtils.setField(user, "id", testId);
 
-      assertThat(user.getDeletedAt()).isNotNull();
-      verify(userRepository).findActiveById(userId);
+      UserUpdateRequest request = new UserUpdateRequest("새닉네임");
+
+      given(userRepository.findActiveById(testId)).willReturn(Optional.of(user));
+      given(userRepository.existsByNickname("새닉네임")).willReturn(true);
+
+      assertThatThrownBy(() -> userService.updateUser(testId, request))
+          .isInstanceOf(DuplicateNickNameException.class)
+          .hasMessage("이미 존재하는 닉네임입니다.");
+
+      assertThat(user.getNickname()).isEqualTo("기존닉네임");
     }
 
-    @Test
-    @DisplayName("소프트 삭제 실패 - 이미 탈퇴했거나 없는 유저")
-    void soft_delete_fail() {
-      UUID userId = UUID.randomUUID();
-      when(userRepository.findActiveById(userId)).thenReturn(Optional.empty());
+    @Nested
+    @DisplayName("유저 삭제 테스트")
+    class DeleteUser {
 
-      assertThatThrownBy(() -> userService.softDeleteUser(userId))
-          .isInstanceOf(UserNotFoundException.class)
-          .hasMessageContaining("해당 유저를 찾을 수 없습니다.");
-    }
+      @Test
+      @DisplayName("소프트 삭제 성공")
+      void success_soft_delete() {
+        UUID userId = UUID.randomUUID();
+        User user = User.builder().status(UserStatus.ACTIVE).build();
 
-    @Test
-    @DisplayName("하드 삭제 성공 - 구독자 수 감소 포함 (MON-113 복구)")
-    void success_hard_delete_decrementsSubscriberCount() {
-      
-      UUID userId = UUID.randomUUID();
-      List<UUID> interestIds = List.of(UUID.randomUUID(), UUID.randomUUID());
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
 
-      when(userRepository.existsById(userId)).thenReturn(true);
-      when(subscriptionRepository.findInterestIdsByUserId(userId)).thenReturn(interestIds);
+        userService.softDeleteUser(userId);
 
-      
-      userService.hardDeleteUser(userId);
+        assertThat(user.getDeletedAt()).isNotNull();
+        verify(userRepository).findActiveById(userId);
+      }
 
-      
-      
-      verify(interestRepository).decrementSubscriberCountAll(interestIds);
+      @Test
+      @DisplayName("소프트 삭제 실패 - 이미 탈퇴했거나 없는 유저")
+      void soft_delete_fail() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.empty());
 
-      
-      verify(commentLikeRepository).deleteAllByUserId(userId);
-      verify(notificationRepository).deleteAllByUserId(userId);
-      verify(subscriptionRepository).deleteAllByUserId(userId);
-      verify(commentRepository).deleteAllByUserId(userId);
+        assertThatThrownBy(() -> userService.softDeleteUser(userId))
+            .isInstanceOf(UserNotFoundException.class)
+            .hasMessageContaining("해당 유저를 찾을 수 없습니다.");
+      }
 
-      
-      verify(userRepository).deleteById(userId);
-    }
+      @Test
+      @DisplayName("하드 삭제 성공 - 구독자 수 감소 포함 (MON-113 복구)")
+      void success_hard_delete_decrementsSubscriberCount() {
 
-    @Test
-    @DisplayName("하드 삭제 성공 - 구독 중인 관심사가 없는 경우")
-    void success_hard_delete_no_interests() {
-      
-      UUID userId = UUID.randomUUID();
-      when(userRepository.existsById(userId)).thenReturn(true);
-      when(subscriptionRepository.findInterestIdsByUserId(userId)).thenReturn(List.of());
+        UUID userId = UUID.randomUUID();
+        List<UUID> interestIds = List.of(UUID.randomUUID(), UUID.randomUUID());
 
-      
-      userService.hardDeleteUser(userId);
+        when(userRepository.existsById(userId)).thenReturn(true);
+        when(subscriptionRepository.findInterestIdsByUserId(userId)).thenReturn(interestIds);
 
-      
-      
-      verify(interestRepository, never()).decrementSubscriberCountAll(any());
-      verify(userRepository).deleteById(userId);
-    }
-    @Test
-    @DisplayName("하드 삭제 실패- 존재하지 않는 유저 삭제 시도")
-    void hard_delete_fail(){
-      UUID userId = UUID.randomUUID();
-      when(userRepository.existsById(userId)).thenReturn(false);
-      assertThatThrownBy(()->userService.hardDeleteUser(userId))
-          .isInstanceOf(UserNotFoundException.class)
-          .hasMessageContaining("해당 유저를 찾을 수 없습니다.");
+        userService.hardDeleteUser(userId);
+
+        verify(interestRepository).decrementSubscriberCountAll(interestIds);
+
+        verify(commentLikeRepository).deleteAllByUserId(userId);
+        verify(notificationRepository).deleteAllByUserId(userId);
+        verify(subscriptionRepository).deleteAllByUserId(userId);
+        verify(commentRepository).deleteAllByUserId(userId);
+
+        verify(userRepository).deleteById(userId);
+      }
+
+      @Test
+      @DisplayName("하드 삭제 성공 - 구독 중인 관심사가 없는 경우")
+      void success_hard_delete_no_interests() {
+
+        UUID userId = UUID.randomUUID();
+        when(userRepository.existsById(userId)).thenReturn(true);
+        when(subscriptionRepository.findInterestIdsByUserId(userId)).thenReturn(List.of());
+
+        userService.hardDeleteUser(userId);
+
+        verify(interestRepository, never()).decrementSubscriberCountAll(any());
+        verify(userRepository).deleteById(userId);
+      }
+
+      @Test
+      @DisplayName("하드 삭제 실패- 존재하지 않는 유저 삭제 시도")
+      void hard_delete_fail() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.existsById(userId)).thenReturn(false);
+        assertThatThrownBy(() -> userService.hardDeleteUser(userId))
+            .isInstanceOf(UserNotFoundException.class)
+            .hasMessageContaining("해당 유저를 찾을 수 없습니다.");
+      }
     }
   }
 }
