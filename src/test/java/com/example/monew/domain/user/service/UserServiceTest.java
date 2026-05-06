@@ -187,7 +187,7 @@ class UserServiceTest {
       UserUpdateRequest request = new UserUpdateRequest("새닉네임");
 
       given(userRepository.findActiveById(testId)).willReturn(Optional.of(user));
-      given(userRepository.existsByNickName("새닉네임")).willReturn(true);
+      given(userRepository.existsByNickname("새닉네임")).willReturn(true);
 
       assertThatThrownBy(() -> userService.updateUser(testId, request))
           .isInstanceOf(DuplicateNickNameException.class)

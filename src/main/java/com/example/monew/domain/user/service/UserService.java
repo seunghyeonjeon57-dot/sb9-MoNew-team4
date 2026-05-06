@@ -91,7 +91,7 @@ public class UserService {
 
     if (!oldNickname.equals(newNickname)) {
       
-      if (userRepository.existsByNickName(newNickname)) {
+      if (userRepository.existsByNickname(newNickname)) {
         log.error("유저 수정 실패: 이미 존재하는 닉네임 -> {}", newNickname);
         throw new DuplicateNickNameException("이미 존재하는 닉네임입니다.");
       }
