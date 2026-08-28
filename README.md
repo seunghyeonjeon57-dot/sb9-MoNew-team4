@@ -1,8 +1,5 @@
 # MoNew (모뉴)
 
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=seunghyeonjeon57-dot_sb9-MoNew-team4&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=seunghyeonjeon57-dot_sb9-MoNew-team4)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=seunghyeonjeon57-dot_sb9-MoNew-team4&metric=coverage)](https://sonarcloud.io/summary/new_code?id=seunghyeonjeon57-dot_sb9-MoNew-team4)
-
 > "당신이 찾던 모든 뉴스가 한 눈에" — 관심 키워드만 등록하면 여러 언론사에 흩어진 뉴스를 매시간 자동으로 모아 맞춤형 피드로 보여주는 뉴스 큐레이션 서비스입니다.
 
 
@@ -11,7 +8,7 @@
 
 여러 언론사(Naver API, 한국경제·조선일보·연합뉴스 RSS)의 뉴스를 매시간 배치로 수집하고, 사용자가 등록한 관심사 키워드와 일치하는 기사만 필터링해서 제공합니다. 매번 같은 키워드로 검색을 반복하지 않아도 필요한 뉴스만 모아볼 수 있게 하는 게 목표였습니다. 댓글·좋아요·구독 같은 소셜 기능도 함께 넣어서, 단순 피드가 아니라 의견을 나눌 수 있는 서비스로 만들었습니다.
 
-저는 사용자 관리와 팀 공통 개발 환경 구성을 담당했습니다.
+5인 팀 프로젝트로 진행했고, 저는 사용자 관리와 팀 공통 개발 환경 구성을 담당했습니다.
 
 ---
 
@@ -25,9 +22,8 @@
 
 ### 공동 개발 환경 구성
 
-- Flyway 마이그레이션 컨벤션을 세웠습니다 — 파일명은 `V[번호]__[설명].sql` 형식으로 통일하고, 이미 DB에 반영된 마이그레이션 파일은 절대 수정하지 않고 변경이 필요하면 반드시 새 버전 파일을 추가하도록 규칙을 정했습니다
-- GitHub Actions 기반 CI 파이프라인을 구성했습니다 — PR 생성 시 테스트와 SonarCloud 정적 분석이 자동으로 돌고, Quality Gate를 통과하지 못하면 Push/Merge가 자동 차단되도록 설정했습니다
-- GitHub Webhook을 Discord와 연동해서, PR 생성·CI 빌드 결과·SonarCloud 분석·배포 상태가 팀 채널에 실시간으로 올라오게 만들었습니다. GitHub을 계속 들여다보지 않아도 리뷰 타이밍을 놓치지 않게 하려는 목적이었습니다
+- GitHub Actions 기반 CI 파이프라인을 구성했습니다 — PR 생성 시 테스트가 자동으로 돌고, 테스트가 실패하면 Push/Merge가 자동 차단되도록 설정했습니다
+- GitHub Webhook을 Discord와 연동해서, PR 생성·CI 빌드 결과·배포 상태가 팀 채널에 실시간으로 올라오게 만들었습니다. GitHub을 계속 들여다보지 않아도 리뷰 타이밍을 놓치지 않게 하려는 목적이었습니다
 - 로그 관리 — 요청별 ID를 MDC에 남기는 방식을 잡았습니다
 
 ---
@@ -52,7 +48,7 @@ Repository 계층에 `WHERE user_id = :id` 단건 삭제 옆에 `WHERE user_id I
 
 ### Hibernate 전역 ddl-auto 설정 고정
 
-Spring Boot는 연결된 DB 종류에 따라 `ddl-auto` 기본값을 자동으로 판단합니다. 스키마 변경 이력을 Flyway 하나로만 관리하기로 정했는데, 이 자동 설정을 그대로 두면 Hibernate가 스키마에 의도치 않게 관여할 여지가 있었습니다. 그래서 전체 프로파일에서 `ddl-auto=none`을 명시적으로 고정해서, 스키마 변경이 오직 Flyway 마이그레이션 파일을 통해서만 일어나도록 만들었습니다. 팀 공통 환경을 담당하면서 이 컨벤션을 정하고 공유했습니다.
+Spring Boot는 연결된 DB 종류에 따라 `ddl-auto` 기본값을 자동으로 판단합니다. 스키마 변경 이력을 마이그레이션 파일 하나로만 관리하기로 정했는데, 이 자동 설정을 그대로 두면 Hibernate가 스키마에 의도치 않게 관여할 여지가 있었습니다. 그래서 전체 프로파일에서 `ddl-auto=none`을 명시적으로 고정해서, 스키마 변경이 오직 마이그레이션 파일을 통해서만 일어나도록 만들었습니다. 팀 공통 환경을 담당하면서 이 컨벤션을 정하고 공유했습니다.
 
 ---
 
@@ -64,32 +60,18 @@ Spring Boot는 연결된 DB 종류에 따라 `ddl-auto` 기본값을 자동으�
 
 **백업/복구**: 뉴스 기사 배치 수집 중 발생할 수 있는 데이터 유실에 대비해 AWS S3에 날짜 단위로 백업하고, 필요할 때 S3 백업 데이터와 현재 DB 데이터를 비교해 유실된 기사만 새로 등록하는 복구 배치를 별도로 구성했습니다.
 
-**배포 파이프라인**: GitHub에 코드를 푸시하면 GitHub Actions가 빌드와 SonarCloud 정적 분석을 자동 실행하고, 통과한 이미지만 Docker로 빌드해 AWS ECR에 올립니다. 운영은 AWS ECS(Fargate) + RDS + MongoDB Atlas + S3를 조합한 하이브리드 클라우드 구성입니다.
-
-## 실행 방법
-
-```bash
-# 인프라 기동 (PostgreSQL 5433, MongoDB 27017)
-docker compose up -d
-
-# 앱 실행
-./gradlew bootRun
-
-# 테스트
-./gradlew test
-```
+**배포 파이프라인**: GitHub에 코드를 푸시하면 GitHub Actions가 빌드와 테스트를 자동 실행하고, 통과한 이미지만 Docker로 빌드해 AWS ECR에 올립니다. 운영은 AWS ECS(Fargate) + RDS + MongoDB Atlas + S3를 조합한 하이브리드 클라우드 구성입니다.
 
 테스트 실행 후 JaCoCo 리포트는 `build/reports/jacoco/test/html/index.html`에서 확인할 수 있습니다.
 
 ## 성과
 
-- 테스트 커버리지 93.2% 달성, 최근 30일 기준 +7.4%p 상승 (SonarCloud 기준)
-- 중복 코드 0.0% 유지
-- SonarCloud Quality Gate 통과 — CI에서 미통과 시 Push/Merge 자동 차단
+- 테스트 커버리지 93.2% 달성, 최근 30일 기준 +7.4%p 상승 (JaCoCo 기준)
+- CI에서 테스트 실패 시 Push/Merge 자동 차단
 
 ## 회고
 
-프로젝트를 시작할 땐 기능을 구현하는 것에만 급급했는데, ECS 배포나 Flyway 같은 도구를 직접 다뤄보면서 백엔드는 개발만큼이나 운영과 데이터 관리가 중요하다는 걸 체감했습니다. 다만 주요 기능을 배포한 이후 문서화나 사후 검토 같은 마무리 단계에서 팀 전체의 집중도가 떨어졌던 건 아쉬운 점으로 남습니다.
+프로젝트를 시작할 땐 기능을 구현하는 것에만 급급했는데, ECS 배포나 DB 마이그레이션 관리 같은 도구를 직접 다뤄보면서 백엔드는 개발만큼이나 운영과 데이터 관리가 중요하다는 걸 체감했습니다. 다만 주요 기능을 배포한 이후 문서화나 사후 검토 같은 마무리 단계에서 팀 전체의 집중도가 떨어졌던 건 아쉬운 점으로 남습니다.
 
 ---
 
@@ -97,15 +79,15 @@ docker compose up -d
 
 **Backend**: Java 17, Spring Boot, Spring Data JPA, Spring Data MongoDB, QueryDSL, Spring Batch, Spring Security, Bean Validation
 
-**Database**: PostgreSQL(정형 도메인 데이터), MongoDB(활동내역 조회 전용 역정규화 모델), Flyway
+**Database**: PostgreSQL(정형 도메인 데이터), MongoDB(활동내역 조회 전용 역정규화 모델)
 
 **Infra / 배포**: AWS(ECS, RDS, S3), MongoDB Atlas, Docker, GitHub Actions, GitHub Container Registry(ECR)
 
-**품질 / 협업**: SonarCloud(Quality Gate 강제), JaCoCo, Notion, Jira + GitHub 연동(PR 생성 시 'In Review', Merge 시 'Done' 자동 전환), GitHub Webhook → Discord 알림
+**품질 / 협업**: JaCoCo, Notion, Jira + GitHub 연동(PR 생성 시 'In Review', Merge 시 'Done' 자동 전환), GitHub Webhook → Discord 알림
 
 ## 팀 구성
 
-
+5인 팀 프로젝트로 진행했고, 팀장으로서 아래 두 파트 외에 다른 도메인 리뷰에도 관여했습니다.
 
 | 이름 | 담당 |
 |---|---|
