@@ -2,6 +2,7 @@ package com.example.monew.domain.comment.repository;
 
 import com.example.monew.domain.comment.dto.CommentDto;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,4 +19,5 @@ public interface CommentRepositoryCustom {
   );
   long softDeleteAllByUserId(UUID userId);
   long deleteAllByUserId(UUID userId);
+  long deleteAllByUserIdIn(Collection<UUID> userIds);
 }

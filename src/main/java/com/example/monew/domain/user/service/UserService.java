@@ -149,4 +149,34 @@ public class UserService {
 
     log.info("유저 및 연관 데이터 전체 물리 삭제 완료: ID={}", userId);
   }
+
+  /**
+   * 유저 물리삭제 배치용 벌크 버전.
+   * hardDeleteUser()를 chunk 크기만큼 반복 호출하던 것을, chunk 전체를 IN절 기반
+   * 벌크 쿼리 한 번씩으로 처리하도록 바꾼 것 (테이블당 1쿼리, 유저 수와 무관).
+   */
+  @Transactional
+  public void hardDeleteUsers(List<UUID> userIds) {
+    if (userIds.isEmpty()) {
+      return;
+    }
+
+    List<UUID> interestIds = subscriptionRepository.findInterestIdsByUserIdIn(userIds);
+
+    log.info("유저 일괄 하드 삭제 시작: {}명, 관련 관심사 개수={}", userIds.size(), interestIds.size());
+
+    commentLikeRepository.deleteAllByUserIdIn(userIds);
+    notificationRepository.deleteAllByUserIdIn(userIds);
+
+    if (!interestIds.isEmpty()) {
+      interestRepository.decrementSubscriberCountAll(interestIds);
+    }
+
+    subscriptionRepository.deleteAllByUserIdIn(userIds);
+    commentRepository.deleteAllByUserIdIn(userIds);
+    userRepository.deleteAllByIdInBatch(userIds);
+    activityService.deleteUserActivities(userIds);
+
+    log.info("유저 및 연관 데이터 일괄 물리 삭제 완료: {}명", userIds.size());
+  }
 }

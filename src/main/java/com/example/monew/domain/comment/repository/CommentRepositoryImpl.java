@@ -14,6 +14,7 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import com.querydsl.core.types.Order;
@@ -124,6 +125,16 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
   public long deleteAllByUserId(UUID userId) {
     long delete = queryFactory.delete(comment)
         .where(comment.userId.eq(userId))
+        .execute();
+    em.flush();
+    em.clear();
+    return delete;
+  }
+
+  @Override
+  public long deleteAllByUserIdIn(Collection<UUID> userIds) {
+    long delete = queryFactory.delete(comment)
+        .where(comment.userId.in(userIds))
         .execute();
     em.flush();
     em.clear();

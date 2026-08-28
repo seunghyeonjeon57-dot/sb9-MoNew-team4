@@ -23,6 +23,9 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
   @Query("SELECT s.interestId FROM Subscription s WHERE s.userId = :userId")
   List<UUID> findInterestIdsByUserId(@Param("userId") UUID userId);
 
+  @Query("SELECT s.interestId FROM Subscription s WHERE s.userId in :userIds")
+  List<UUID> findInterestIdsByUserIdIn(@Param("userIds") Collection<UUID> userIds);
+
   @Query("SELECT s.interestId FROM Subscription s "
       + "WHERE s.userId = :userId AND s.interestId IN :interestIds")
   Set<UUID> findInterestIdsByUserIdAndInterestIdIn(
@@ -39,6 +42,11 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
   @Transactional
   @Query("DELETE FROM Subscription s WHERE s.userId = :userId")
   long deleteAllByUserId(@Param("userId") UUID userId);
+
+  @Modifying
+  @Transactional
+  @Query("DELETE FROM Subscription s WHERE s.userId in :userIds")
+  long deleteAllByUserIdIn(@Param("userIds") Collection<UUID> userIds);
 
   List<Subscription> findAllByInterestId(UUID interestId);
 }

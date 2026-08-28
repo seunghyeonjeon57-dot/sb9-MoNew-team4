@@ -1,6 +1,7 @@
 package com.example.monew.domain.comment.repository;
 
 import com.example.monew.domain.comment.entity.CommentLikeEntity;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,6 +19,10 @@ public interface CommentLikeRepository extends JpaRepository<CommentLikeEntity, 
   @Modifying(clearAutomatically = true)
   @Query("delete from CommentLikeEntity c where c.userId = :userId")
   void deleteAllByUserId(@Param("userId") UUID userId);
+
+  @Modifying(clearAutomatically = true)
+  @Query("delete from CommentLikeEntity c where c.userId in :userIds")
+  void deleteAllByUserIdIn(@Param("userIds") Collection<UUID> userIds);
 
   List<CommentLikeEntity> findTop10ByUserIdOrderByCreatedAtDesc(UUID userId);
 }

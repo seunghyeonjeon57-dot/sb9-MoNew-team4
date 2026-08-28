@@ -21,7 +21,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Configuration
@@ -76,10 +78,11 @@ public class UserPurgeBatchConfig {
   @Bean
   public ItemWriter<User> userPurgeWriter() {
     return chunk -> {
-      for (User user : chunk) {
-        
-        userService.hardDeleteUser(user.getId());
-      }
+      List<UUID> userIds = chunk.getItems().stream()
+          .map(User::getId)
+          .toList();
+
+      userService.hardDeleteUsers(userIds);
       log.info("Batch Writer - {}명의 유저 물리 삭제 완료", chunk.size());
     };
   }

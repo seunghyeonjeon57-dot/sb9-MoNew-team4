@@ -2,6 +2,7 @@ package com.example.monew.domain.activity.service;
 
 import com.example.monew.domain.user.dto.UserDto;
 import com.example.monew.domain.user.exception.UserNotFoundException;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
@@ -83,6 +84,15 @@ public class ActivityService {
       log.info("MongoDB 사용자 활동 내역 삭제 성공: userId={}", userId);
     } catch (Exception e) {
       log.error("MongoDB 사용자 활동 내역 삭제 실패: userId={}, error={}", userId, e.getMessage());
+    }
+  }
+
+  public void deleteUserActivities(Collection<UUID> userIds) {
+    try {
+      long deletedCount = userActivityRepository.deleteAllByUserIdIn(userIds);
+      log.info("MongoDB 사용자 활동 내역 일괄 삭제 성공: 대상 {}명, 삭제된 문서 {}건", userIds.size(), deletedCount);
+    } catch (Exception e) {
+      log.error("MongoDB 사용자 활동 내역 일괄 삭제 실패: 대상 {}명, error={}", userIds.size(), e.getMessage());
     }
   }
 

@@ -1,22 +1,116 @@
-# 🚀 MoNew (sb9-MoNew-team4)
+# MoNew (모뉴)
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=seunghyeonjeon57-dot_sb9-MoNew-team4&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=seunghyeonjeon57-dot_sb9-MoNew-team4)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=seunghyeonjeon57-dot_sb9-MoNew-team4&metric=coverage)](https://sonarcloud.io/summary/new_code?id=seunghyeonjeon57-dot_sb9-MoNew-team4)
 
-> **MoNew**는 사용자가 원하는 키워드만 설정하면 흩어져 있는
-최신 뉴스를 자동으로 수집하여 맞춤형 피드로 제공합니다.
-> 하이버네이트의 글로벌 설정을 우회하는 트러블 슈팅 경험과 **93.2%의 높은 테스트 커버리지**를 통해 서비스의 안정성을 확보했습니다.
+> "당신이 찾던 모든 뉴스가 한 눈에" — 관심 키워드만 등록하면 여러 언론사에 흩어진 뉴스를 매시간 자동으로 모아 맞춤형 피드로 보여주는 뉴스 큐레이션 서비스입니다.
+
+
+
+## 프로젝트 소개
+
+여러 언론사(Naver API, 한국경제·조선일보·연합뉴스 RSS)의 뉴스를 매시간 배치로 수집하고, 사용자가 등록한 관심사 키워드와 일치하는 기사만 필터링해서 제공합니다. 매번 같은 키워드로 검색을 반복하지 않아도 필요한 뉴스만 모아볼 수 있게 하는 게 목표였습니다. 댓글·좋아요·구독 같은 소셜 기능도 함께 넣어서, 단순 피드가 아니라 의견을 나눌 수 있는 서비스로 만들었습니다.
+
+저는 사용자 관리와 팀 공통 개발 환경 구성을 담당했습니다.
 
 ---
 
-### 🛠️ Tech Stack
-- **Language & Framework**: **Java 17**, **Spring Boot 3.x**
-- **Persistence**: **Spring Data JPA**, **Querydsl**, **Flyway**, **PostgreSQL**, **MongoDB**
-- **Logic & Batch**: **Spring Batch**
-- **Infrastructure**: **AWS ECS (Fargate)**, ECR, S3, RDS, **Docker**
-- **Quality Control**: **SonarCloud**, GitHub Actions
+## 구현 내용
 
-### 📈 Test Strategy & Coverage
-- **Coverage**: **93.2%** (SonarCloud 기준)
-- **Focus**: 비즈니스 로직의 정합성을 보장하기 위해 Service 및 Repository 레이어에 대한 단위 테스트와 통합 테스트를 병행했습니다.
-- **Data Integrity**: **Flyway**를 활용하여 데이터베이스 스키마 마이그레이션을 버전별로 관리하고, 테스트 환경에서의 정합성을 유지했습니다.
+### 사용자 관리
+
+- 이메일·닉네임·비밀번호에 대한 유효성 검사, 이메일 중복 가입 방지, 비밀번호 보안 설정
+- 계정 삭제는 논리 삭제를 기본으로 하고, 1일 경과 후 완전 삭제되도록 배치를 구성했습니다 (프로토타입 환경에서는 테스트 편의를 위해 5분으로 단축)
+- 로그인에 성공하면 이후 모든 요청 헤더(`MoNew-Request-User-ID`)에 사용자 ID가 담기도록 해서, 별도 세션 저장소 없이 요청 단위로 사용자를 식별할 수 있게 했습니다
+
+### 공동 개발 환경 구성
+
+- Flyway 마이그레이션 컨벤션을 세웠습니다 — 파일명은 `V[번호]__[설명].sql` 형식으로 통일하고, 이미 DB에 반영된 마이그레이션 파일은 절대 수정하지 않고 변경이 필요하면 반드시 새 버전 파일을 추가하도록 규칙을 정했습니다
+- GitHub Actions 기반 CI 파이프라인을 구성했습니다 — PR 생성 시 테스트와 SonarCloud 정적 분석이 자동으로 돌고, Quality Gate를 통과하지 못하면 Push/Merge가 자동 차단되도록 설정했습니다
+- GitHub Webhook을 Discord와 연동해서, PR 생성·CI 빌드 결과·SonarCloud 분석·배포 상태가 팀 채널에 실시간으로 올라오게 만들었습니다. GitHub을 계속 들여다보지 않아도 리뷰 타이밍을 놓치지 않게 하려는 목적이었습니다
+- 로그 관리 — 요청별 ID를 MDC에 남기는 방식을 잡았습니다
+
+---
+
+## 유저 물리삭제 배치 벌크 처리 개선
+
+**문제**
+
+회원 탈퇴 처리 시 Spring Batch가 chunk(100)로 유저를 묶어 읽어오는데도, writer에서 그 묶음을 다시 유저 단위로 풀어 개별 삭제를 반복 호출하고 있었습니다. 유저 1명당 연관 테이블(댓글/좋아요/알림/구독/활동내역) 5개에 각각 쿼리가 나가서, chunk로 묶어 읽어온 이점을 삭제 단계에서 전혀 살리지 못하는 구조였습니다. RDS 환경에 실제로 재현해 측정한 결과, 유저 수에 정비례해 쿼리 수와 처리시간이 늘어나는 걸 확인했습니다(100명 7.8초/200쿼리, 500명 41.1초/1,000쿼리, 1,000명 77.8초/2,000쿼리).
+
+**해결**
+
+Repository 계층에 `WHERE user_id = :id` 단건 삭제 옆에 `WHERE user_id IN :ids` 벌크 버전을 추가했습니다(댓글, 좋아요, 알림, 구독). writer가 유저 단위로 반복 호출하던 부분을 없애고, chunk 전체 id를 모아 테이블당 쿼리 1회만 실행하도록 재구성했습니다. 로컬 환경은 DB 왕복 비용이 거의 0이라 문제가 드러나지 않는다고 판단해서, RDS(네트워크 홉이 있는 환경)에 별도로 연결해 100/500/1,000명 규모별로 재현·측정했습니다.
+
+**결과**
+
+처리시간 93% 단축(100명 기준 7.8초→0.55초), 1,000명 기준은 97.9% 단축(77.8초→1.67초)했습니다. 유저 단위 개별 DELETE에서 chunk 단위 벌크 DELETE로 바꿔 DB round trip 자체를 줄인 결과이고, 규모가 커질수록 개선폭이 커지는 걸 확인했습니다.
+
+### 물리 삭제가 수행되지 않던 문제
+
+위 개선 작업 중 발견한 별개의 버그입니다. 유저 삭제 배치를 실행할 때 물리 삭제가 수행되지 않고 테스트가 깨지는 현상이 있었는데, 원인은 `CommentEntity`에 걸려 있던 `@SQLDelete`와 `@Where(clause = "deleted_at IS NULL")` 설정이 Hibernate 전역 필터로 강제 바인딩되어 있었고, 벌크 삭제를 JPQL로 처리하는 과정에서 이 필터가 부적절한 SQL 조건을 끼워 넣어 문법 오류가 발생한 것이었습니다. JPQL 대신 Native Query로 우회해서 해결했습니다 — `@Modifying(clearAutomatically = true)`와 함께 `@Query(nativeQuery = true)`로 `comment_likes` 삭제 쿼리를 직접 작성해서 Hibernate가 쿼리를 재구성하지 못하게 하고 SQL 제어권을 직접 가져왔습니다. `clearAutomatically = true`는 벌크 연산 후 DB와 영속성 컨텍스트 사이의 데이터 불일치를 막기 위해 넣었습니다.
+
+### Hibernate 전역 ddl-auto 설정 고정
+
+Spring Boot는 연결된 DB 종류에 따라 `ddl-auto` 기본값을 자동으로 판단합니다. 스키마 변경 이력을 Flyway 하나로만 관리하기로 정했는데, 이 자동 설정을 그대로 두면 Hibernate가 스키마에 의도치 않게 관여할 여지가 있었습니다. 그래서 전체 프로파일에서 `ddl-auto=none`을 명시적으로 고정해서, 스키마 변경이 오직 Flyway 마이그레이션 파일을 통해서만 일어나도록 만들었습니다. 팀 공통 환경을 담당하면서 이 컨벤션을 정하고 공유했습니다.
+
+---
+
+## 아키텍처에서 신경 쓴 부분
+
+**레이어 분리**: config·공통 예외 처리(`GlobalException`)를 최상단에, 도메인별로 격리된 비즈니스 로직(article, user, notification, activity, comment, interest)을 중간에, Docker·GitHub Actions 기반 인프라 코드를 최하단에 두는 3단 구조로 나눴습니다. 각 도메인이 서로의 구현에 영향받지 않게 하는 게 목적이었습니다.
+
+**하이브리드 DB 전략**: 사용자·관심사·댓글처럼 무결성이 중요한 도메인 데이터는 PostgreSQL에 두고, 사용자 활동 내역(구독 목록, 최근 댓글·좋아요·조회 기사)처럼 조회 시 조인이 많이 발생하는 데이터는 MongoDB에 역정규화된 조회 전용 모델로 따로 관리했습니다. 사용자가 댓글을 달거나 좋아요를 누르거나 기사를 볼 때마다 이 조회용 모델을 갱신하는 방식이라, 활동내역 조회 시점에는 추가 조인 없이 바로 읽습니다.
+
+**백업/복구**: 뉴스 기사 배치 수집 중 발생할 수 있는 데이터 유실에 대비해 AWS S3에 날짜 단위로 백업하고, 필요할 때 S3 백업 데이터와 현재 DB 데이터를 비교해 유실된 기사만 새로 등록하는 복구 배치를 별도로 구성했습니다.
+
+**배포 파이프라인**: GitHub에 코드를 푸시하면 GitHub Actions가 빌드와 SonarCloud 정적 분석을 자동 실행하고, 통과한 이미지만 Docker로 빌드해 AWS ECR에 올립니다. 운영은 AWS ECS(Fargate) + RDS + MongoDB Atlas + S3를 조합한 하이브리드 클라우드 구성입니다.
+
+## 실행 방법
+
+```bash
+# 인프라 기동 (PostgreSQL 5433, MongoDB 27017)
+docker compose up -d
+
+# 앱 실행
+./gradlew bootRun
+
+# 테스트
+./gradlew test
+```
+
+테스트 실행 후 JaCoCo 리포트는 `build/reports/jacoco/test/html/index.html`에서 확인할 수 있습니다.
+
+## 성과
+
+- 테스트 커버리지 93.2% 달성, 최근 30일 기준 +7.4%p 상승 (SonarCloud 기준)
+- 중복 코드 0.0% 유지
+- SonarCloud Quality Gate 통과 — CI에서 미통과 시 Push/Merge 자동 차단
+
+## 회고
+
+프로젝트를 시작할 땐 기능을 구현하는 것에만 급급했는데, ECS 배포나 Flyway 같은 도구를 직접 다뤄보면서 백엔드는 개발만큼이나 운영과 데이터 관리가 중요하다는 걸 체감했습니다. 다만 주요 기능을 배포한 이후 문서화나 사후 검토 같은 마무리 단계에서 팀 전체의 집중도가 떨어졌던 건 아쉬운 점으로 남습니다.
+
+---
+
+## 기술 스택
+
+**Backend**: Java 17, Spring Boot, Spring Data JPA, Spring Data MongoDB, QueryDSL, Spring Batch, Spring Security, Bean Validation
+
+**Database**: PostgreSQL(정형 도메인 데이터), MongoDB(활동내역 조회 전용 역정규화 모델), Flyway
+
+**Infra / 배포**: AWS(ECS, RDS, S3), MongoDB Atlas, Docker, GitHub Actions, GitHub Container Registry(ECR)
+
+**품질 / 협업**: SonarCloud(Quality Gate 강제), JaCoCo, Notion, Jira + GitHub 연동(PR 생성 시 'In Review', Merge 시 'Done' 자동 전환), GitHub Webhook → Discord 알림
+
+## 팀 구성
+
+
+
+| 이름 | 담당 |
+|---|---|
+| 전승현 (본인) | 사용자 관리, 공동 환경 구성 — 비밀번호 보안 설정, 사용자 데이터 배치 관리, 로그 관리 (팀장) |
+| 이종호 | 관심사 관리 — 관심사 유사도 알고리즘, 키워드 기반 필터링·구독 시스템 |
+| 육선우 | 뉴스 기사 관리 — 기사 수집 파이프라인, AWS S3 백업 및 날짜별 복구 배치 |
+| 강현홍 | 댓글 및 활동 관리 — MongoDB 역정규화 모델 설계, 활동 로그 데이터 최적화 |
+| 최건위 | 알림 관리 — 실시간 이벤트 기반 알림 생성, 알림 삭제 배치 고도화 |

@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,4 +44,8 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   @Modifying(clearAutomatically = true)
   @Query("delete from Notification n where n.userId = :userId")
   void deleteAllByUserId(@Param("userId") UUID userId);
+
+  @Modifying(clearAutomatically = true)
+  @Query("delete from Notification n where n.userId in :userIds")
+  void deleteAllByUserIdIn(@Param("userIds") Collection<UUID> userIds);
 }
