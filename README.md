@@ -2,7 +2,7 @@
 
 > "당신이 찾던 모든 뉴스가 한 눈에" — 관심 키워드만 등록하면 여러 언론사에 흩어진 뉴스를 매시간 자동으로 모아 맞춤형 피드로 보여주는 뉴스 큐레이션 서비스입니다.
 
-배포: http://monew.duckdns.org
+
 
 ## 프로젝트 소개
 
@@ -46,9 +46,7 @@ Repository 계층에 `WHERE user_id = :id` 단건 삭제 옆에 `WHERE user_id I
 
 위 개선 작업 중 발견한 별개의 버그입니다. 유저 삭제 배치를 실행할 때 물리 삭제가 수행되지 않고 테스트가 깨지는 현상이 있었는데, 원인은 `CommentEntity`에 걸려 있던 `@SQLDelete`와 `@Where(clause = "deleted_at IS NULL")` 설정이 Hibernate 전역 필터로 강제 바인딩되어 있었고, 벌크 삭제를 JPQL로 처리하는 과정에서 이 필터가 부적절한 SQL 조건을 끼워 넣어 문법 오류가 발생한 것이었습니다. JPQL 대신 Native Query로 우회해서 해결했습니다 — `@Modifying(clearAutomatically = true)`와 함께 `@Query(nativeQuery = true)`로 `comment_likes` 삭제 쿼리를 직접 작성해서 Hibernate가 쿼리를 재구성하지 못하게 하고 SQL 제어권을 직접 가져왔습니다. `clearAutomatically = true`는 벌크 연산 후 DB와 영속성 컨텍스트 사이의 데이터 불일치를 막기 위해 넣었습니다.
 
-### Hibernate 전역 ddl-auto 설정 고정
 
-Spring Boot는 연결된 DB 종류에 따라 `ddl-auto` 기본값을 자동으로 판단합니다. 스키마 변경 이력을 마이그레이션 파일 하나로만 관리하기로 정했는데, 이 자동 설정을 그대로 두면 Hibernate가 스키마에 의도치 않게 관여할 여지가 있었습니다. 그래서 전체 프로파일에서 `ddl-auto=none`을 명시적으로 고정해서, 스키마 변경이 오직 마이그레이션 파일을 통해서만 일어나도록 만들었습니다. 팀 공통 환경을 담당하면서 이 컨벤션을 정하고 공유했습니다.
 
 ---
 
@@ -64,25 +62,8 @@ Spring Boot는 연결된 DB 종류에 따라 `ddl-auto` 기본값을 자동으�
 
 **배포 파이프라인**: GitHub에 코드를 푸시하면 GitHub Actions가 빌드와 테스트를 자동 실행하고, 통과한 이미지만 Docker로 빌드해 AWS ECR에 올립니다. 운영은 AWS ECS(Fargate) + RDS + MongoDB Atlas + S3를 조합한 하이브리드 클라우드 구성입니다.
 
-## 실행 방법
 
-```bash
-# 인프라 기동 (PostgreSQL 5433, MongoDB 27017)
-docker compose up -d
 
-# 앱 실행
-./gradlew bootRun
-
-# 테스트
-./gradlew test
-```
-
-테스트 실행 후 JaCoCo 리포트는 `build/reports/jacoco/test/html/index.html`에서 확인할 수 있습니다.
-
-## 성과
-
-- 테스트 커버리지 93.2% 달성, 최근 30일 기준 +7.4%p 상승 (JaCoCo 기준)
-- CI에서 테스트 실패 시 Push/Merge 자동 차단
 
 ## 회고
 
