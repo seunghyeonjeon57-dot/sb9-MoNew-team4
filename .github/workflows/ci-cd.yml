@@ -53,27 +53,6 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Notify Build/Push Success
-        if: always() && !failure() && !cancelled()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          status: success
-          title: "🚀 CI 빌드 성공: ${{ github.ref_name }}"
-          description: |
-            ${{ github.event_name == 'pull_request' && 'PR 테스트 빌드가 완료되었습니다.' || '소스 빌드 및 ECR 이미지 푸시가 완료되었습니다.' }}
-          color: 0x00ff00
-
-      - name: Notify Build/Push Failure
-        if: failure()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          status: failure
-          title: "❌ 빌드/푸시 실패: ${{ github.ref_name }}"
-          description: "소스 빌드 또는 Docker 과정에서 에러가 발생했습니다."
-          color: 0xff0000
-
   deploy:
     needs: build-and-push
     # main 또는 develop 브랜치에 Push 되었을 때 배포 실행
@@ -105,23 +84,3 @@ jobs:
           service: monew-task-service
           cluster: monew-cluster
           wait-for-service-stability: true
-
-      - name: Notify Deploy Success
-        if: success()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          status: success
-          title: "✅ 배포 성공 (${{ github.ref_name }}/ECS)"
-          description: "ECS 서비스에 최신 코드가 반영되었습니다."
-          color: 0x00ff00
-
-      - name: Notify Deploy Failure
-        if: failure()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          status: failure
-          title: "🆘 배포 실패 (${{ github.ref_name }}/ECS)"
-          description: "배포 과정 중 문제가 발생했습니다."
-          color: 0xff0000
