@@ -32,7 +32,7 @@
 
 **문제**
 
-회원 탈퇴 처리 시 Spring Batch가 chunk(100)로 유저를 묶어 읽어오는데도, writer에서 그 묶음을 다시 유저 단위로 풀어 개별 삭제를 반복 호출하고 있었습니다. 유저 1명당 연관 테이블(댓글/좋아요/알림/구독/활동내역) 5개에 각각 쿼리가 나가서, chunk로 묶어 읽어온 이점을 삭제 단계에서 전혀 살리지 못하는 구조였습니다. RDS 환경에 실제로 재현해 측정한 결과, 유저 수에 비례해 처리시간이 늘어나는 걸 확인했습니다(100명 7.8초, 500명 41.1초, 1,000명 77.8초).
+회원 탈퇴 처리 시 Spring Batch가 chunk(100)로 유저를 묶어 읽어오는데도, writer에서 그 묶음을 다시 유저 단위로 풀어 개별 삭제를 반복 호출하고 있었습니다. 유저 1명당 연관 테이블(댓글/좋아요/알림/구독/활동내역) 5개에 각각 쿼리가 나가서, chunk로 묶어 읽어온 이점을 삭제 단계에서 전혀 살리지 못하는 구조였습니다. RDS 환경에 실제로 재현해 측정한 결과, 유저 수에 비례해 처리시간이 늘어나는 걸 확인했습니다.
 
 **해결**
 
@@ -44,7 +44,7 @@ Repository 계층에 `WHERE user_id = :id` 단건 삭제 옆에 `WHERE user_id I
 
 ### 물리 삭제가 수행되지 않던 문제
 
-위 개선 작업 중 발견한 별개의 버그입니다. 유저 삭제 배치를 실행할 때 물리 삭제가 수행되지 않고 테스트가 깨지는 현상이 있었는데, 원인은 `CommentEntity`에 걸려 있던 `@SQLDelete`와 `@Where(clause = "deleted_at IS NULL")` 설정이 Hibernate 전역 필터로 강제 바인딩되어 있었고, 벌크 삭제를 JPQL로 처리하는 과정에서 이 필터가 부적절한 SQL 조건을 끼워 넣어 문법 오류가 발생한 것이었습니다. JPQL 대신 Native Query로 우회해서 해결했습니다 — `@Modifying(clearAutomatically = true)`와 함께 `@Query(nativeQuery = true)`로 `comment_likes` 삭제 쿼리를 직접 작성해서 Hibernate가 쿼리를 재구성하지 못하게 하고 SQL 제어권을 직접 가져왔습니다. `clearAutomatically = true`는 벌크 연산 후 DB와 영속성 컨텍스트 사이의 데이터 불일치를 막기 위해 넣었습니다.
+위 개선 작업 중 발견한 별개의 버그입니다. 유저 삭제 배치를 실행할 때 물리 삭제가 수행되지 않고 테스트가 깨지는 현상이 있었는데, 원인은 `CommentEntity`에 걸려 있던 `@SQLDelete`와 `@Where(clause = "deleted_at IS NULL")` 설정이 Hibernate 전역 필터로 강제 바인딩되어 있었고, 벌크 삭제를 JPQL로 처리하는 과정에서 이 필터가 부적절한 SQL 조건을 끼워 넣어 문법 오류가 발생한 것이었습니다. 처음엔 Native Query로 우회를 시도했지만 전역 필터 자체는 그대로 남는 임시방편이라 판단해, `@SQLDelete`와 `@Where`를 제거하고 조회 시 소프트 삭제 필터링을 QueryDSL의 명시적인 조건(`deletedAt.isNull()`)으로 옮기는 방식으로 근본적으로 해결했습니다. `@Modifying(clearAutomatically = true)`는 벌크 연산 후 DB와 영속성 컨텍스트 사이의 데이터 불일치를 막기 위해 그대로 유지했습니다.
 
 
 
