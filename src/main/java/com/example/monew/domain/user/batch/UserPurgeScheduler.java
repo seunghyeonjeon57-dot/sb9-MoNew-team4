@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class heduler {
+public class UserPurgeScheduler {
 
   private final JobLauncher jobLauncher;
   private final Job userPurgeJob;
