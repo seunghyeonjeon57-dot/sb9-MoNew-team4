@@ -42,6 +42,8 @@ Repository 계층에 `WHERE user_id = :id` 단건 삭제 옆에 `WHERE user_id I
 
 처리시간 93% 단축(100명 기준 7.8초→0.55초), 1,000명 기준은 97.9% 단축(77.8초→1.67초)했습니다. 유저 단위 개별 DELETE에서 chunk 단위 벌크 DELETE로 바꿔 DB round trip 자체를 줄인 결과이고, 규모가 커질수록 개선폭이 커지는 걸 확인했습니다.
 
+![유저 물리삭제 배치 성능 개선](docs/images/batch-delete-perf.png)
+
 ### 물리 삭제가 수행되지 않던 문제
 
 위 개선 작업 중 발견한 별개의 버그입니다. 유저 삭제 배치를 실행할 때 물리 삭제가 수행되지 않고 테스트가 깨지는 현상이 있었는데, 원인은 `CommentEntity`에 걸려 있던 `@SQLDelete`와 `@Where(clause = "deleted_at IS NULL")` 설정이 Hibernate 전역 필터로 강제 바인딩되어 있었고, 벌크 삭제를 JPQL로 처리하는 과정에서 이 필터가 부적절한 SQL 조건을 끼워 넣어 문법 오류가 발생한 것이었습니다. 처음엔 Native Query로 우회를 시도했지만 전역 필터 자체는 그대로 남는 임시방편이라 판단해, `@SQLDelete`와 `@Where`를 제거하고 조회 시 소프트 삭제 필터링을 QueryDSL의 명시적인 조건(`deletedAt.isNull()`)으로 옮기는 방식으로 근본적으로 해결했습니다. `@Modifying(clearAutomatically = true)`는 벌크 연산 후 DB와 영속성 컨텍스트 사이의 데이터 불일치를 막기 위해 그대로 유지했습니다.
@@ -57,6 +59,107 @@ Repository 계층에 `WHERE user_id = :id` 단건 삭제 옆에 `WHERE user_id I
 **레이어 분리**: config·공통 예외 처리(`GlobalException`)를 최상단에, 도메인별로 격리된 비즈니스 로직(article, user, notification, activity, comment, interest)을 중간에, Docker·GitHub Actions 기반 인프라 코드를 최하단에 두는 3단 구조로 나눴습니다. 각 도메인이 서로의 구현에 영향받지 않게 하는 게 목적이었습니다.
 
 **하이브리드 DB 전략**: 사용자·관심사·댓글처럼 무결성이 중요한 도메인 데이터는 PostgreSQL에 두고, 사용자 활동 내역(구독 목록, 최근 댓글·좋아요·조회 기사)처럼 조회 시 조인이 많이 발생하는 데이터는 MongoDB에 역정규화된 조회 전용 모델로 따로 관리했습니다. 사용자가 댓글을 달거나 좋아요를 누르거나 기사를 볼 때마다 이 조회용 모델을 갱신하는 방식이라, 활동내역 조회 시점에는 추가 조인 없이 바로 읽습니다.
+
+#### PostgreSQL ERD
+
+`db/migration` Flyway 스크립트(V1~V2) 기준 실제 스키마입니다. 모든 관계가 실제 FK 제약으로 걸려 있습니다 (mopl 프로젝트와 달리 이 프로젝트는 모듈 간 참조도 FK로 관리하는 방식을 택함). `notifications.resource_id`만 예외로, 댓글·좋아요 등 여러 리소스 타입을 `resource_type` + `resource_id` 조합으로 가리키는 다형적 참조라 FK가 아닙니다.
+
+```mermaid
+erDiagram
+    USERS {
+        uuid id PK
+        varchar email UK
+        varchar nickname
+        varchar password
+        varchar status "ACTIVE, DELETED"
+        timestamp deleted_at "소프트 삭제"
+    }
+    INTERESTS {
+        uuid id PK
+        varchar name UK
+        bigint subscriber_count "캐시값"
+        timestamp deleted_at
+    }
+    INTEREST_KEYWORDS {
+        uuid id PK
+        uuid interest_id FK
+        varchar keyword_value
+    }
+    SUBSCRIPTIONS {
+        uuid id PK
+        uuid user_id FK
+        uuid interest_id FK
+        timestamp deleted_at
+    }
+    ARTICLES {
+        uuid id PK
+        varchar source
+        text source_url UK
+        varchar title
+        bigint view_count "캐시값"
+        bigint comment_count "캐시값"
+        timestamp publish_date
+        uuid interest_id FK "nullable, ON DELETE SET NULL"
+        timestamp deleted_at
+    }
+    ARTICLE_VIEWS {
+        uuid id PK
+        uuid article_id FK
+        uuid viewed_by FK
+        varchar client_ip
+        timestamp viewed_at
+    }
+    COMMENTS {
+        uuid id PK
+        uuid article_id FK
+        uuid user_id FK
+        varchar content
+        bigint like_count "캐시값"
+        timestamp deleted_at "소프트 삭제"
+    }
+    COMMENT_LIKES {
+        uuid id PK
+        uuid comment_id FK
+        uuid user_id FK
+    }
+    NOTIFICATIONS {
+        uuid id PK
+        uuid user_id FK
+        text content
+        varchar resource_type
+        uuid resource_id "다형적 참조, FK 아님"
+        boolean is_confirmed
+    }
+
+    USERS ||--o{ SUBSCRIPTIONS : FK
+    INTERESTS ||--o{ SUBSCRIPTIONS : FK
+    INTERESTS ||--o{ INTEREST_KEYWORDS : FK
+    INTERESTS ||--o{ ARTICLES : "FK, nullable"
+    USERS ||--o{ ARTICLE_VIEWS : FK
+    ARTICLES ||--o{ ARTICLE_VIEWS : FK
+    ARTICLES ||--o{ COMMENTS : FK
+    USERS ||--o{ COMMENTS : FK
+    COMMENTS ||--o{ COMMENT_LIKES : FK
+    USERS ||--o{ COMMENT_LIKES : FK
+    USERS ||--o{ NOTIFICATIONS : FK
+```
+
+Spring Batch 메타데이터 테이블(`BATCH_JOB_INSTANCE` 등, V4)은 프레임워크가 관리하는 인프라 테이블이라 다이어그램에서 제외했습니다.
+
+#### MongoDB 활동내역 문서
+
+관계형 테이블이 아니라, 유저 1명당 문서 1개(`user_activities` 컬렉션, `_id` = `userId`)로 구독·최근 댓글·최근 좋아요·최근 조회 기사를 한 문서 안에 미리 반정규화해서 담아둡니다.
+
+```
+user_activities/{userId}
+├── userProfile          # 유저 프로필 스냅샷
+├── subscriptions[]       # 구독 중인 관심사 목록
+├── recentComments[]      # 최근 작성 댓글
+├── recentLikes[]         # 최근 좋아요
+└── recentArticles[]      # 최근 조회 기사
+```
+
+댓글 작성·좋아요·기사 조회가 일어날 때마다 이 문서를 갱신해두는 구조라, 활동내역 조회는 PostgreSQL 쪽 조인 없이 이 문서 하나만 읽으면 됩니다.
 
 **백업/복구**: 뉴스 기사 배치 수집 중 발생할 수 있는 데이터 유실에 대비해 AWS S3에 날짜 단위로 백업하고, 필요할 때 S3 백업 데이터와 현재 DB 데이터를 비교해 유실된 기사만 새로 등록하는 복구 배치를 별도로 구성했습니다.
 
